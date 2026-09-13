@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ "Edit" if product else "Add" }} Product — SIZZLING Admin</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+{% include "admin/_header.html" %}
+
+<div class="admin-wrap">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="admin-title">{{ "Edit" if product else "Add" }} Product</div>
+  <div class="admin-sub">
+    {% if product %}Update the details or replace the photo below.{% else %}Fill in the details for this item.{% endif %}
+  </div>
+
+  <div class="panel">
+    <form method="POST" enctype="multipart/form-data">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">Product Name</label>
+          <input type="text" id="name" name="name" value="{{ product.name if product else '' }}" required>
+        </div>
+        <div class="field">
+          <label for="category">Category</label>
+          <select id="category" name="category">
+            {% for key, label, size_type in categories %}
+            <option value="{{ key }}" {% if product and product.category == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" name="description">{{ product.description if product else '' }}</textarea>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="price">Price (₹, optional)</label>
+          <input type="number" id="price" name="price" step="1" min="0" value="{{ product.price if product and product.price else '' }}" placeholder="Leave blank for 'Price on request'">
+        </div>
+        <div class="field">
+          <label for="image">Product Photo</label>
+          <input type="file" id="image" name="image" accept=".png,.jpg,.jpeg,.webp">
+          <div class="help-text">JPG, PNG or WEBP, up to 8MB. Leave blank to keep the current image.</div>
+        </div>
+      </div>
+
+      {% if product %}
+      <div class="current-image">
+        <div class="help-text" style="margin-bottom:6px;">Current photo:</div>
+        <img src="{{ url_for('static', filename='images/' + product.image_path) }}" alt="{{ product.name }}">
+      </div>
+      {% endif %}
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="active" name="active" {% if not product or product.active %}checked{% endif %}>
+        <label for="active" style="margin:0;">Visible on the website</label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">{{ "Save Changes" if product else "Add Product" }}</button>
+      <a href="{{ url_for('admin_products') }}" class="btn" style="margin-left:10px;">Cancel</a>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>

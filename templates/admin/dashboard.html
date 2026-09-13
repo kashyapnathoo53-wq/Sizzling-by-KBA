@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — SIZZLING Admin</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+{% include "admin/_header.html" %}
+
+<div class="admin-wrap">
+  <div class="admin-title">Dashboard</div>
+  <div class="admin-sub">A quick look at your catalog and recent customer interest.</div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="num">{{ product_count }}</div><div class="label">Products Listed</div></div>
+    <div class="stat-card"><div class="num">{{ order_count }}</div><div class="label">Orders Placed</div></div>
+    <div class="stat-card"><div class="num">{{ pending_payment_count }}</div><div class="label">Awaiting Payment Check</div></div>
+    <div class="stat-card"><div class="num">₹{{ "%.0f"|format(paid_total) }}</div><div class="label">Confirmed Revenue</div></div>
+    <div class="stat-card"><div class="num">{{ enquiry_count }}</div><div class="label">Enquiries Received</div></div>
+    <div class="stat-card"><div class="num">{{ click_count }}</div><div class="label">"Order on WhatsApp" Clicks</div></div>
+  </div>
+
+  <div class="panel">
+    <h3>Recent Orders</h3>
+    {% if recent_orders %}
+    <table>
+      <thead><tr><th>#</th><th>Customer</th><th>Total</th><th>Status</th><th>When</th><th></th></tr></thead>
+      <tbody>
+        {% for o in recent_orders %}
+        <tr>
+          <td data-label="#">{{ o.id }}</td>
+          <td data-label="Customer">{{ o.customer_name }}</td>
+          <td data-label="Total">₹{{ "%.0f"|format(o.total) }}</td>
+          <td data-label="Status"><span class="badge {{ 'active' if o.status in ['paid','fulfilled'] else 'inactive' }}">{{ o.status.replace('_',' ') }}</span></td>
+          <td data-label="When">{{ o.created_at }}</td>
+          <td><a href="{{ url_for('admin_order_detail', order_id=o.id) }}">View →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No orders yet — they'll appear here once a customer checks out.</div>
+    {% endif %}
+    <div style="margin-top:14px;"><a href="{{ url_for('admin_orders') }}">View all orders →</a></div>
+  </div>
+
+  <div class="panel">
+    <h3>Recent Enquiries</h3>
+    {% if recent_enquiries %}
+    <table>
+      <thead><tr><th>Name</th><th>Phone</th><th>Item</th><th>Size</th><th>When</th></tr></thead>
+      <tbody>
+        {% for e in recent_enquiries %}
+        <tr>
+          <td data-label="Name">{{ e.name }}</td>
+          <td data-label="Phone">{{ e.phone }}</td>
+          <td data-label="Item">{{ e.item }}</td>
+          <td data-label="Size">{{ e.size }}</td>
+          <td data-label="When">{{ e.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No enquiries yet — they'll show up here as customers submit the order form.</div>
+    {% endif %}
+    <div style="margin-top:14px;"><a href="{{ url_for('admin_enquiries') }}">View all →</a></div>
+  </div>
+
+  <div class="panel">
+    <h3>Recent "Order on WhatsApp" Clicks</h3>
+    {% if recent_clicks %}
+    <table>
+      <thead><tr><th>Product</th><th>Category</th><th>Size</th><th>When</th></tr></thead>
+      <tbody>
+        {% for c in recent_clicks %}
+        <tr>
+          <td data-label="Product">{{ c.product_name }}</td>
+          <td data-label="Category">{{ c.category }}</td>
+          <td data-label="Size">{{ c.size }}</td>
+          <td data-label="When">{{ c.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No clicks logged yet — this fills up once customers start tapping "Order on WhatsApp" on the site.</div>
+    {% endif %}
+  </div>
+</div>
+
+</body>
+</html>

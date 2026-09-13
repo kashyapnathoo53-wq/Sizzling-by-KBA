@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pay for Order #{{ order.id }} — {{ settings.brand_name }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="simple-header">
+  <div class="wrap">
+    <a href="/" class="logo" style="font-size:20px;">SIZZLING <em>by KBA</em></a>
+    <span class="tag" style="color:#d9bd8b;">Order #{{ order.id }}</span>
+  </div>
+</div>
+
+<div class="simple-page">
+  <div class="wrap">
+    <h1>Pay via UPI</h1>
+    <p class="sub">Scan the QR code with any UPI app (Google Pay, PhonePe, Paytm, BHIM) or tap the button below on your phone.</p>
+
+    <div class="pay-box">
+      <div style="font-family:var(--mono); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; opacity:0.6;">Amount to Pay</div>
+      <div class="amount">₹{{ "%.0f"|format(order.total) }}</div>
+
+      <img class="qr" src="{{ url_for('static', filename='images/qr/order_' + order.id|string + '.png') }}" alt="UPI QR code">
+
+      <div><span class="upi-id">{{ settings.upi_id }}</span></div>
+
+      <div>
+        <a href="{{ upi_uri }}" class="btn btn-brass" style="padding:14px 30px;">Pay with UPI App</a>
+      </div>
+      <p style="font-size:12.5px; opacity:0.65; margin-top:14px;">
+        "Pay with UPI App" only works when opened on a phone that has a UPI app installed. On a computer, please scan the QR code instead.
+      </p>
+    </div>
+
+    <div class="checkout-summary">
+      <div style="font-weight:700; margin-bottom:10px;">Order Summary</div>
+      {% for i in items %}
+      <div class="checkout-line">
+        <span>{{ i.product_name }} &middot; Size {{ i.size }} &times; {{ i.qty }}</span>
+        <span>₹{{ "%.0f"|format(i.line_total) }}</span>
+      </div>
+      {% endfor %}
+      <div class="checkout-line checkout-total-line">
+        <span>Total</span>
+        <span>₹{{ "%.0f"|format(order.total) }}</span>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3 style="margin-bottom:6px;">After you've paid</h3>
+      <p style="font-size:14px; color:#666; margin-bottom:16px;">
+        Enter the UPI transaction / reference ID from your payment app so we can confirm it faster. This is optional but helps us process your order sooner.
+      </p>
+      <form id="paymentRefForm" class="payment-ref-form">
+        <input type="text" id="paymentRefInput" placeholder="e.g. 123456789012">
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+      <div id="paymentRefStatus" class="form-status"></div>
+
+      <p style="font-size:13px; margin-top:18px;">
+        Or simply <a href="{{ '#' }}" id="waConfirmLink">send us a screenshot on WhatsApp</a> — either works.
+      </p>
+
+      <div style="margin-top:22px;">
+        <a href="{{ url_for('order_confirmation', order_id=order.id) }}" class="btn btn-outline" style="width:100%;">I've Paid — View Order Status</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ORDER_ID = {{ order.id }};
+  const WHATSAPP_NUMBER = "{{ settings.whatsapp_number }}";
+  document.getElementById("waConfirmLink").href =
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi, I've just paid for Order #" + ORDER_ID + " via UPI. Sharing my payment screenshot here.")}`;
+
+  document.getElementById("paymentRefForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const ref = document.getElementById("paymentRefInput").value.trim();
+    const statusEl = document.getElementById("paymentRefStatus");
+    if (!ref) {
+      statusEl.textContent = "Please enter your transaction reference.";
+      statusEl.className = "form-status error";
+      return;
+    }
+    fetch(`/api/order/${ORDER_ID}/submit_payment_ref`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payment_ref: ref })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        statusEl.textContent = "Thanks! We'll confirm your payment shortly.";
+        statusEl.className = "form-status success";
+      } else {
+        statusEl.textContent = res.error || "Something went wrong.";
+        statusEl.className = "form-status error";
+      }
+    })
+    .catch(() => {
+      statusEl.textContent = "Could not reach the server. Please try again.";
+      statusEl.className = "form-status error";
+    });
+  });
+</script>
+
+</body>
+</html>

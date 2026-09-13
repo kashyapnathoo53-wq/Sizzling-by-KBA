@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ settings.brand_name }} — Bespoke Menswear, Karol Bagh</title>
+<meta name="description" content="{{ settings.brand_name }} — Suits, blazers, jackets, formal shirts, trousers and wedding sherwanis for men. {{ settings.address }}.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav-row">
+    <a href="#top" class="logo">SIZZLING <em>by KBA</em><small>Pvt&nbsp;Ltd &middot; Menswear &middot; Karol Bagh</small></a>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="#suits">Suits</a>
+      <a href="#blazers">Blazers</a>
+      <a href="#jackets">Jackets</a>
+      <a href="#shirts">Shirts &amp; Pants</a>
+      <a href="#sherwanis">Wedding Sherwanis</a>
+      <a href="#contact">Visit Us</a>
+    </nav>
+
+    <div class="nav-cta">
+      <a href="#enquire" class="btn btn-outline nav-only">Enquire</a>
+      <button class="cart-btn" id="cartBtn" aria-label="View cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="9" cy="20" r="1.4" fill="currentColor"/><circle cx="17" cy="20" r="1.4" fill="currentColor"/></svg>
+        Cart <span class="cart-count" id="cartCount">0</span>
+      </button>
+      <a href="#" class="btn btn-brass" id="waHeaderBtn">WhatsApp Us</a>
+      <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap hero-inner">
+    <div>
+      <span class="eyebrow">Tailored Menswear &middot; Est. Karol Bagh</span>
+      <h1>Cut sharp.<br><em>Worn with intent.</em></h1>
+      <p>Suits, blazers, jackets and formal wear built for men who want their tailoring to speak first. From the boardroom to the baraat — including sherwanis made for the groom's one big day.</p>
+      <div class="hero-ctas">
+        <a href="#sherwanis" class="btn btn-brass">Shop Wedding Sherwanis</a>
+        <a href="#suits" class="btn btn-outline">Browse Suits &amp; Blazers</a>
+      </div>
+      <div class="hero-meta">
+        <span class="tag">Upper 36–44</span>
+        <span class="tag">Lower 30–38</span>
+        <span class="tag">Men only</span>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <span class="corner tl"></span><span class="corner br"></span>
+      <svg viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#d9bd8b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M100 18 L84 34 L74 30 L58 46 L64 60 L58 250 L142 250 L136 60 L142 46 L126 30 L116 34 Z"/>
+        <path d="M84 34 L100 58 L116 34"/>
+        <path d="M100 58 L100 250"/>
+        <path d="M64 60 L100 78 L136 60"/>
+        <circle cx="100" cy="92" r="1.6" fill="#d9bd8b"/>
+        <circle cx="100" cy="112" r="1.6" fill="#d9bd8b"/>
+        <circle cx="100" cy="132" r="1.6" fill="#d9bd8b"/>
+        <circle cx="100" cy="152" r="1.6" fill="#d9bd8b"/>
+        <circle cx="100" cy="172" r="1.6" fill="#d9bd8b"/>
+        <path d="M58 46 L38 96 L48 104 L64 66" />
+        <path d="M142 46 L162 96 L152 104 L136 66"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<div class="size-strip">
+  <div class="wrap">
+    <span>Upper Garments &nbsp; 36 · 38 · 40 · 42 · 44</span>
+    <span class="divider">/</span>
+    <span>Lower Garments &nbsp; 30 · 32 · 34 · 36 · 38</span>
+    <span class="divider">/</span>
+    <span>Made for Men</span>
+  </div>
+</div>
+
+<section class="about" id="about">
+  <div class="wrap about-inner">
+    <div>
+      <span class="eyebrow">The House</span>
+      <h2>A Karol Bagh<br><em>tailoring house.</em></h2>
+      <p>{{ settings.brand_name }} is a menswear label built around one idea: formal clothing should fit like it was made for the day you're wearing it — whether that's a Monday at the office or the morning of your baraat.</p>
+      <p>From our shop on {{ settings.address }}, we put together suits, blazers, jackets, formal shirts, trousers and wedding sherwanis for men, in sizes 36 to 44 in the upper and 30 to 38 in the lower — with the fit checked, not assumed.</p>
+    </div>
+    <div class="about-card">
+      <div class="row"><span>Brand</span><span>{{ settings.brand_name }}</span></div>
+      <div class="row"><span>Proprietor</span><span>{{ settings.owner_name }}</span></div>
+      <div class="row"><span>Address</span><span>{{ settings.address }}</span></div>
+      <div class="row"><span>Category</span><span>Formal &amp; Wedding Menswear</span></div>
+      <div class="row"><span>Sizing — Upper</span><span>36 – 44</span></div>
+      <div class="row"><span>Sizing — Lower</span><span>30 – 38</span></div>
+      <div class="row"><span>Ordering</span><span>WhatsApp &amp; In-Store</span></div>
+    </div>
+  </div>
+</section>
+
+<nav class="cat-nav">
+  <div class="wrap">
+    <a class="cat-pill" href="#suits">Suits</a>
+    <a class="cat-pill" href="#blazers">Blazers</a>
+    <a class="cat-pill" href="#jackets">Jackets</a>
+    <a class="cat-pill" href="#shirts">Formal Shirts</a>
+    <a class="cat-pill" href="#pants">Formal Pants</a>
+    <a class="cat-pill groom" href="#sherwanis">Wedding Sherwanis</a>
+  </div>
+</nav>
+
+{% macro product_card(p, size_list) %}
+<div class="card">
+  <div class="card-art">
+    <img src="{{ url_for('static', filename='images/' + p.image_path) }}" alt="{{ p.name }}" loading="lazy">
+  </div>
+  <div class="card-body">
+    <h3>{{ p.name }}</h3>
+    <p class="desc">{{ p.description or "" }}</p>
+    <p class="card-price">{% if p.price %}&#8377; {{ "%.0f"|format(p.price) }}{% else %}Price on request{% endif %}</p>
+    <div class="size-select-row">
+      <label for="size-{{ p.id }}">Size</label>
+      <select id="size-{{ p.id }}">
+        {% for s in size_list %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+
+    {% if p.price %}
+    <div class="card-actions">
+      <button class="add-cart-btn"
+        data-id="{{ p.id }}" data-name="{{ p.name }}" data-category="{{ p.category }}"
+        data-price="{{ p.price }}" data-image="{{ url_for('static', filename='images/' + p.image_path) }}"
+        data-select="size-{{ p.id }}">
+        Add to Cart
+      </button>
+      <button class="buy-now-btn"
+        data-id="{{ p.id }}" data-name="{{ p.name }}" data-category="{{ p.category }}"
+        data-price="{{ p.price }}" data-image="{{ url_for('static', filename='images/' + p.image_path) }}"
+        data-select="size-{{ p.id }}">
+        Buy Now
+      </button>
+    </div>
+    <a href="#" class="wa-quick-link order-btn" data-name="{{ p.name }}" data-category="{{ p.category }}" data-select="size-{{ p.id }}">Or ask on WhatsApp instead</a>
+    {% else %}
+    <p class="no-price-note">Price on request — message us on WhatsApp for a quote.</p>
+    <button class="order-btn" data-name="{{ p.name }}" data-category="{{ p.category }}" data-select="size-{{ p.id }}">
+      Order on WhatsApp
+    </button>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{% set cat_classes = {'suits':'', 'blazers':'dark', 'jackets':'', 'shirts':'dark', 'pants':'', 'sherwanis':'groom'} %}
+{% set cat_codes = {'suits':'SZ-01', 'blazers':'SZ-02', 'jackets':'SZ-03', 'shirts':'SZ-04', 'pants':'SZ-05', 'sherwanis':'For the Groom'} %}
+{% set cat_copy = {
+  'suits':"Two-piece and three-piece suits cut for the boardroom, built for the whole day — from morning meetings to evening dinners.",
+  'blazers':"Single-breasted blazers that move easily between a formal desk and a festive evening — the one piece that upgrades everything under it.",
+  'jackets':"Structured outerwear for the months Delhi actually needs it — built to layer cleanly over a shirt without losing shape.",
+  'shirts':"The everyday layer, done properly — clean collars and a fit that holds up under a jacket or on its own.",
+  'pants':"Trousers built to be worn on their own, under a blazer, or as part of a full suit — sized 30 to 38.",
+  'sherwanis':"One outfit, one day, no room for compromise. Hand-finished sherwanis for the groom, sized and altered before the baraat — not the week after."
+} %}
+{% set cat_heading = {'suits':'Suits','blazers':'Blazers','jackets':'Jackets','shirts':'Formal Shirts','pants':'Formal Pants','sherwanis':'Wedding Sherwanis'} %}
+
+{% for key, label, size_type in categories %}
+<section class="category {{ cat_classes[key] }}" id="{{ key }}">
+  <div class="wrap">
+    <div class="cat-head">
+      <div>
+        <span class="eyebrow">{% if key == 'sherwanis' %}For the Groom{% else %}Style Code {{ cat_codes[key] }}{% endif %}</span>
+        <h2>{{ cat_heading[key] }}</h2>
+      </div>
+      <p>{{ cat_copy[key] }}</p>
+    </div>
+
+    <div class="grid">
+      {% set items = products_by_cat[key] %}
+      {% if items %}
+        {% for p in items %}
+          {{ product_card(p, upper_sizes if category_size_type[key] == 'upper' else lower_sizes) }}
+        {% endfor %}
+      {% else %}
+        <p class="empty-msg">More pieces coming soon in this category.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endfor %}
+
+<section class="enquiry" id="enquire">
+  <div class="wrap enquiry-inner">
+    <div>
+      <span class="eyebrow">Place An Order</span>
+      <h2>Tell us what<br>you need.</h2>
+      <p>Fill this in and it opens straight into WhatsApp with your details ready to send — no account, no waiting. We'll confirm fit, fabric and pickup or delivery from there.</p>
+    </div>
+
+    <div class="form-card">
+      <form id="enquiryForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="fname">Your Name</label>
+            <input type="text" id="fname" placeholder="Full name" required>
+          </div>
+          <div class="field">
+            <label for="fphone">Phone Number</label>
+            <input type="tel" id="fphone" placeholder="10-digit mobile" required>
+          </div>
+          <div class="field">
+            <label for="fitem">Item</label>
+            <select id="fitem">
+              <option>Suit</option>
+              <option>Blazer</option>
+              <option>Jacket</option>
+              <option>Formal Shirt</option>
+              <option>Formal Pants</option>
+              <option>Wedding Sherwani</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fsize">Size</label>
+            <select id="fsize">
+              <option>36</option><option>38</option><option>40</option>
+              <option>42</option><option>44</option>
+              <option disabled>——</option>
+              <option>30 (Lower)</option><option>32 (Lower)</option>
+              <option>34 (Lower)</option><option>36 (Lower)</option>
+              <option>38 (Lower)</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label for="fmsg">Anything else? (colour, occasion, date needed by)</label>
+            <textarea id="fmsg" placeholder="e.g. Wedding on 14th Dec, prefer maroon"></textarea>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-ink">Send Enquiry on WhatsApp</button>
+        <div id="formStatus" class="form-status"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer class="contact" id="contact">
+  <div class="wrap">
+    <div class="contact-inner">
+      <div>
+        <span class="eyebrow">Visit The Shop</span>
+        <h2>Come in for a fitting, not just a fitting room.</h2>
+        <div class="contact-ctas">
+          <a href="#" class="btn btn-brass" id="waFooterBtn">WhatsApp</a>
+          <a href="#" class="btn btn-outline" id="callFooterBtn">Call Shop</a>
+        </div>
+      </div>
+
+      <div class="contact-block">
+        <h4>Address</h4>
+        <p>{{ settings.brand_name }}<br>{{ settings.address }}</p>
+        <a href="https://www.google.com/maps/search/?api=1&query={{ settings.address | urlencode }}" target="_blank" rel="noopener">Get Directions →</a>
+      </div>
+
+      <div class="contact-block">
+        <h4>Proprietor</h4>
+        <p>{{ settings.owner_name }}</p>
+        <h4 style="margin-top:22px;">Hours</h4>
+        <p>{{ settings.hours | safe }}</p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span class="logo">SIZZLING <em>by KBA</em></span>
+      <span>&copy; <span id="year"></span> {{ settings.brand_name }}. All rights reserved.</span>
+    </div>
+  </div>
+</footer>
+
+<a href="#" class="wa-float" id="waFloatBtn" aria-label="Chat on WhatsApp">
+  <svg viewBox="0 0 32 32" fill="#fff"><path d="M16 3C9 3 3.3 8.7 3.3 15.7c0 2.5.7 4.9 2 7L3 29l6.5-2.2c2 1.1 4.2 1.7 6.5 1.7 7 0 12.7-5.7 12.7-12.7C28.7 8.7 23 3 16 3zm0 23c-2 0-4-.5-5.7-1.6l-.4-.2-4 1.3 1.3-3.9-.3-.4a10.4 10.4 0 0 1-1.6-5.5C5.3 9.8 10.1 5 16 5s10.7 4.8 10.7 10.7S21.9 26 16 26zm5.9-8c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a8.7 8.7 0 0 1-2.6-1.6 9.6 9.6 0 0 1-1.8-2.2c-.2-.3 0-.5.1-.6l.5-.6.3-.5c.1-.2 0-.4 0-.5l-1-2.3c-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.7.3a2.9 2.9 0 0 0-.9 2.1c0 1.3.9 2.5 1 2.7.1.2 1.8 2.9 4.5 4a15.9 15.9 0 0 0 1.5.5c.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.6-.4z"/></svg>
+</a>
+
+<!-- CART DRAWER -->
+<div class="cart-overlay" id="cartOverlay"></div>
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-drawer-head">
+    <h3>Your Cart</h3>
+    <button class="cart-close" id="cartCloseBtn" aria-label="Close cart">&times;</button>
+  </div>
+  <div class="cart-items" id="cartItemsContainer">
+    <div class="cart-drawer-empty">Your cart is empty.</div>
+  </div>
+  <div class="cart-drawer-foot" id="cartFoot" style="display:none;">
+    <div class="cart-subtotal-row"><span>Subtotal</span><span id="cartSubtotal">₹0</span></div>
+    <a href="/checkout" class="btn btn-brass" style="width:100%;">Proceed to Checkout</a>
+  </div>
+</div>
+
+<script>
+  const SIZZLING_SETTINGS = {
+    whatsapp_number: "{{ settings.whatsapp_number }}",
+    shop_phone: "{{ settings.shop_phone }}",
+    brand_name: "{{ settings.brand_name }}"
+  };
+</script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>

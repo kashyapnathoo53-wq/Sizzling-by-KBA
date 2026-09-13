@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order #{{ order.id }} — {{ settings.brand_name }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="simple-header">
+  <div class="wrap">
+    <a href="/" class="logo" style="font-size:20px;">SIZZLING <em>by KBA</em></a>
+    <a href="/" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px;">← Back to Shop</a>
+  </div>
+</div>
+
+<div class="simple-page">
+  <div class="wrap">
+
+    <div class="confirm-box">
+      <div class="check">&#10003;</div>
+      <h1>Order Received</h1>
+      <p class="sub">Order #{{ order.id }} — we'll confirm your payment and get started shortly.</p>
+    </div>
+
+    <div class="checkout-summary">
+      <div class="checkout-line">
+        <span>Status</span>
+        <span style="text-transform:capitalize;">{{ order.status.replace('_',' ') }}</span>
+      </div>
+      <div class="checkout-line">
+        <span>Customer</span>
+        <span>{{ order.customer_name }}</span>
+      </div>
+      <div class="checkout-line">
+        <span>Phone</span>
+        <span>{{ order.phone }}</span>
+      </div>
+      {% for i in items %}
+      <div class="checkout-line">
+        <span>{{ i.product_name }} &middot; Size {{ i.size }} &times; {{ i.qty }}</span>
+        <span>₹{{ "%.0f"|format(i.line_total) }}</span>
+      </div>
+      {% endfor %}
+      <div class="checkout-line checkout-total-line">
+        <span>Total</span>
+        <span>₹{{ "%.0f"|format(order.total) }}</span>
+      </div>
+    </div>
+
+    {% if order.status == 'pending_payment' %}
+    <div style="text-align:center;">
+      <a href="{{ url_for('order_pay', order_id=order.id) }}" class="btn btn-brass">Complete Payment →</a>
+    </div>
+    {% else %}
+    <p style="text-align:center; color:#666; font-size:14.5px;">
+      Questions about your order? Message us on WhatsApp at
+      <a href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" rel="noopener">{{ settings.whatsapp_number }}</a>.
+    </p>
+    {% endif %}
+
+  </div>
+</div>
+
+</body>
+</html>

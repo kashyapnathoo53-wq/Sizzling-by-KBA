@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Products — SIZZLING Admin</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+{% include "admin/_header.html" %}
+
+<div class="admin-wrap">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="actions-row">
+    <div>
+      <div class="admin-title">Products</div>
+      <div class="admin-sub">Add real photos and edit anything shown on the website.</div>
+    </div>
+    <a href="{{ url_for('admin_product_new') }}" class="btn btn-primary">+ Add Product</a>
+  </div>
+
+  <div class="panel">
+    {% if products %}
+    <table>
+      <thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td data-label="Image"><img class="thumb" src="{{ url_for('static', filename='images/' + p.image_path) }}" alt=""></td>
+          <td data-label="Name">{{ p.name }}</td>
+          <td data-label="Category">{{ category_labels.get(p.category, p.category) }}</td>
+          <td data-label="Price">{% if p.price %}₹{{ "%.0f"|format(p.price) }}{% else %}—{% endif %}</td>
+          <td data-label="Status">
+            {% if p.active %}<span class="badge active">Live</span>{% else %}<span class="badge inactive">Hidden</span>{% endif %}
+          </td>
+          <td data-label="Actions">
+            <a class="btn btn-sm" href="{{ url_for('admin_product_edit', product_id=p.id) }}">Edit</a>
+            <form method="POST" action="{{ url_for('admin_product_delete', product_id=p.id) }}" style="display:inline;" data-confirm-delete="{{ p.name }}">
+              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No products yet. Click "+ Add Product" to add your first item.</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.querySelectorAll("form[data-confirm-delete]").forEach(form => {
+  form.addEventListener("submit", (e) => {
+    const name = form.getAttribute("data-confirm-delete");
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) {
+      e.preventDefault();
+    }
+  });
+});
+</script>
+
+</body>
+</html>

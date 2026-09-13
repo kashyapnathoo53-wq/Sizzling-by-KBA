@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order #{{ order.id }} — SIZZLING Admin</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+{% include "admin/_header.html" %}
+
+<div class="admin-wrap">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="admin-title">Order #{{ order.id }}</div>
+  <div class="admin-sub">Placed {{ order.created_at }}</div>
+
+  <div class="panel">
+    <h3>Customer</h3>
+    <p><strong>{{ order.customer_name }}</strong><br>
+    {{ order.phone }}<br>
+    {{ order.address }}</p>
+    {% if order.notes %}<p style="margin-top:10px;"><strong>Notes:</strong> {{ order.notes }}</p>{% endif %}
+  </div>
+
+  <div class="panel">
+    <h3>Items</h3>
+    <table>
+      <thead><tr><th>Product</th><th>Size</th><th>Qty</th><th>Price</th><th>Line Total</th></tr></thead>
+      <tbody>
+        {% for i in items %}
+        <tr>
+          <td data-label="Product">{{ i.product_name }}</td>
+          <td data-label="Size">{{ i.size }}</td>
+          <td data-label="Qty">{{ i.qty }}</td>
+          <td data-label="Price">₹{{ "%.0f"|format(i.price) }}</td>
+          <td data-label="Line Total">₹{{ "%.0f"|format(i.line_total) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="text-align:right; font-weight:700; margin-top:14px; font-size:16px;">
+      Total: ₹{{ "%.0f"|format(order.total) }}
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Payment</h3>
+    <p><strong>UPI reference submitted by customer:</strong>
+      {% if order.payment_ref %}{{ order.payment_ref }}{% else %}<em>Not submitted yet</em>{% endif %}
+    </p>
+    <div class="help-text" style="margin-top:8px;">
+      Always check your own UPI app / bank statement for the actual credit before marking this order "Paid — Confirmed". The reference above is only what the customer typed in — it is not verified automatically.
+    </div>
+
+    <form method="POST" style="margin-top:18px;">
+      <div class="field">
+        <label for="status">Order Status</label>
+        <select id="status" name="status">
+          {% for value, label in statuses %}
+          <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Update Status</button>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>

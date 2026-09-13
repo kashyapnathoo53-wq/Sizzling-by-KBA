@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout — {{ settings.brand_name }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="simple-header">
+  <div class="wrap">
+    <a href="/" class="logo" style="font-size:20px;">SIZZLING <em>by KBA</em></a>
+    <a href="/" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px;">← Back to Shop</a>
+  </div>
+</div>
+
+<div class="simple-page">
+  <div class="wrap">
+    <h1>Checkout</h1>
+    <p class="sub">Review your items, add your details, and you'll get a UPI QR code to pay on the next step.</p>
+
+    <div class="checkout-summary" id="checkoutSummary">
+      <!-- Filled by JS from the cart -->
+    </div>
+
+    <div class="form-card">
+      <form id="checkoutForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="cname">Full Name</label>
+            <input type="text" id="cname" required>
+          </div>
+          <div class="field">
+            <label for="cphone">Phone Number</label>
+            <input type="tel" id="cphone" required>
+          </div>
+          <div class="field full">
+            <label for="caddress">Delivery / Pickup Address</label>
+            <textarea id="caddress" rows="2" required placeholder="Full address, or write 'Pickup from shop'"></textarea>
+          </div>
+          <div class="field full">
+            <label for="cnotes">Anything else? (optional)</label>
+            <textarea id="cnotes" rows="2" placeholder="e.g. Need it altered, wedding date, etc."></textarea>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-ink" id="checkoutSubmitBtn" style="margin-top:22px; width:100%;">Continue to Payment</button>
+        <div id="checkoutStatus" class="form-status"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/checkout.js') }}"></script>
+
+</body>
+</html>

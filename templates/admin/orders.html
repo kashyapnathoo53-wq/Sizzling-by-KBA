@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orders — SIZZLING Admin</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+{% include "admin/_header.html" %}
+
+<div class="admin-wrap">
+  <div class="admin-title">Orders</div>
+  <div class="admin-sub">Payments are collected via UPI and confirmed manually — check your UPI app for the actual credit before marking an order "Paid".</div>
+
+  <div class="panel">
+    {% if orders %}
+    <table>
+      <thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Total</th><th>Status</th><th>When</th><th></th></tr></thead>
+      <tbody>
+        {% for o in orders %}
+        <tr>
+          <td data-label="#">{{ o.id }}</td>
+          <td data-label="Customer">{{ o.customer_name }}</td>
+          <td data-label="Phone">{{ o.phone }}</td>
+          <td data-label="Total">₹{{ "%.0f"|format(o.total) }}</td>
+          <td data-label="Status">
+            <span class="badge {{ 'active' if o.status in ['paid','fulfilled'] else 'inactive' }}">{{ status_labels.get(o.status, o.status) }}</span>
+          </td>
+          <td data-label="When">{{ o.created_at }}</td>
+          <td><a href="{{ url_for('admin_order_detail', order_id=o.id) }}">View →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No orders placed yet.</div>
+    {% endif %}
+  </div>
+</div>
+
+</body>
+</html>

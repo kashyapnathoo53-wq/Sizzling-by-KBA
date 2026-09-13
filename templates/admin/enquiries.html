@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enquiries — SIZZLING Admin</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+{% include "admin/_header.html" %}
+
+<div class="admin-wrap">
+  <div class="admin-title">Enquiries &amp; Order Interest</div>
+  <div class="admin-sub">Everything submitted through the site's enquiry form and every "Order on WhatsApp" tap.</div>
+
+  <div class="panel">
+    <h3>Enquiry Form Submissions ({{ enquiries|length }})</h3>
+    {% if enquiries %}
+    <table>
+      <thead><tr><th>Name</th><th>Phone</th><th>Item</th><th>Size</th><th>Notes</th><th>When</th></tr></thead>
+      <tbody>
+        {% for e in enquiries %}
+        <tr>
+          <td data-label="Name">{{ e.name }}</td>
+          <td data-label="Phone">{{ e.phone }}</td>
+          <td data-label="Item">{{ e.item }}</td>
+          <td data-label="Size">{{ e.size }}</td>
+          <td data-label="Notes">{{ e.notes }}</td>
+          <td data-label="When">{{ e.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No enquiries submitted yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h3>"Order on WhatsApp" Click Log (last 100)</h3>
+    {% if clicks %}
+    <table>
+      <thead><tr><th>Product</th><th>Category</th><th>Size</th><th>When</th></tr></thead>
+      <tbody>
+        {% for c in clicks %}
+        <tr>
+          <td data-label="Product">{{ c.product_name }}</td>
+          <td data-label="Category">{{ c.category }}</td>
+          <td data-label="Size">{{ c.size }}</td>
+          <td data-label="When">{{ c.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No clicks logged yet.</div>
+    {% endif %}
+  </div>
+</div>
+
+</body>
+</html>

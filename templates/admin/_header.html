@@ -1,0 +1,12 @@
+<div class="admin-header">
+  <div class="brand">SIZZLING <span>by KBA — Admin</span></div>
+  <nav class="admin-nav">
+    <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('admin_products') }}">Products</a>
+    <a href="{{ url_for('admin_orders') }}">Orders</a>
+    <a href="{{ url_for('admin_enquiries') }}">Enquiries</a>
+    <a href="{{ url_for('admin_settings') }}">Settings</a>
+    <a href="/" target="_blank">View Site ↗</a>
+    <a class="logout" href="{{ url_for('admin_logout') }}">Log Out</a>
+  </nav>
+</div>
