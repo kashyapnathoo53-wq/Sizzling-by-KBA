@@ -9,22 +9,39 @@
   :root {
     --gold: #b08d57;
     --gold-light: #dfc691;
-    --dark-card: #ffffff;
     --border: #e2ded2;
   }
-  .admin-wrap { max-width: 1280px; margin: 0 auto; padding: 28px 20px 60px; }
+  .admin-wrap { max-width: 1320px; margin: 0 auto; padding: 28px 20px 60px; }
   .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
   .stat-card {
     background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.03); position: relative; overflow: hidden;
   }
-  .stat-card.alert-card { border-color: #f59e0b; background: #fffdfa; }
+  .stat-card.alert-card { border-color: #f59e0b; background: #fffdf8; }
   .stat-card .num { font-size: 28px; font-weight: 700; color: #1c1c1c; font-family: 'Fraunces', serif; }
   .stat-card.alert-card .num { color: #d97706; }
-  .stat-card .label { font-size: 12.5px; color: #666; margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-card .label { font-size: 12px; color: #666; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* Section Titles */
+  .section-banner {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 20px; margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  }
+  .section-banner.alert-banner {
+    background: #fffbeb; border-color: #f59e0b;
+  }
+  .section-title { font-size: 17px; font-weight: 700; color: #1c1c1c; display: flex; align-items: center; gap: 8px; }
+  .section-desc { font-size: 13px; color: #666; margin-top: 2px; }
+
+  /* Verification Cards */
+  .verify-card {
+    background: #fff; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin-bottom: 16px;
+    display: grid; grid-template-columns: 240px 1fr 260px; gap: 20px; align-items: start;
+    box-shadow: 0 4px 14px rgba(245,158,11,0.1);
+  }
 
   .filter-bar {
-    display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; justify-content: space-between;
   }
   .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
   .filter-tab {
@@ -38,8 +55,6 @@
     padding: 2px 7px; border-radius: 10px; font-size: 11px; background: #eee; color: #444; font-weight: 700;
   }
   .filter-tab.active .count-badge { background: #333; color: #fff; }
-  .filter-tab.alert-tab { border-color: #f59e0b; color: #b45309; }
-  .filter-tab.alert-tab .count-badge { background: #fef3c7; color: #b45309; }
 
   .search-form { display: flex; gap: 8px; }
   .search-input {
@@ -50,7 +65,7 @@
 
   .orders-table-card {
     background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.03); margin-bottom: 32px;
   }
   .order-row-item {
     padding: 20px 24px; border-bottom: 1px solid #eee; display: grid;
@@ -79,10 +94,10 @@
   .order-total-display { font-size: 18px; font-weight: 800; color: #b08d57; margin-top: 8px; font-family: 'Fraunces', serif; }
 
   /* Status Badges */
-  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
   .badge-awaiting_payment_confirmation { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
   .badge-pending_payment { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-  .badge-payment_reported { background: #fffbeb; color: #d97706; border: 1px solid #f59e0b; animation: pulse 2s infinite; }
+  .badge-payment_reported { background: #fffbeb; color: #d97706; border: 1px solid #f59e0b; }
   .badge-confirmed { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
   .badge-tailoring { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
   .badge-trial_ready { background: #cffafe; color: #0e7490; border: 1px solid #a5f3fc; }
@@ -98,13 +113,19 @@
   .pay-verified { background: #dcfce7; color: #15803d; }
 
   .quick-verify-btn {
-    width: 100%; background: #16a34a; color: #fff; border: none; padding: 9px 12px; border-radius: 6px;
-    font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; background: #16a34a; color: #fff; border: none; padding: 10px 14px; border-radius: 6px;
+    font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
     transition: background 0.15s;
   }
   .quick-verify-btn:hover { background: #15803d; }
 
-  .update-form { margin-top: 12px; background: #fbfaf8; border: 1px solid #ede8de; padding: 12px; border-radius: 6px; }
+  .quick-reject-btn {
+    width: 100%; background: #fff; color: #dc2626; border: 1px solid #fca5a5; padding: 8px 12px; border-radius: 6px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .quick-reject-btn:hover { background: #fee2e2; }
+
+  .update-form { margin-top: 10px; background: #fbfaf8; border: 1px solid #ede8de; padding: 12px; border-radius: 6px; }
   .update-select { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12.5px; background: #fff; margin-bottom: 8px; }
   .update-input { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; margin-bottom: 8px; box-sizing: border-box; }
   .save-status-btn {
@@ -120,7 +141,7 @@
   .whatsapp-link:hover { background: #1ebc59; text-decoration: none; }
 
   @media (max-width: 900px) {
-    .order-row-item { grid-template-columns: 1fr; gap: 14px; }
+    .verify-card, .order-row-item { grid-template-columns: 1fr; gap: 14px; }
     .search-input { width: 100%; }
     .search-form { width: 100%; }
   }
@@ -133,13 +154,14 @@
 <div class="admin-wrap">
   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
     <div>
-      <div class="admin-title">Orders &amp; Tailoring Database</div>
+      <div class="admin-title">Orders Management Database</div>
       <div class="admin-sub" style="margin-bottom:0;">
-        Review received customer orders, verify UPI payment confirmation, and update live tailoring status.
+        Orders are <strong>only taken after bank payment verification</strong>. Review incoming payment proofs, confirm orders, and update live tailoring progress.
       </div>
     </div>
-    <div>
-      <a href="{{ url_for('admin_orders') }}" class="btn btn-outline" style="padding:8px 14px;">↻ Refresh Orders</a>
+    <div style="display:flex; gap:10px;">
+      <a href="{{ url_for('admin_export_orders_csv') }}" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px;">📥 Export Database (CSV)</a>
+      <a href="{{ url_for('admin_orders') }}" class="btn btn-primary" style="padding:8px 14px; font-size:12.5px;">↻ Refresh</a>
     </div>
   </div>
 
@@ -152,8 +174,8 @@
   <!-- Stats Overview Cards -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="num">{{ total_orders }}</div>
-      <div class="label">Total Orders Received</div>
+      <div class="num">{{ confirmed_count + dispatched_count + delivered_count }}</div>
+      <div class="label">Orders Officially Taken</div>
     </div>
     <div class="stat-card {% if needs_verify_count > 0 %}alert-card{% endif %}">
       <div class="num">{{ needs_verify_count }}</div>
@@ -161,7 +183,7 @@
     </div>
     <div class="stat-card">
       <div class="num">{{ confirmed_count }}</div>
-      <div class="label">✂️ Confirmed / In Tailoring</div>
+      <div class="label">✂️ In Tailoring &amp; Cutting</div>
     </div>
     <div class="stat-card">
       <div class="num">{{ dispatched_count + delivered_count }}</div>
@@ -173,17 +195,113 @@
     </div>
   </div>
 
+  <!-- SECTION 1: INCOMING ORDERS WAITING FOR PAYMENT VERIFICATION -->
+  {% set pending_verify_orders = [] %}
+  {% for o in orders if (o.status == 'payment_reported' or o.payment_status == 'payment_submitted') %}
+    {% set _ = pending_verify_orders.append(o) %}
+  {% endfor %}
+
+  {% if pending_verify_orders %}
+  <div class="section-banner alert-banner">
+    <div>
+      <div class="section-title" style="color:#b45309;">
+        ⚠️ Action Required: Incoming Orders Pending Payment Verification ({{ pending_verify_orders|length }})
+      </div>
+      <div class="section-desc">
+        These customers have submitted UPI reference numbers. <strong>Verify the credit in your bank app, then click "Verify Payment &amp; Accept Order" to officially take the order.</strong>
+      </div>
+    </div>
+  </div>
+
+  {% for o in pending_verify_orders %}
+  <div class="verify-card">
+    <!-- Left Col: Order ID & Payment Info -->
+    <div>
+      <div class="order-id-badge">Order Request #{{ o.id }}</div>
+      <div class="order-time">{{ o.created_at[:16] }}</div>
+      <div class="order-total-display">₹{{ "%.0f"|format(o.total) }}</div>
+
+      <div style="margin-top:12px; background:#fffbeb; border:1px solid #f59e0b; padding:10px 12px; border-radius:6px;">
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#b45309; letter-spacing:0.04em;">
+          Submitted UPI UTR / Ref:
+        </div>
+        <div style="font-family:monospace; font-size:15px; font-weight:700; color:#111; margin-top:2px;">
+          {{ o.payment_ref or 'Pending Submission' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Col: Customer & Garment Details -->
+    <div>
+      <div class="customer-name">
+        👤 {{ o.customer_name }}
+        <a href="https://wa.me/91{{ o.phone }}?text={{ ('Hi ' ~ o.customer_name ~ ', this is SIZZLING by KBA regarding your payment verification for Order #' ~ o.id ~ '.')|urlencode }}" 
+           class="whatsapp-link" target="_blank" rel="noopener">
+          💬 WhatsApp
+        </a>
+      </div>
+      <div class="customer-phone">📞 <a href="tel:{{ o.phone }}">+91 {{ o.phone }}</a></div>
+      <div class="customer-address">📍 <strong>Delivery Address:</strong> {{ o.address }}</div>
+      {% if o.notes %}
+      <div class="customer-notes">📝 <strong>Customer Notes:</strong> {{ o.notes }}</div>
+      {% endif %}
+
+      <div class="items-tag-list">
+        {% for item in o.order_items %}
+        <div class="item-chip">
+          <div>
+            <strong>{{ item.product_name }}</strong>
+            <span class="qty-size">· Size <strong>{{ item.size }}</strong> &times; {{ item.qty }}</span>
+          </div>
+          <div style="font-weight:700;">₹{{ "%.0f"|format(item.line_total) }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Right Col: Verify & Take Order Buttons -->
+    <div>
+      <form method="POST" action="{{ url_for('admin_verify_payment', order_id=o.id) }}">
+        <button type="submit" class="quick-verify-btn" onclick="return confirm('Confirm bank credit for Order #{{ o.id }} and accept order?');">
+          ✓ Verify Payment &amp; Take Order
+        </button>
+      </form>
+
+      <form method="POST" action="{{ url_for('admin_reject_payment', order_id=o.id) }}" style="margin-top:8px;">
+        <input type="hidden" name="reason" value="Payment could not be verified in bank records.">
+        <button type="submit" class="quick-reject-btn" onclick="return confirm('Decline this order request because payment was not verified?');">
+          ✕ Reject / Payment Not Found
+        </button>
+      </form>
+
+      <div style="text-align:center; margin-top:8px;">
+        <a href="{{ url_for('admin_order_detail', order_id=o.id) }}" style="font-size:12px; color:#666; text-decoration:underline;">View Full Invoice ↗</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- SECTION 2: MASTER ORDERS DATABASE (ACCEPTED & CONFIRMED ORDERS) -->
+  <div class="section-banner" style="margin-top:28px;">
+    <div>
+      <div class="section-title">
+        📋 Master Orders Database (Accepted &amp; Confirmed Orders)
+      </div>
+      <div class="section-desc">
+        All orders that have been verified, taken, and are progressing through tailoring and delivery.
+      </div>
+    </div>
+  </div>
+
   <!-- Filter Tabs & Search Bar -->
   <div class="filter-bar">
     <div class="filter-tabs">
       <a href="{{ url_for('admin_orders') }}" class="filter-tab {% if not filter_status %}active{% endif %}">
         All Orders <span class="count-badge">{{ total_orders }}</span>
       </a>
-      <a href="{{ url_for('admin_orders', status='needs_verify') }}" class="filter-tab alert-tab {% if filter_status == 'needs_verify' %}active{% endif %}">
-        ⚠️ Needs Verify <span class="count-badge">{{ needs_verify_count }}</span>
-      </a>
       <a href="{{ url_for('admin_orders', status='confirmed') }}" class="filter-tab {% if filter_status == 'confirmed' %}active{% endif %}">
-        ✂️ In Tailoring <span class="count-badge">{{ confirmed_count }}</span>
+        ✂️ In Tailoring / Confirmed <span class="count-badge">{{ confirmed_count }}</span>
       </a>
       <a href="{{ url_for('admin_orders', status='dispatched') }}" class="filter-tab {% if filter_status == 'dispatched' %}active{% endif %}">
         🚚 Dispatched <span class="count-badge">{{ dispatched_count }}</span>
@@ -192,13 +310,13 @@
         ✅ Delivered <span class="count-badge">{{ delivered_count }}</span>
       </a>
       <a href="{{ url_for('admin_orders', status='unpaid') }}" class="filter-tab {% if filter_status == 'unpaid' %}active{% endif %}">
-        ⏳ Unpaid / Pending <span class="count-badge">{{ unpaid_count }}</span>
+        ⏳ Unpaid Requests <span class="count-badge">{{ unpaid_count }}</span>
       </a>
     </div>
 
     <form method="GET" action="{{ url_for('admin_orders') }}" class="search-form">
       <input type="hidden" name="status" value="{{ filter_status }}">
-      <input type="text" name="q" value="{{ search }}" placeholder="Search by customer, phone, or ref..." class="search-input">
+      <input type="text" name="q" value="{{ search }}" placeholder="Search customer, phone, order #..." class="search-input">
       <button type="submit" class="search-btn">Search</button>
       {% if search %}
       <a href="{{ url_for('admin_orders', status=filter_status) }}" class="btn btn-outline" style="padding:8px 12px; font-size:12px;">Clear</a>
@@ -206,7 +324,7 @@
     </form>
   </div>
 
-  <!-- Orders Database List -->
+  <!-- Database Table -->
   <div class="orders-table-card">
     {% if orders %}
       {% for o in orders %}
@@ -220,13 +338,13 @@
           </div>
           <div class="order-time">{{ o.created_at[:16] }}</div>
 
-          <div style="margin-top:12px;">
+          <div style="margin-top:10px;">
             <span class="badge badge-{{ o.status }}">
               {{ status_labels.get(o.status, o.status.replace('_',' ').title()) }}
             </span>
           </div>
 
-          <div style="margin-top:6px;">
+          <div style="margin-top:4px;">
             <span class="pay-status-pill {% if o.payment_status == 'payment_verified' %}pay-verified{% elif o.payment_status == 'payment_submitted' %}pay-submitted{% else %}pay-unpaid{% endif %}">
               💳 {{ payment_status_labels.get(o.payment_status, o.payment_status or 'Unpaid') }}
             </span>
@@ -235,9 +353,8 @@
           <div class="order-total-display">₹{{ "%.0f"|format(o.total) }}</div>
 
           {% if o.payment_ref %}
-          <div style="margin-top:8px; font-size:11.5px; color:#555;">
-            <strong>UPI Ref / UTR:</strong><br>
-            <span style="font-family:monospace; background:#eee; padding:2px 6px; border-radius:3px; font-size:12px; color:#111;">{{ o.payment_ref }}</span>
+          <div style="margin-top:8px; font-size:11px; color:#555;">
+            <strong>UPI Ref:</strong> <span style="font-family:monospace; background:#eee; padding:1px 5px; border-radius:3px;">{{ o.payment_ref }}</span>
           </div>
           {% endif %}
         </div>
@@ -247,19 +364,19 @@
           <div class="customer-name">
             👤 {{ o.customer_name }}
             <a href="https://wa.me/91{{ o.phone }}?text={{ ('Hi ' ~ o.customer_name ~ ', this is SIZZLING by KBA regarding your Order #' ~ o.id ~ '.')|urlencode }}" 
-               class="whatsapp-link" target="_blank" rel="noopener" title="Open direct WhatsApp chat with customer">
+               class="whatsapp-link" target="_blank" rel="noopener" title="Direct WhatsApp chat">
               💬 WhatsApp
             </a>
           </div>
           <div class="customer-phone">
-            📞 <a href="tel:{{ o.phone }}" style="color:#2563eb;">+91 {{ o.phone }}</a>
+            📞 <a href="tel:{{ o.phone }}">+91 {{ o.phone }}</a>
           </div>
           <div class="customer-address">
             📍 <strong>Address:</strong> {{ o.address }}
           </div>
           {% if o.notes %}
           <div class="customer-notes">
-            📝 <strong>Customer Tailoring Note:</strong> {{ o.notes }}
+            📝 <strong>Customer Notes:</strong> {{ o.notes }}
           </div>
           {% endif %}
 
@@ -269,7 +386,7 @@
           </div>
           {% endif %}
 
-          <!-- Garment Items In This Order -->
+          <!-- Garment Items -->
           <div class="items-tag-list">
             {% for item in o.order_items %}
             <div class="item-chip">
@@ -283,21 +400,19 @@
           </div>
         </div>
 
-        <!-- Right: Actions & Live Status Updater -->
+        <!-- Right: Status Updater -->
         <div>
-          <!-- Quick Payment Verification Button -->
           {% if o.payment_status == 'payment_submitted' or o.status == 'payment_reported' %}
-          <form method="POST" action="{{ url_for('admin_verify_payment', order_id=o.id) }}">
-            <button type="submit" class="quick-verify-btn" onclick="return confirm('Confirm payment received in your bank for Order #{{ o.id }}?');">
-              ✓ Verify Payment (Confirm)
+          <form method="POST" action="{{ url_for('admin_verify_payment', order_id=o.id) }}" style="margin-bottom:8px;">
+            <button type="submit" class="quick-verify-btn" onclick="return confirm('Verify bank credit for Order #{{ o.id }}?');">
+              ✓ Verify Payment &amp; Take Order
             </button>
           </form>
           {% endif %}
 
-          <!-- Detailed Status & Notes Updater -->
           <div class="update-form">
-            <div style="font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; margin-bottom:6px;">
-              Update Order Status:
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; margin-bottom:4px;">
+              Update Tailoring Status:
             </div>
             <form method="POST" action="{{ url_for('admin_update_order_status', order_id=o.id) }}">
               <select name="status" class="update-select">
@@ -306,7 +421,7 @@
                 {% endfor %}
               </select>
 
-              <div style="font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; margin-bottom:4px;">
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; margin-bottom:4px;">
                 Payment Status:
               </div>
               <select name="payment_status" class="update-select">
@@ -315,7 +430,7 @@
                 {% endfor %}
               </select>
 
-              <input type="text" name="admin_notes" class="update-input" value="{{ o.admin_notes or '' }}" placeholder="Tracking # or tailor notes (visible to user)...">
+              <input type="text" name="admin_notes" class="update-input" value="{{ o.admin_notes or '' }}" placeholder="Courier # or tailor notes (customer sees live)...">
 
               <button type="submit" class="save-status-btn">Save Update</button>
             </form>

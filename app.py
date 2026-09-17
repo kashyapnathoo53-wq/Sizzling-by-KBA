@@ -677,12 +677,15 @@ def admin_dashboard():
     product_count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
     enquiry_count = conn.execute("SELECT COUNT(*) FROM enquiries").fetchone()[0]
     click_count = conn.execute("SELECT COUNT(*) FROM order_clicks").fetchone()[0]
-    order_count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+    # Only verified/accepted orders count as taken orders
+    order_count = conn.execute(
+        "SELECT COUNT(*) FROM orders WHERE payment_status='payment_verified' OR status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered')"
+    ).fetchone()[0]
     pending_payment_count = conn.execute(
-        "SELECT COUNT(*) FROM orders WHERE status IN ('pending_payment','payment_reported')"
+        "SELECT COUNT(*) FROM orders WHERE status='payment_reported' OR payment_status='payment_submitted'"
     ).fetchone()[0]
     paid_total = conn.execute(
-        "SELECT COALESCE(SUM(total),0) FROM orders WHERE status IN ('paid','fulfilled')"
+        "SELECT COALESCE(SUM(total),0) FROM orders WHERE payment_status='payment_verified' OR status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered')"
     ).fetchone()[0]
     recent_enquiries = conn.execute(
         "SELECT * FROM enquiries ORDER BY id DESC LIMIT 5"
@@ -933,6 +936,56 @@ def admin_verify_payment(order_id):
     conn.close()
     flash(f"Payment for Order #{order_id} verified and order marked Confirmed.", "success")
     return redirect(request.referrer or url_for("admin_orders"))
+
+
+@app.route("/admin/orders/<int:order_id>/reject_payment", methods=["POST"])
+@login_required
+def admin_reject_payment(order_id):
+    conn = get_db()
+    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    reason = request.form.get("reason", "UPI payment could not be verified in bank records.").strip()
+    conn.execute(
+        """UPDATE orders 
+           SET payment_status='payment_rejected', status='cancelled', admin_notes=?, updated_at=?
+           WHERE id=?""",
+        (reason, now_str, order_id)
+    )
+    conn.commit()
+    conn.close()
+    flash(f"Order #{order_id} payment marked rejected / order declined.", "error")
+    return redirect(request.referrer or url_for("admin_orders"))
+
+
+@app.route("/admin/orders/export/csv")
+@login_required
+def admin_export_orders_csv():
+    import csv
+    from flask import Response
+
+    conn = get_db()
+    orders = conn.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
+    
+    si = io.StringIO()
+    writer = csv.writer(si)
+    writer.writerow([
+        "Order ID", "Customer Name", "Phone", "Total (INR)", "Status",
+        "Payment Status", "UPI Ref / UTR", "Created At", "Address",
+        "Customer Notes", "Store Notes"
+    ])
+    for o in orders:
+        writer.writerow([
+            o["id"], o["customer_name"], o["phone"], f"{float(o['total']):.0f}",
+            o["status"], o["payment_status"], o["payment_ref"] or "",
+            o["created_at"], o["address"] or "", o["notes"] or "", o["admin_notes"] or ""
+        ])
+    conn.close()
+
+    output = si.getvalue()
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=sizzling_orders_database.csv"}
+    )
 
 
 @app.route("/admin/orders/<int:order_id>/update_status", methods=["POST"])
