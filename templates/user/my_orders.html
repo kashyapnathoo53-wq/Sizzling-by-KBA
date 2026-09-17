@@ -51,9 +51,9 @@
           </div>
         </div>
         <div class="order-card-foot">
-          {% if order.status == 'pending_payment' %}
-          <a href="{{ url_for('order_pay', order_id=order.id) }}" class="btn btn-brass" style="padding:10px 20px; font-size:13px;">
-            Complete Payment →
+          {% if order.status in ['pending_payment', 'awaiting_payment_confirmation'] %}
+          <a href="{{ url_for('order_pay', order_id=order.id) }}" class="btn btn-brass" style="padding:10px 20px; font-size:13px; font-weight:700;">
+            Complete Payment &amp; Submit UTR →
           </a>
           {% endif %}
           <a href="{{ url_for('my_order_detail', order_id=order.id) }}" class="btn btn-ink" style="padding:10px 20px; font-size:13px;">

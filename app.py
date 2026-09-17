@@ -154,17 +154,28 @@ def init_db():
         address TEXT,
         notes TEXT,
         total REAL,
-        status TEXT DEFAULT 'pending_payment',
+        status TEXT DEFAULT 'awaiting_payment_confirmation',
+        payment_status TEXT DEFAULT 'unpaid',
         payment_ref TEXT,
+        payment_verified_at TEXT,
+        admin_notes TEXT,
+        updated_at TEXT DEFAULT (datetime('now')),
         created_at TEXT DEFAULT (datetime('now'))
     )
     """)
 
-    # Add customer_id column to existing orders table if it doesn't exist (migration)
-    try:
-        cur.execute("ALTER TABLE orders ADD COLUMN customer_id INTEGER")
-    except Exception:
-        pass  # Column already exists
+    # Auto-migrate columns for existing databases
+    for col, col_def in [
+        ("customer_id", "INTEGER"),
+        ("payment_status", "TEXT DEFAULT 'unpaid'"),
+        ("payment_verified_at", "TEXT"),
+        ("admin_notes", "TEXT"),
+        ("updated_at", "TEXT"),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE orders ADD COLUMN {col} {col_def}")
+        except Exception:
+            pass
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS order_items(
@@ -431,7 +442,32 @@ def api_log_click():
 # =====================================================================
 @app.route("/checkout")
 def checkout():
-    return render_template("checkout.html", settings=get_settings())
+    customer = None
+    last_address = ""
+    cust_id = session.get("customer_id")
+    cust_phone = session.get("customer_phone")
+    conn = get_db()
+    if cust_id or cust_phone:
+        if cust_id:
+            customer = conn.execute("SELECT * FROM customers WHERE id=?", (cust_id,)).fetchone()
+        if not customer and cust_phone:
+            customer = conn.execute("SELECT * FROM customers WHERE phone=?", (cust_phone,)).fetchone()
+
+        if customer:
+            last_order = conn.execute(
+                "SELECT address FROM orders WHERE (customer_id=? OR phone=?) AND address IS NOT NULL AND address != '' ORDER BY id DESC LIMIT 1",
+                (customer["id"], customer["phone"])
+            ).fetchone()
+            if last_order and last_order["address"]:
+                last_address = last_order["address"]
+    conn.close()
+
+    return render_template(
+        "checkout.html",
+        settings=get_settings(),
+        customer=customer,
+        last_address=last_address,
+    )
 
 
 @app.route("/api/create_order", methods=["POST"])
@@ -444,12 +480,16 @@ def api_create_order():
         return jsonify({"success": False, "error": "Your cart is empty."}), 400
 
     name = (customer.get("name") or "").strip()
-    phone = (customer.get("phone") or "").strip()
+    raw_phone = (customer.get("phone") or "").strip()
+    if not raw_phone and session.get("customer_phone"):
+        raw_phone = session.get("customer_phone")
+
+    phone = _normalize_phone(raw_phone)
     address = (customer.get("address") or "").strip()
     notes = (customer.get("notes") or "").strip()
 
     if not name or not phone or not address:
-        return jsonify({"success": False, "error": "Name, phone and address are required."}), 400
+        return jsonify({"success": False, "error": "Name, phone and delivery address are required."}), 400
 
     conn = get_db()
     cur = conn.cursor()
@@ -484,10 +524,13 @@ def api_create_order():
         conn.close()
         return jsonify({"success": False, "error": "None of the items in your cart could be ordered."}), 400
 
+    cust_id = session.get("customer_id")
+    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
     cur.execute("""
-        INSERT INTO orders(customer_name, phone, address, notes, total, status)
-        VALUES (?,?,?,?,?, 'pending_payment')
-    """, (name, phone, address, notes, total))
+        INSERT INTO orders(customer_name, phone, address, notes, total, status, payment_status, customer_id, created_at, updated_at)
+        VALUES (?,?,?,?,?, 'awaiting_payment_confirmation', 'unpaid', ?, ?, ?)
+    """, (name, phone, address, notes, total, cust_id, now_str, now_str))
     order_id = cur.lastrowid
 
     for oi in order_items:
@@ -497,18 +540,17 @@ def api_create_order():
         """, (order_id, oi["product_id"], oi["product_name"], oi["category"],
               oi["size"], oi["price"], oi["qty"], oi["line_total"]))
 
+    # Update customer name if provided and previously empty or default
+    if cust_id and name and name != "Customer":
+        try:
+            cur.execute("UPDATE customers SET name=? WHERE id=? AND (name IS NULL OR name='Customer')", (name, cust_id))
+        except Exception:
+            pass
+
     conn.commit()
     conn.close()
 
-    # Also link order to customer if they are logged in
-    cust_id = session.get("customer_id")
-    if cust_id:
-        conn2 = get_db()
-        conn2.execute("UPDATE orders SET customer_id=? WHERE id=?", (cust_id, order_id))
-        conn2.commit()
-        conn2.close()
-
-    _generate_upi_qr(order_id, total)  # generate (side-effect: updates upi uri, ignore return)
+    _generate_upi_qr(order_id, total)  # generate UPI QR code
 
     return jsonify({
         "success": True,
@@ -563,7 +605,7 @@ def api_submit_payment_ref(order_id):
     data = request.json or {}
     ref = (data.get("payment_ref") or "").strip()
     if not ref:
-        return jsonify({"success": False, "error": "Please enter your UPI transaction reference."}), 400
+        return jsonify({"success": False, "error": "Please enter your UPI transaction reference / UTR."}), 400
 
     conn = get_db()
     order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
@@ -571,13 +613,19 @@ def api_submit_payment_ref(order_id):
         conn.close()
         return jsonify({"success": False, "error": "Order not found."}), 404
 
+    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     conn.execute(
-        "UPDATE orders SET payment_ref=?, status='payment_reported' WHERE id=?",
-        (ref, order_id),
+        """UPDATE orders 
+           SET payment_ref=?, status='payment_reported', payment_status='payment_submitted', updated_at=? 
+           WHERE id=?""",
+        (ref, now_str, order_id),
     )
     conn.commit()
     conn.close()
-    return jsonify({"success": True})
+    return jsonify({
+        "success": True,
+        "redirect": url_for("order_confirmation", order_id=order_id)
+    })
 
 
 @app.route("/order/<int:order_id>/confirmation")
@@ -771,38 +819,158 @@ def admin_product_delete(product_id):
 # Orders (UPI payments — manual verification)
 # ---------------------------------------------------------------
 ORDER_STATUSES = [
-    ("pending_payment", "Pending Payment"),
-    ("payment_reported", "Payment Reported by Customer"),
-    ("confirmed", "Confirmed & Accepted"),
-    ("dispatched", "Dispatched / In Transit"),
+    ("awaiting_payment_confirmation", "Awaiting Payment Confirmation"),
+    ("payment_reported", "Payment Submitted (Needs Verification)"),
+    ("confirmed", "Payment Verified & Order Confirmed"),
+    ("tailoring", "In Tailoring & Fabric Cutting"),
+    ("trial_ready", "Trial Ready at Karol Bagh Store"),
+    ("dispatched", "Dispatched / Out for Delivery"),
+    ("delivered", "Delivered / Handed Over"),
     ("cancelled", "Cancelled"),
+]
+
+PAYMENT_STATUSES = [
+    ("unpaid", "Unpaid / Pending"),
+    ("payment_submitted", "Payment Submitted (Verify Ref)"),
+    ("payment_verified", "Verified & Paid"),
+    ("payment_rejected", "Rejected / Invalid"),
 ]
 
 
 @app.route("/admin/orders")
 @login_required
 def admin_orders():
+    filter_status = request.args.get("status", "").strip()
+    search = request.args.get("q", "").strip()
+
     conn = get_db()
-    orders = conn.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
+    total_orders = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+    needs_verify_count = conn.execute(
+        "SELECT COUNT(*) FROM orders WHERE status='payment_reported' OR payment_status='payment_submitted'"
+    ).fetchone()[0]
+    confirmed_count = conn.execute(
+        "SELECT COUNT(*) FROM orders WHERE status IN ('confirmed', 'tailoring', 'trial_ready')"
+    ).fetchone()[0]
+    dispatched_count = conn.execute(
+        "SELECT COUNT(*) FROM orders WHERE status='dispatched'"
+    ).fetchone()[0]
+    delivered_count = conn.execute(
+        "SELECT COUNT(*) FROM orders WHERE status='delivered'"
+    ).fetchone()[0]
+    unpaid_count = conn.execute(
+        "SELECT COUNT(*) FROM orders WHERE status IN ('awaiting_payment_confirmation', 'pending_payment') AND (payment_ref IS NULL OR payment_ref='')"
+    ).fetchone()[0]
+    total_revenue = conn.execute(
+        "SELECT COALESCE(SUM(total), 0) FROM orders WHERE payment_status='payment_verified' OR status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered')"
+    ).fetchone()[0]
+
+    query = "SELECT * FROM orders WHERE 1=1"
+    params = []
+    if filter_status == "needs_verify":
+        query += " AND (status='payment_reported' OR payment_status='payment_submitted')"
+    elif filter_status == "confirmed":
+        query += " AND status IN ('confirmed', 'tailoring', 'trial_ready')"
+    elif filter_status == "dispatched":
+        query += " AND status='dispatched'"
+    elif filter_status == "delivered":
+        query += " AND status='delivered'"
+    elif filter_status == "unpaid":
+        query += " AND status IN ('awaiting_payment_confirmation', 'pending_payment') AND (payment_ref IS NULL OR payment_ref='')"
+    elif filter_status in dict(ORDER_STATUSES):
+        query += " AND status=?"
+        params.append(filter_status)
+
+    if search:
+        query += " AND (customer_name LIKE ? OR phone LIKE ? OR id LIKE ? OR payment_ref LIKE ? OR address LIKE ?)"
+        term = f"%{search}%"
+        params.extend([term, term, term, term, term])
+
+    query += " ORDER BY id DESC"
+    orders_rows = conn.execute(query, params).fetchall()
+
+    orders = []
+    for row in orders_rows:
+        o = dict(row)
+        items = conn.execute(
+            "SELECT * FROM order_items WHERE order_id=?", (o["id"],)
+        ).fetchall()
+        o["order_items"] = [dict(i) for i in items]
+        orders.append(o)
+
     conn.close()
-    status_labels = dict(ORDER_STATUSES)
+
     return render_template(
-        "admin/orders.html", orders=orders, status_labels=status_labels
+        "admin/orders.html",
+        orders=orders,
+        status_labels=dict(ORDER_STATUSES),
+        payment_status_labels=dict(PAYMENT_STATUSES),
+        statuses=ORDER_STATUSES,
+        payment_statuses=PAYMENT_STATUSES,
+        filter_status=filter_status,
+        search=search,
+        total_orders=total_orders,
+        needs_verify_count=needs_verify_count,
+        confirmed_count=confirmed_count,
+        dispatched_count=dispatched_count,
+        delivered_count=delivered_count,
+        unpaid_count=unpaid_count,
+        total_revenue=total_revenue,
     )
+
+
+@app.route("/admin/orders/<int:order_id>/verify_payment", methods=["POST"])
+@login_required
+def admin_verify_payment(order_id):
+    conn = get_db()
+    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute(
+        """UPDATE orders 
+           SET payment_status='payment_verified', status='confirmed', payment_verified_at=?, updated_at=?
+           WHERE id=?""",
+        (now_str, now_str, order_id)
+    )
+    conn.commit()
+    conn.close()
+    flash(f"Payment for Order #{order_id} verified and order marked Confirmed.", "success")
+    return redirect(request.referrer or url_for("admin_orders"))
 
 
 @app.route("/admin/orders/<int:order_id>/update_status", methods=["POST"])
 @login_required
 def admin_update_order_status(order_id):
     new_status = request.form.get("status")
+    payment_status = request.form.get("payment_status")
+    admin_notes = request.form.get("admin_notes", "").strip()
+
     valid_statuses = [s[0] for s in ORDER_STATUSES]
+    conn = get_db()
+    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+    updates = []
+    params = []
     if new_status in valid_statuses:
-        conn = get_db()
-        conn.execute("UPDATE orders SET status=? WHERE id=?", (new_status, order_id))
+        updates.append("status=?")
+        params.append(new_status)
+    if payment_status in [s[0] for s in PAYMENT_STATUSES]:
+        updates.append("payment_status=?")
+        params.append(payment_status)
+        if payment_status == "payment_verified":
+            updates.append("payment_verified_at=?")
+            params.append(now_str)
+    if "admin_notes" in request.form:
+        updates.append("admin_notes=?")
+        params.append(admin_notes)
+
+    if updates:
+        updates.append("updated_at=?")
+        params.append(now_str)
+        params.append(order_id)
+        query = f"UPDATE orders SET {', '.join(updates)} WHERE id=?"
+        conn.execute(query, params)
         conn.commit()
-        conn.close()
-        flash(f"Order #{order_id} status updated to {new_status.replace('_', ' ').title()}.", "success")
-    return redirect(url_for("admin_orders"))
+        flash(f"Order #{order_id} updated successfully.", "success")
+    conn.close()
+    return redirect(request.referrer or url_for("admin_orders"))
 
 
 @app.route("/admin/orders/<int:order_id>", methods=["GET", "POST"])
@@ -812,10 +980,32 @@ def admin_order_detail(order_id):
 
     if request.method == "POST":
         new_status = request.form.get("status")
+        payment_status = request.form.get("payment_status")
+        admin_notes = request.form.get("admin_notes", "").strip()
+        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+        updates = []
+        params = []
         if new_status in dict(ORDER_STATUSES):
-            conn.execute("UPDATE orders SET status=? WHERE id=?", (new_status, order_id))
+            updates.append("status=?")
+            params.append(new_status)
+        if payment_status in dict(PAYMENT_STATUSES):
+            updates.append("payment_status=?")
+            params.append(payment_status)
+            if payment_status == "payment_verified":
+                updates.append("payment_verified_at=?")
+                params.append(now_str)
+        if "admin_notes" in request.form:
+            updates.append("admin_notes=?")
+            params.append(admin_notes)
+
+        if updates:
+            updates.append("updated_at=?")
+            params.append(now_str)
+            params.append(order_id)
+            conn.execute(f"UPDATE orders SET {', '.join(updates)} WHERE id=?", params)
             conn.commit()
-            flash("Order status updated.", "success")
+            flash("Order updated successfully.", "success")
 
     order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
     if order is None:
@@ -827,7 +1017,13 @@ def admin_order_detail(order_id):
     conn.close()
 
     return render_template(
-        "admin/order_detail.html", order=order, items=items, statuses=ORDER_STATUSES
+        "admin/order_detail.html",
+        order=order,
+        items=items,
+        statuses=ORDER_STATUSES,
+        payment_statuses=PAYMENT_STATUSES,
+        status_labels=dict(ORDER_STATUSES),
+        payment_status_labels=dict(PAYMENT_STATUSES),
     )
 
 
@@ -954,8 +1150,8 @@ def _login_or_register_customer(clean_phone, name=None):
 
     if existing:
         cust_id = existing["id"]
-        if name and (not existing["name"] or existing["name"] == "Customer"):
-            conn.execute("UPDATE customers SET name=? WHERE id=?", (name, cust_id))
+        if name and name.strip():
+            conn.execute("UPDATE customers SET name=? WHERE id=?", (name.strip(), cust_id))
     else:
         conn.execute(
             "INSERT INTO customers(name, phone) VALUES (?,?)",

@@ -3,71 +3,149 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Order #{{ order.id }} — SIZZLING Admin</title>
+<title>Order #{{ order.id }} Invoice &amp; Details — SIZZLING by KBA Admin</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
 
 {% include "admin/_header.html" %}
 
-<div class="admin-wrap">
+<div class="admin-wrap" style="max-width:960px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+    <div>
+      <div class="admin-title">Order #{{ order.id }} Details</div>
+      <div class="admin-sub">Placed on {{ order.created_at }}</div>
+    </div>
+    <div>
+      <a href="{{ url_for('admin_orders') }}" class="btn btn-outline">← Back to All Orders</a>
+    </div>
+  </div>
+
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
       <div class="flash {{ category }}">{{ message }}</div>
     {% endfor %}
   {% endwith %}
 
-  <div class="admin-title">Order #{{ order.id }}</div>
-  <div class="admin-sub">Placed {{ order.created_at }}</div>
-
+  <!-- Customer Contact Card -->
   <div class="panel">
-    <h3>Customer</h3>
-    <p><strong>{{ order.customer_name }}</strong><br>
-    {{ order.phone }}<br>
-    {{ order.address }}</p>
-    {% if order.notes %}<p style="margin-top:10px;"><strong>Notes:</strong> {{ order.notes }}</p>{% endif %}
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px;">
+      <div>
+        <h3 style="margin-top:0;">Customer Identity</h3>
+        <p style="font-size:16px; font-weight:700; color:#111; margin:0 0 6px 0;">{{ order.customer_name }}</p>
+        <p style="margin:0 0 8px 0; font-size:14px; color:#555;">
+          📞 <strong>Mobile:</strong> <a href="tel:{{ order.phone }}">+91 {{ order.phone }}</a>
+        </p>
+        <p style="margin:0 0 8px 0; font-size:14px; color:#555;">
+          📍 <strong>Delivery Address:</strong> {{ order.address }}
+        </p>
+        {% if order.notes %}
+        <p style="margin:8px 0 0 0; background:#fefce8; padding:8px 12px; border-radius:4px; font-size:13px; color:#854d0e; border-left:3px solid #eab308;">
+          📝 <strong>Customer Notes:</strong> {{ order.notes }}
+        </p>
+        {% endif %}
+      </div>
+      <div>
+        <a href="https://wa.me/91{{ order.phone }}?text={{ ('Hi ' ~ order.customer_name ~ ', this is SIZZLING by KBA regarding your Order #' ~ order.id ~ '.')|urlencode }}"
+           class="btn btn-primary" target="_blank" rel="noopener" style="background:#25d366; border-color:#25d366; font-weight:700;">
+          💬 Chat with Customer on WhatsApp
+        </a>
+      </div>
+    </div>
   </div>
 
+  <!-- Ordered Garments -->
   <div class="panel">
-    <h3>Items</h3>
+    <h3 style="margin-top:0;">Garments in this Order</h3>
     <table>
-      <thead><tr><th>Product</th><th>Size</th><th>Qty</th><th>Price</th><th>Line Total</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Product / Garment</th>
+          <th>Size</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Line Total</th>
+        </tr>
+      </thead>
       <tbody>
         {% for i in items %}
         <tr>
-          <td data-label="Product">{{ i.product_name }}</td>
-          <td data-label="Size">{{ i.size }}</td>
+          <td data-label="Product"><strong>{{ i.product_name }}</strong></td>
+          <td data-label="Size"><span style="background:#eee; padding:2px 8px; border-radius:3px; font-weight:600;">{{ i.size }}</span></td>
           <td data-label="Qty">{{ i.qty }}</td>
           <td data-label="Price">₹{{ "%.0f"|format(i.price) }}</td>
-          <td data-label="Line Total">₹{{ "%.0f"|format(i.line_total) }}</td>
+          <td data-label="Line Total" style="font-weight:700;">₹{{ "%.0f"|format(i.line_total) }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-    <div style="text-align:right; font-weight:700; margin-top:14px; font-size:16px;">
+    <div style="text-align:right; font-weight:800; margin-top:16px; font-size:20px; color:#b08d57;">
       Total: ₹{{ "%.0f"|format(order.total) }}
     </div>
   </div>
 
+  <!-- Payment & Status Management -->
   <div class="panel">
-    <h3>Payment</h3>
-    <p><strong>UPI reference submitted by customer:</strong>
-      {% if order.payment_ref %}{{ order.payment_ref }}{% else %}<em>Not submitted yet</em>{% endif %}
-    </p>
-    <div class="help-text" style="margin-top:8px;">
-      Always check your own UPI app / bank statement for the actual credit before marking this order "Paid — Confirmed". The reference above is only what the customer typed in — it is not verified automatically.
+    <h3 style="margin-top:0;">Payment &amp; Tailoring Status</h3>
+    
+    <div style="background:#f9f8f5; border:1px solid #e5e0d4; padding:16px; border-radius:6px; margin-bottom:18px;">
+      <div>
+        <strong>UPI Reference / UTR submitted by Customer:</strong><br>
+        {% if order.payment_ref %}
+          <span style="font-family:monospace; font-size:16px; font-weight:700; color:#111; background:#fff; padding:4px 10px; border-radius:4px; border:1px solid #ccc; display:inline-block; margin-top:4px;">
+            {{ order.payment_ref }}
+          </span>
+        {% else %}
+          <em style="color:#888;">No payment reference submitted yet</em>
+        {% endif %}
+      </div>
+
+      <div style="margin-top:10px; font-size:13px; color:#666;">
+        Current Payment Status: 
+        <strong style="color:{% if order.payment_status == 'payment_verified' %}#15803d{% elif order.payment_status == 'payment_submitted' %}#d97706{% else %}#b91c1c{% endif %};">
+          {{ payment_status_labels.get(order.payment_status, order.payment_status or 'Unpaid') }}
+        </strong>
+        {% if order.payment_verified_at %}
+          <span style="font-size:12px; color:#888;">(Verified at {{ order.payment_verified_at }})</span>
+        {% endif %}
+      </div>
+
+      {% if order.payment_status == 'payment_submitted' or order.status == 'payment_reported' %}
+      <form method="POST" action="{{ url_for('admin_verify_payment', order_id=order.id) }}" style="margin-top:12px;">
+        <button type="submit" class="btn btn-primary" style="background:#16a34a; border-color:#16a34a; font-weight:700;">
+          ✓ Confirm Credit in Bank &amp; Mark Verified
+        </button>
+      </form>
+      {% endif %}
     </div>
 
-    <form method="POST" style="margin-top:18px;">
-      <div class="field">
-        <label for="status">Order Status</label>
-        <select id="status" name="status">
-          {% for value, label in statuses %}
-          <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
+    <form method="POST">
+      <div class="field-row">
+        <div class="field">
+          <label for="status">Order Tailoring / Fulfillment Status</label>
+          <select id="status" name="status">
+            {% for value, label in statuses %}
+            <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="payment_status">Payment Status</label>
+          <select id="payment_status" name="payment_status">
+            {% for pval, plab in payment_statuses %}
+            <option value="{{ pval }}" {% if order.payment_status == pval %}selected{% endif %}>{{ plab }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
-      <button type="submit" class="btn btn-primary">Update Status</button>
+
+      <div class="field">
+        <label for="admin_notes">Store / Tailor Update Note (Visible to Customer on Tracking Screen)</label>
+        <input type="text" id="admin_notes" name="admin_notes" value="{{ order.admin_notes or '' }}" placeholder="e.g. Fabric cut and handed to Master Tailor Ramesh. Trial scheduled for Saturday.">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="padding:10px 24px;">Save All Updates</button>
     </form>
   </div>
 </div>

@@ -59,31 +59,30 @@
 
     <!-- Payment Reference Submission -->
     <div class="form-card" id="payRefSection">
-      <h3 style="margin-bottom:6px;">Step 2 — Submit your payment reference</h3>
-      <p style="font-size:14px; color:#666; margin-bottom:16px;">
-        After paying, enter the UPI transaction / reference ID from your payment app. <strong>Your order will be confirmed once we verify this.</strong>
+      <h3 style="margin-bottom:6px; color:#ffffff;">Step 2 — Confirm Payment to Place Order</h3>
+      <p style="font-size:14px; color:#aaa; margin-bottom:18px; line-height:1.5;">
+        After completing your UPI payment, enter the <strong>12-digit UPI Reference / UTR Number</strong> from your payment app below. <strong>Your order will not be processed until payment confirmation is submitted.</strong>
       </p>
       <form id="paymentRefForm" class="payment-ref-form">
-        <input type="text" id="paymentRefInput" placeholder="e.g. 123456789012" autocomplete="off">
-        <button type="submit" class="btn btn-primary">Submit Reference</button>
+        <input type="text" id="paymentRefInput" placeholder="e.g. 423819284729 (12-digit UPI Ref / UTR)" autocomplete="off" required style="padding:14px; font-size:14px;">
+        <button type="submit" class="btn btn-brass" style="padding:14px 24px; font-weight:700;">Confirm Payment &amp; Place Order →</button>
       </form>
-      <div id="paymentRefStatus" class="form-status"></div>
+      <div id="paymentRefStatus" class="form-status" style="margin-top:12px;"></div>
 
-      <p style="font-size:13px; margin-top:18px;">
-        Or <a href="#" id="waConfirmLink" style="color:var(--brass); text-decoration:underline;">send us a screenshot on WhatsApp</a> — either works.
-      </p>
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid #232b3b; font-size:13.5px; color:#aaa;">
+        Paid on phone and want instant verification? <a href="#" id="waConfirmLink" style="color:var(--brass); text-decoration:underline; font-weight:600;">Send payment screenshot on WhatsApp 💬</a>
+      </div>
     </div>
 
     <!-- Post-submission panel (hidden initially) -->
     <div class="form-card" id="postPaySection" style="display:none; text-align:center; padding:40px 30px;">
-      <div style="font-size:40px; margin-bottom:16px;">✅</div>
-      <h3 style="margin-bottom:10px;">Payment Reference Submitted!</h3>
-      <p style="color:#666; font-size:14.5px; margin-bottom:24px;">
-        We're verifying your payment. Your order will be confirmed shortly.<br>
-        You can track its status below.
+      <div style="font-size:44px; margin-bottom:16px;">🎉</div>
+      <h2 style="margin-bottom:10px; font-size:24px; color:#ffffff;">Order Placed &amp; Payment Submitted!</h2>
+      <p style="color:#bbb; font-size:15px; margin-bottom:24px; line-height:1.6; max-width:440px; margin-left:auto; margin-right:auto;">
+        We have received your payment confirmation for <strong>Order #{{ order.id }}</strong>. Our team is verifying the credit in our bank and will initiate tailoring immediately.
       </p>
-      <a href="{{ url_for('order_confirmation', order_id=order.id) }}" class="btn btn-brass" style="padding:14px 32px;">
-        Track Order #{{ order.id }} →
+      <a href="{{ url_for('order_confirmation', order_id=order.id) }}" class="btn btn-brass" style="padding:14px 36px; font-weight:700; font-size:14px;">
+        View Live Order Tracking →
       </a>
     </div>
 
@@ -95,21 +94,21 @@
   const WHATSAPP_NUMBER = "{{ settings.whatsapp_number }}";
 
   document.getElementById("waConfirmLink").href =
-    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi, I've just paid for Order #" + ORDER_ID + " via UPI. Sharing my payment screenshot here.")}`;
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi SIZZLING by KBA, I have completed the UPI payment of ₹" + {{ "%.0f"|format(order.total) }} + " for Order #" + ORDER_ID + ". Sharing my payment screenshot for verification.")}`;
 
   document.getElementById("paymentRefForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const ref = document.getElementById("paymentRefInput").value.trim();
     const statusEl = document.getElementById("paymentRefStatus");
     if (!ref) {
-      statusEl.textContent = "Please enter your transaction reference.";
+      statusEl.textContent = "Please enter your UPI transaction reference / UTR.";
       statusEl.className = "form-status error";
       return;
     }
 
     const btn = e.target.querySelector("button[type=submit]");
     btn.disabled = true;
-    btn.textContent = "Submitting...";
+    btn.textContent = "Verifying & Placing Order...";
 
     fetch(`/api/order/${ORDER_ID}/submit_payment_ref`, {
       method: "POST",
@@ -119,20 +118,25 @@
     .then(r => r.json())
     .then(res => {
       if (res.success) {
+        // Clear cart now that payment is confirmed and order is placed!
+        try {
+          localStorage.removeItem("sizzling_cart");
+        } catch(err) {}
+
         document.getElementById("payRefSection").style.display = "none";
         document.getElementById("postPaySection").style.display = "block";
       } else {
         statusEl.textContent = res.error || "Something went wrong.";
         statusEl.className = "form-status error";
         btn.disabled = false;
-        btn.textContent = "Submit Reference";
+        btn.textContent = "Confirm Payment & Place Order →";
       }
     })
     .catch(() => {
-      statusEl.textContent = "Could not reach the server. Please try again.";
+      statusEl.textContent = "Could not reach the server. Please check your connection and try again.";
       statusEl.className = "form-status error";
       btn.disabled = false;
-      btn.textContent = "Submit Reference";
+      btn.textContent = "Confirm Payment & Place Order →";
     });
   });
 </script>

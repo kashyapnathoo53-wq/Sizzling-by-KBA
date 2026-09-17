@@ -21,36 +21,69 @@
 </div>
 
 <div class="simple-page">
-  <div class="wrap">
+  <div class="wrap" style="max-width:580px;">
     <h1>Checkout</h1>
-    <p class="sub">Review your items, add your details, and you'll get a UPI QR code to pay on the next step.</p>
+    <p class="sub">Review your items, provide delivery details, and complete payment verification on the next step.</p>
+
+    {% if customer %}
+    <!-- Logged in: Do not ask for phone number! -->
+    <div class="logged-in-user-bar" style="background:#131824; border:1px solid rgba(197,160,89,0.4); border-radius:8px; padding:14px 18px; margin-bottom:22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:24px;">👔</span>
+        <div>
+          <div style="font-size:11px; font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em; color:var(--brass); font-weight:600;">Verified Customer &middot; No Phone Required</div>
+          <div style="font-size:15px; font-weight:600; color:#fff;">
+            {{ customer.name or 'Customer' }} <span style="opacity:0.6; font-weight:normal;">&middot;</span> <span style="font-family:var(--mono); color:#dfc691;">+91 {{ customer.phone }}</span>
+          </div>
+        </div>
+      </div>
+      <a href="/account/logout?next=/checkout" class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-color:#333; color:#aaa;">Switch Account</a>
+    </div>
+    {% else %}
+    <div style="background:#131824; border:1px solid #232b3b; border-radius:8px; padding:12px 18px; margin-bottom:20px; font-size:13px; color:#aaa; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <span>Already have past orders or an account?</span>
+      <a href="/account/login?next=/checkout" style="color:var(--brass); font-weight:600; text-decoration:underline;">Log In to Auto-Fill →</a>
+    </div>
+    {% endif %}
 
     <div class="checkout-summary" id="checkoutSummary">
       <!-- Filled by JS from the cart -->
     </div>
 
-    <div class="form-card">
+    <div class="form-card" style="margin-top:24px;">
       <form id="checkoutForm">
         <div class="form-grid">
           <div class="field">
             <label for="cname">Full Name</label>
-            <input type="text" id="cname" required>
+            <input type="text" id="cname" required value="{{ customer.name if customer and customer.name != 'Customer' else '' }}" placeholder="e.g. Kashyap Nathoo">
           </div>
-          <div class="field">
-            <label for="cphone">Phone Number</label>
-            <input type="tel" id="cphone" required>
-          </div>
+
+          {% if customer %}
+            <!-- User is logged in: phone number is automatically used, NOT requested from user -->
+            <input type="hidden" id="cphone" value="{{ customer.phone }}">
+          {% else %}
+            <div class="field">
+              <label for="cphone">Phone Number</label>
+              <input type="tel" id="cphone" required maxlength="14" placeholder="10-digit mobile number">
+              <small style="color:#777; font-size:11.5px; margin-top:4px; display:block;">Used for tailoring status & order tracking.</small>
+            </div>
+          {% endif %}
+
           <div class="field full">
-            <label for="caddress">Delivery / Pickup Address</label>
-            <textarea id="caddress" rows="2" required placeholder="Full address, or write 'Pickup from shop'"></textarea>
+            <label for="caddress">Delivery / Fitting Address</label>
+            <textarea id="caddress" rows="2" required placeholder="Full delivery address, or write 'Pickup / Trial from Karol Bagh shop'">{{ last_address or '' }}</textarea>
           </div>
+
           <div class="field full">
-            <label for="cnotes">Anything else? (optional)</label>
-            <textarea id="cnotes" rows="2" placeholder="e.g. Need it altered, wedding date, etc."></textarea>
+            <label for="cnotes">Tailoring / Order Notes <span style="opacity:0.5; font-weight:normal;">(optional)</span></label>
+            <textarea id="cnotes" rows="2" placeholder="e.g. Event date, custom fitting request, collar preferences"></textarea>
           </div>
         </div>
-        <button type="submit" class="btn btn-ink" id="checkoutSubmitBtn" style="margin-top:22px; width:100%;">Continue to Payment</button>
-        <div id="checkoutStatus" class="form-status"></div>
+
+        <button type="submit" class="btn btn-brass" id="checkoutSubmitBtn" style="margin-top:24px; width:100%; padding:14px; font-size:14px; font-weight:700;">
+          Continue to UPI Payment & Verification →
+        </button>
+        <div id="checkoutStatus" class="form-status" style="margin-top:14px; text-align:center;"></div>
       </form>
     </div>
   </div>

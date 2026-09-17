@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Order #{{ order.id }} — {{ settings.brand_name }}</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+<link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -20,64 +21,88 @@
 </div>
 
 <div class="simple-page">
-  <div class="wrap">
+  <div class="wrap" style="max-width:760px;">
 
     <div style="margin-bottom:28px;">
-      <span class="eyebrow">Order Tracking</span>
+      <span class="eyebrow">Real-Time Tailoring &amp; Order Status</span>
       <h1 style="margin-top:12px;">Order #{{ order.id }}</h1>
-      <p class="sub">Placed on {{ order.created_at[:10] }}</p>
+      <p class="sub">Placed on {{ order.created_at[:16] }}</p>
     </div>
 
     <!-- Status Timeline -->
-    {% set status_order = ['pending_payment', 'payment_reported', 'confirmed', 'dispatched'] %}
+    {% set status_order = ['awaiting_payment_confirmation', 'pending_payment', 'payment_reported', 'confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered'] %}
     {% set steps = [
-      ('pending_payment', '💳', 'Payment Pending'),
-      ('payment_reported', '🔍', 'Payment Submitted'),
-      ('confirmed', '✓', 'Confirmed'),
-      ('dispatched', '🚚', 'Dispatched'),
+      ('payment_reported', '💳', 'Payment Submitted'),
+      ('confirmed', '✓', 'Verified & Confirmed'),
+      ('tailoring', '✂️', 'In Tailoring'),
+      ('trial_ready', '🪡', 'Trial Ready'),
+      ('dispatched', '🚚', 'Dispatched / Delivered'),
     ] %}
     {% set current_idx = status_order.index(order.status) if order.status in status_order else 0 %}
 
     <div class="status-timeline" style="margin-bottom:32px;">
       {% for s, icon, label in steps %}
-      {% set idx = loop.index0 %}
-      <div class="status-step {% if idx <= current_idx %}done{% endif %} {% if idx == current_idx %}active{% endif %}">
-        <div class="status-dot">{{ icon if idx == current_idx else ('✓' if idx < current_idx else '') }}</div>
+      {% set step_idx = status_order.index(s) if s in status_order else loop.index %}
+      <div class="status-step {% if current_idx >= step_idx %}done{% endif %} {% if current_idx == step_idx %}active{% endif %}">
+        <div class="status-dot">{{ icon if current_idx == step_idx else ('✓' if current_idx > step_idx else '') }}</div>
         <div class="status-label">{{ label }}</div>
       </div>
-      {% if not loop.last %}<div class="status-line {% if loop.index0 < current_idx %}filled{% endif %}"></div>{% endif %}
+      {% if not loop.last %}<div class="status-line {% if current_idx > step_idx %}filled{% endif %}"></div>{% endif %}
       {% endfor %}
     </div>
 
     <!-- Status Info Box -->
-    {% if order.status == 'pending_payment' %}
+    {% if order.status in ['pending_payment', 'awaiting_payment_confirmation'] %}
     <div class="status-info-box warning">
-      <strong>⏳ Payment not yet completed.</strong> Please complete your payment to confirm this order.
+      <strong>⏳ Payment not completed yet.</strong> Your order is not placed until you complete payment and submit your UPI reference.
       <div style="margin-top:12px;">
-        <a href="{{ url_for('order_pay', order_id=order.id) }}" class="btn btn-brass" style="padding:10px 22px;">Pay Now →</a>
+        <a href="{{ url_for('order_pay', order_id=order.id) }}" class="btn btn-brass" style="padding:10px 22px; font-weight:700;">Pay Now &amp; Submit UTR →</a>
       </div>
     </div>
     {% elif order.status == 'payment_reported' %}
-    <div class="status-info-box warning" style="border-color:#f59e0b;">
-      <strong>🔍 Verifying your payment.</strong> We've received your payment reference and are confirming it. This usually takes a few minutes to a few hours.
+    <div class="status-info-box warning" style="border-color:#f59e0b; color:#fbbf24;">
+      <strong>🔍 Verifying your payment.</strong> We've received your UPI reference (<code>{{ order.payment_ref }}</code>) and our accounts team is confirming it with our bank.
     </div>
     {% elif order.status == 'confirmed' %}
     <div class="status-info-box success">
-      <strong>✅ Payment confirmed!</strong> We're working on your order. We'll reach out if we need any measurements or alterations info.
+      <strong>✅ Payment confirmed &amp; order accepted!</strong> Our master tailors have received your order details and are preparing your cloth.
+    </div>
+    {% elif order.status == 'tailoring' %}
+    <div class="status-info-box" style="background:rgba(139,92,246,0.12); border:1px solid #8b5cf6; color:#c4b5fd;">
+      <strong>✂️ In Tailoring &amp; Cutting.</strong> Your garment is currently on the cutting table and undergoing handcrafted tailoring.
+    </div>
+    {% elif order.status == 'trial_ready' %}
+    <div class="status-info-box" style="background:rgba(6,182,212,0.12); border:1px solid #06b6d4; color:#67e8f9;">
+      <strong>🪡 Trial Ready at Karol Bagh Store!</strong> Your bespoke trial is ready for you. Visit our shop or message us to schedule your fitting.
     </div>
     {% elif order.status == 'dispatched' %}
     <div class="status-info-box" style="background:rgba(59,130,246,0.12); border:1px solid #3b82f6; color:#93c5fd;">
-      <strong>🚚 Your order has been dispatched!</strong> Please reach out on WhatsApp for delivery details.
+      <strong>🚚 Your order has been dispatched!</strong> Your package is in transit to your delivery address.
+    </div>
+    {% elif order.status == 'delivered' %}
+    <div class="status-info-box success">
+      <strong>🏆 Order Delivered &amp; Completed.</strong> Thank you for choosing SIZZLING by KBA!
     </div>
     {% elif order.status == 'cancelled' %}
     <div class="status-info-box" style="background:rgba(239,68,68,0.12); border:1px solid #ef4444; color:#fca5a5;">
-      <strong>❌ This order was cancelled.</strong> Please contact us on WhatsApp for assistance.
+      <strong>❌ This order was cancelled.</strong> Please contact us on WhatsApp if you need help.
+    </div>
+    {% endif %}
+
+    {% if order.admin_notes %}
+    <div style="background:#131824; border:1px solid var(--brass); border-radius:8px; padding:16px 20px; margin-top:20px; margin-bottom:20px;">
+      <div style="font-size:11.5px; font-family:var(--mono); color:var(--brass); text-transform:uppercase; letter-spacing:0.08em; font-weight:700;">
+        📢 Store / Tailor Update
+      </div>
+      <div style="color:#ffffff; font-size:14.5px; margin-top:6px; line-height:1.5;">
+        {{ order.admin_notes }}
+      </div>
     </div>
     {% endif %}
 
     <!-- Order Items -->
-    <div class="checkout-summary">
-      <div style="font-weight:700; margin-bottom:12px;">Items Ordered</div>
+    <div class="checkout-summary" style="margin-top:20px;">
+      <div style="font-weight:700; margin-bottom:12px; color:var(--brass); text-transform:uppercase; letter-spacing:0.05em; font-size:13px;">Items in this Order</div>
       {% for i in items %}
       <div class="checkout-line">
         <span>{{ i.product_name }} &middot; Size {{ i.size }} &times; {{ i.qty }}</span>
@@ -85,16 +110,16 @@
       </div>
       {% endfor %}
       <div class="checkout-line checkout-total-line">
-        <span>Total</span>
+        <span>Total Amount</span>
         <span>₹{{ "%.0f"|format(order.total) }}</span>
       </div>
     </div>
 
     <!-- Delivery Details -->
     <div class="checkout-summary" style="margin-top:18px;">
-      <div style="font-weight:700; margin-bottom:12px;">Delivery Details</div>
+      <div style="font-weight:700; margin-bottom:12px; color:var(--brass); text-transform:uppercase; letter-spacing:0.05em; font-size:13px;">Customer &amp; Delivery Details</div>
       <div class="checkout-line">
-        <span>Name</span>
+        <span>Customer Name</span>
         <span>{{ order.customer_name }}</span>
       </div>
       <div class="checkout-line">
@@ -102,21 +127,27 @@
         <span>{{ order.phone }}</span>
       </div>
       <div class="checkout-line">
-        <span>Address</span>
+        <span>Delivery Address</span>
         <span style="text-align:right; max-width:60%;">{{ order.address }}</span>
       </div>
+      {% if order.payment_ref %}
+      <div class="checkout-line">
+        <span>UPI Ref / UTR</span>
+        <span style="font-family:var(--mono); color:#dfc691;">{{ order.payment_ref }}</span>
+      </div>
+      {% endif %}
       {% if order.notes %}
       <div class="checkout-line">
-        <span>Notes</span>
+        <span>Customer Notes</span>
         <span style="text-align:right; max-width:60%;">{{ order.notes }}</span>
       </div>
       {% endif %}
     </div>
 
     <div style="margin-top:24px; display:flex; gap:14px; flex-wrap:wrap;">
-      <a href="https://wa.me/{{ settings.whatsapp_number }}?text={{ ('Hi, I have a question about Order #' ~ order.id)|urlencode }}"
+      <a href="https://wa.me/{{ settings.whatsapp_number }}?text={{ ('Hi SIZZLING by KBA, I have an inquiry about my Order #' ~ order.id)|urlencode }}"
          class="btn btn-brass" target="_blank" rel="noopener">
-        💬 WhatsApp Us
+        💬 WhatsApp Store
       </a>
       <a href="/account/orders" class="btn btn-outline">← Back to My Orders</a>
     </div>

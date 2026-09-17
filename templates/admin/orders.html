@@ -3,19 +3,127 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Orders — SIZZLING Admin</title>
+<title>Order Management Database — SIZZLING by KBA Admin</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 <style>
-  .status-select { padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:13px; background:#fff; }
-  .update-btn { padding:6px 14px; background:#b08d57; color:#fff; border:none; border-radius:4px; font-size:12.5px; cursor:pointer; font-weight:600; }
-  .update-btn:hover { background:#d9bd8b; color:#1b1b1b; }
-  .badge-pending_payment { background:#fef3c7; color:#92400e; }
-  .badge-payment_reported { background:#fffbeb; color:#d97706; border:1px solid #f59e0b; }
-  .badge-confirmed { background:#dcfce7; color:#15803d; }
-  .badge-dispatched { background:#dbeafe; color:#1d4ed8; }
-  .badge-cancelled { background:#fee2e2; color:#991b1b; }
-  .badge { padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; }
-  .payment-ref { font-family:monospace; font-size:11px; color:#555; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  :root {
+    --gold: #b08d57;
+    --gold-light: #dfc691;
+    --dark-card: #ffffff;
+    --border: #e2ded2;
+  }
+  .admin-wrap { max-width: 1280px; margin: 0 auto; padding: 28px 20px 60px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03); position: relative; overflow: hidden;
+  }
+  .stat-card.alert-card { border-color: #f59e0b; background: #fffdfa; }
+  .stat-card .num { font-size: 28px; font-weight: 700; color: #1c1c1c; font-family: 'Fraunces', serif; }
+  .stat-card.alert-card .num { color: #d97706; }
+  .stat-card .label { font-size: 12.5px; color: #666; margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .filter-bar {
+    display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  }
+  .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-tab {
+    padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;
+    background: #fff; border: 1px solid var(--border); color: #555; display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .filter-tab:hover { background: #f9f8f5; color: #1c1c1c; border-color: #c5a059; text-decoration: none; }
+  .filter-tab.active { background: #14171c; color: #dfc691; border-color: #14171c; }
+  .filter-tab .count-badge {
+    padding: 2px 7px; border-radius: 10px; font-size: 11px; background: #eee; color: #444; font-weight: 700;
+  }
+  .filter-tab.active .count-badge { background: #333; color: #fff; }
+  .filter-tab.alert-tab { border-color: #f59e0b; color: #b45309; }
+  .filter-tab.alert-tab .count-badge { background: #fef3c7; color: #b45309; }
+
+  .search-form { display: flex; gap: 8px; }
+  .search-input {
+    padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px; width: 260px;
+    background: #fff;
+  }
+  .search-btn { padding: 8px 16px; background: #14171c; color: #dfc691; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+  .orders-table-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+  }
+  .order-row-item {
+    padding: 20px 24px; border-bottom: 1px solid #eee; display: grid;
+    grid-template-columns: 220px 1fr 240px; gap: 20px; align-items: start;
+    transition: background 0.1s;
+  }
+  .order-row-item:hover { background: #faf9f6; }
+  .order-row-item:last-child { border-bottom: none; }
+
+  .order-id-badge { font-family: monospace; font-size: 16px; font-weight: 700; color: #1c1c1c; }
+  .order-time { font-size: 12px; color: #777; margin-top: 3px; }
+
+  .customer-name { font-size: 15px; font-weight: 700; color: #111; display: flex; align-items: center; gap: 8px; }
+  .customer-phone { font-size: 13px; color: #555; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+  .customer-address { font-size: 12.5px; color: #666; margin-top: 6px; line-height: 1.4; background: #f9f8f5; padding: 6px 10px; border-radius: 4px; }
+  .customer-notes { font-size: 12px; color: #854d0e; background: #fefce8; padding: 6px 10px; border-radius: 4px; margin-top: 6px; border-left: 3px solid #eab308; }
+
+  .items-tag-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .item-chip {
+    font-size: 13px; background: #f4f3ef; border: 1px solid #e5e0d4; padding: 6px 10px; border-radius: 5px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .item-chip strong { color: #1c1c1c; }
+  .item-chip .qty-size { font-size: 12px; color: #666; }
+
+  .order-total-display { font-size: 18px; font-weight: 800; color: #b08d57; margin-top: 8px; font-family: 'Fraunces', serif; }
+
+  /* Status Badges */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+  .badge-awaiting_payment_confirmation { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .badge-pending_payment { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .badge-payment_reported { background: #fffbeb; color: #d97706; border: 1px solid #f59e0b; animation: pulse 2s infinite; }
+  .badge-confirmed { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  .badge-tailoring { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+  .badge-trial_ready { background: #cffafe; color: #0e7490; border: 1px solid #a5f3fc; }
+  .badge-dispatched { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .badge-delivered { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
+  .badge-cancelled { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+  .pay-status-pill {
+    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; margin-top: 4px;
+  }
+  .pay-unpaid { background: #fee2e2; color: #b91c1c; }
+  .pay-submitted { background: #fef3c7; color: #b45309; }
+  .pay-verified { background: #dcfce7; color: #15803d; }
+
+  .quick-verify-btn {
+    width: 100%; background: #16a34a; color: #fff; border: none; padding: 9px 12px; border-radius: 6px;
+    font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: background 0.15s;
+  }
+  .quick-verify-btn:hover { background: #15803d; }
+
+  .update-form { margin-top: 12px; background: #fbfaf8; border: 1px solid #ede8de; padding: 12px; border-radius: 6px; }
+  .update-select { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12.5px; background: #fff; margin-bottom: 8px; }
+  .update-input { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; margin-bottom: 8px; box-sizing: border-box; }
+  .save-status-btn {
+    width: 100%; background: #14171c; color: #dfc691; border: none; padding: 8px; border-radius: 4px;
+    font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  .save-status-btn:hover { background: #282e38; }
+
+  .whatsapp-link {
+    background: #25d366; color: #fff !important; padding: 3px 8px; border-radius: 4px; font-size: 11px;
+    font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .whatsapp-link:hover { background: #1ebc59; text-decoration: none; }
+
+  @media (max-width: 900px) {
+    .order-row-item { grid-template-columns: 1fr; gap: 14px; }
+    .search-input { width: 100%; }
+    .search-form { width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -23,72 +131,209 @@
 {% include "admin/_header.html" %}
 
 <div class="admin-wrap">
-  <div class="admin-title">Orders</div>
-  <div class="admin-sub">
-    Verify payments in your UPI app, then update the order status here. Only mark "Confirmed" after you've confirmed the payment credit in your bank.
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+    <div>
+      <div class="admin-title">Orders &amp; Tailoring Database</div>
+      <div class="admin-sub" style="margin-bottom:0;">
+        Review received customer orders, verify UPI payment confirmation, and update live tailoring status.
+      </div>
+    </div>
+    <div>
+      <a href="{{ url_for('admin_orders') }}" class="btn btn-outline" style="padding:8px 14px;">↻ Refresh Orders</a>
+    </div>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat, msg in messages %}
-    <div class="flash {{ cat }}">{{ msg }}</div>
+    <div class="flash {{ cat }}" style="margin-bottom:18px;">{{ msg }}</div>
     {% endfor %}
   {% endwith %}
 
-  <div class="panel">
+  <!-- Stats Overview Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="num">{{ total_orders }}</div>
+      <div class="label">Total Orders Received</div>
+    </div>
+    <div class="stat-card {% if needs_verify_count > 0 %}alert-card{% endif %}">
+      <div class="num">{{ needs_verify_count }}</div>
+      <div class="label">⚠️ Payment Needs Verify</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ confirmed_count }}</div>
+      <div class="label">✂️ Confirmed / In Tailoring</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ dispatched_count + delivered_count }}</div>
+      <div class="label">🚚 Dispatched / Delivered</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">₹{{ "%.0f"|format(total_revenue) }}</div>
+      <div class="label">💰 Total Verified Revenue</div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs & Search Bar -->
+  <div class="filter-bar">
+    <div class="filter-tabs">
+      <a href="{{ url_for('admin_orders') }}" class="filter-tab {% if not filter_status %}active{% endif %}">
+        All Orders <span class="count-badge">{{ total_orders }}</span>
+      </a>
+      <a href="{{ url_for('admin_orders', status='needs_verify') }}" class="filter-tab alert-tab {% if filter_status == 'needs_verify' %}active{% endif %}">
+        ⚠️ Needs Verify <span class="count-badge">{{ needs_verify_count }}</span>
+      </a>
+      <a href="{{ url_for('admin_orders', status='confirmed') }}" class="filter-tab {% if filter_status == 'confirmed' %}active{% endif %}">
+        ✂️ In Tailoring <span class="count-badge">{{ confirmed_count }}</span>
+      </a>
+      <a href="{{ url_for('admin_orders', status='dispatched') }}" class="filter-tab {% if filter_status == 'dispatched' %}active{% endif %}">
+        🚚 Dispatched <span class="count-badge">{{ dispatched_count }}</span>
+      </a>
+      <a href="{{ url_for('admin_orders', status='delivered') }}" class="filter-tab {% if filter_status == 'delivered' %}active{% endif %}">
+        ✅ Delivered <span class="count-badge">{{ delivered_count }}</span>
+      </a>
+      <a href="{{ url_for('admin_orders', status='unpaid') }}" class="filter-tab {% if filter_status == 'unpaid' %}active{% endif %}">
+        ⏳ Unpaid / Pending <span class="count-badge">{{ unpaid_count }}</span>
+      </a>
+    </div>
+
+    <form method="GET" action="{{ url_for('admin_orders') }}" class="search-form">
+      <input type="hidden" name="status" value="{{ filter_status }}">
+      <input type="text" name="q" value="{{ search }}" placeholder="Search by customer, phone, or ref..." class="search-input">
+      <button type="submit" class="search-btn">Search</button>
+      {% if search %}
+      <a href="{{ url_for('admin_orders', status=filter_status) }}" class="btn btn-outline" style="padding:8px 12px; font-size:12px;">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Orders Database List -->
+  <div class="orders-table-card">
     {% if orders %}
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr>
-        <th>#</th>
-        <th>Customer</th>
-        <th>Phone</th>
-        <th>Total</th>
-        <th>UPI Ref</th>
-        <th>Status</th>
-        <th>When</th>
-        <th>Update</th>
-      </tr></thead>
-      <tbody>
-        {% for o in orders %}
-        <tr>
-          <td data-label="#">{{ o.id }}</td>
-          <td data-label="Customer">{{ o.customer_name }}</td>
-          <td data-label="Phone">
-            <a href="https://wa.me/91{{ o.phone }}" target="_blank" rel="noopener"
-               style="color:#25d366;">{{ o.phone }}</a>
-          </td>
-          <td data-label="Total" style="font-weight:700;">₹{{ "%.0f"|format(o.total) }}</td>
-          <td data-label="UPI Ref">
-            {% if o.payment_ref %}
-            <span class="payment-ref" title="{{ o.payment_ref }}">{{ o.payment_ref }}</span>
-            {% else %}
-            <span style="opacity:0.4; font-size:12px;">—</span>
-            {% endif %}
-          </td>
-          <td data-label="Status">
-            <span class="badge badge-{{ o.status }}">{{ o.status.replace('_',' ').title() }}</span>
-          </td>
-          <td data-label="When" style="font-size:12px;">{{ o.created_at[:16] }}</td>
-          <td>
-            <form method="POST" action="{{ url_for('admin_update_order_status', order_id=o.id) }}"
-                  style="display:flex; gap:6px; align-items:center;">
-              <select name="status" class="status-select">
-                {% for s in ['pending_payment','payment_reported','confirmed','dispatched','cancelled'] %}
-                <option value="{{ s }}" {{ 'selected' if o.status == s }}>{{ s.replace('_',' ').title() }}</option>
+      {% for o in orders %}
+      <div class="order-row-item">
+        
+        <!-- Left: Order Number, Time, Status Badges -->
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="order-id-badge">Order #{{ o.id }}</span>
+            <a href="{{ url_for('admin_order_detail', order_id=o.id) }}" style="font-size:12px; color:#b08d57; text-decoration:underline;">Invoice ↗</a>
+          </div>
+          <div class="order-time">{{ o.created_at[:16] }}</div>
+
+          <div style="margin-top:12px;">
+            <span class="badge badge-{{ o.status }}">
+              {{ status_labels.get(o.status, o.status.replace('_',' ').title()) }}
+            </span>
+          </div>
+
+          <div style="margin-top:6px;">
+            <span class="pay-status-pill {% if o.payment_status == 'payment_verified' %}pay-verified{% elif o.payment_status == 'payment_submitted' %}pay-submitted{% else %}pay-unpaid{% endif %}">
+              💳 {{ payment_status_labels.get(o.payment_status, o.payment_status or 'Unpaid') }}
+            </span>
+          </div>
+
+          <div class="order-total-display">₹{{ "%.0f"|format(o.total) }}</div>
+
+          {% if o.payment_ref %}
+          <div style="margin-top:8px; font-size:11.5px; color:#555;">
+            <strong>UPI Ref / UTR:</strong><br>
+            <span style="font-family:monospace; background:#eee; padding:2px 6px; border-radius:3px; font-size:12px; color:#111;">{{ o.payment_ref }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Center: Customer Identity & Items Received -->
+        <div>
+          <div class="customer-name">
+            👤 {{ o.customer_name }}
+            <a href="https://wa.me/91{{ o.phone }}?text={{ ('Hi ' ~ o.customer_name ~ ', this is SIZZLING by KBA regarding your Order #' ~ o.id ~ '.')|urlencode }}" 
+               class="whatsapp-link" target="_blank" rel="noopener" title="Open direct WhatsApp chat with customer">
+              💬 WhatsApp
+            </a>
+          </div>
+          <div class="customer-phone">
+            📞 <a href="tel:{{ o.phone }}" style="color:#2563eb;">+91 {{ o.phone }}</a>
+          </div>
+          <div class="customer-address">
+            📍 <strong>Address:</strong> {{ o.address }}
+          </div>
+          {% if o.notes %}
+          <div class="customer-notes">
+            📝 <strong>Customer Tailoring Note:</strong> {{ o.notes }}
+          </div>
+          {% endif %}
+
+          {% if o.admin_notes %}
+          <div style="font-size:12px; color:#0369a1; background:#f0f9ff; padding:6px 10px; border-radius:4px; margin-top:6px; border-left:3px solid #0284c7;">
+            📢 <strong>Store Note / Tracking:</strong> {{ o.admin_notes }}
+          </div>
+          {% endif %}
+
+          <!-- Garment Items In This Order -->
+          <div class="items-tag-list">
+            {% for item in o.order_items %}
+            <div class="item-chip">
+              <div>
+                <strong>{{ item.product_name }}</strong>
+                <span class="qty-size">· Size <strong>{{ item.size }}</strong> &times; {{ item.qty }}</span>
+              </div>
+              <div style="font-weight:700; color:#444;">₹{{ "%.0f"|format(item.line_total) }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Right: Actions & Live Status Updater -->
+        <div>
+          <!-- Quick Payment Verification Button -->
+          {% if o.payment_status == 'payment_submitted' or o.status == 'payment_reported' %}
+          <form method="POST" action="{{ url_for('admin_verify_payment', order_id=o.id) }}">
+            <button type="submit" class="quick-verify-btn" onclick="return confirm('Confirm payment received in your bank for Order #{{ o.id }}?');">
+              ✓ Verify Payment (Confirm)
+            </button>
+          </form>
+          {% endif %}
+
+          <!-- Detailed Status & Notes Updater -->
+          <div class="update-form">
+            <div style="font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; margin-bottom:6px;">
+              Update Order Status:
+            </div>
+            <form method="POST" action="{{ url_for('admin_update_order_status', order_id=o.id) }}">
+              <select name="status" class="update-select">
+                {% for code, label in statuses %}
+                <option value="{{ code }}" {% if o.status == code %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
-              <button type="submit" class="update-btn">Update</button>
+
+              <div style="font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; margin-bottom:4px;">
+                Payment Status:
+              </div>
+              <select name="payment_status" class="update-select">
+                {% for pcode, plabel in payment_statuses %}
+                <option value="{{ pcode }}" {% if o.payment_status == pcode %}selected{% endif %}>{{ plabel }}</option>
+                {% endfor %}
+              </select>
+
+              <input type="text" name="admin_notes" class="update-input" value="{{ o.admin_notes or '' }}" placeholder="Tracking # or tailor notes (visible to user)...">
+
+              <button type="submit" class="save-status-btn">Save Update</button>
             </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    </div>
+          </div>
+        </div>
+
+      </div>
+      {% endfor %}
     {% else %}
-    <div class="empty">No orders placed yet.</div>
+      <div style="text-align:center; padding:80px 20px; color:#888;">
+        <div style="font-size:44px; margin-bottom:12px;">📦</div>
+        <div style="font-size:16px; font-weight:600; color:#333;">No orders found in this view</div>
+        <p style="font-size:13.5px; margin-top:4px;">Try switching the filter tab or clearing your search term.</p>
+        <a href="{{ url_for('admin_orders') }}" class="btn btn-outline" style="margin-top:14px;">View All Orders</a>
+      </div>
     {% endif %}
   </div>
+
 </div>
 
 </body>

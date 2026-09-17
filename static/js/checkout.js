@@ -62,33 +62,33 @@ document.getElementById("checkoutForm").addEventListener("submit", (e) => {
     return;
   }
 
-  btn.disabled = true;
-  btn.textContent = "Placing order...";
+    btn.disabled = true;
+    btn.textContent = "Setting up payment...";
 
-  fetch("/api/create_order", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      items: cart.map(item => ({ product_id: item.id, size: item.size, qty: item.qty })),
-      customer: { name, phone, address, notes }
+    fetch("/api/create_order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: cart.map(item => ({ product_id: item.id, size: item.size, qty: item.qty })),
+        customer: { name, phone, address, notes }
+      })
     })
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (!res.success) {
-      statusEl.textContent = res.error || "Something went wrong. Please try again.";
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success) {
+        statusEl.textContent = res.error || "Something went wrong. Please try again.";
+        statusEl.className = "form-status error";
+        btn.disabled = false;
+        btn.textContent = "Continue to UPI Payment & Verification →";
+        return;
+      }
+      // Order created in awaiting_payment state; cart is kept until payment confirmation is submitted on next screen
+      window.location.href = res.pay_url;
+    })
+    .catch(() => {
+      statusEl.textContent = "Could not reach the server. Please check your connection and try again.";
       statusEl.className = "form-status error";
       btn.disabled = false;
-      btn.textContent = "Continue to Payment";
-      return;
-    }
-    localStorage.removeItem(CART_KEY);
-    window.location.href = res.pay_url;
-  })
-  .catch(() => {
-    statusEl.textContent = "Could not reach the server. Please check your connection and try again.";
-    statusEl.className = "form-status error";
-    btn.disabled = false;
-    btn.textContent = "Continue to Payment";
+      btn.textContent = "Continue to UPI Payment & Verification →";
+    });
   });
-});
