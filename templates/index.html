@@ -6,6 +6,8 @@
 <title>{{ settings.brand_name }} — Bespoke Menswear, Karol Bagh</title>
 <meta name="description" content="{{ settings.brand_name }} — Suits, blazers, jackets, formal shirts, trousers and wedding sherwanis for men. {{ settings.address }}.">
 
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+<link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -29,11 +31,23 @@
     </nav>
 
     <div class="nav-cta">
-      <a href="#enquire" class="btn btn-outline nav-only">Enquire</a>
+      <a href="/account/wishlist" class="wishlist-nav-btn" id="navWishlistBtn" title="Saved Wishlist" aria-label="Wishlist">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span>Wishlist</span> <span class="wishlist-count" id="wishlistCount">0</span>
+      </a>
+
       <button class="cart-btn" id="cartBtn" aria-label="View cart">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="9" cy="20" r="1.4" fill="currentColor"/><circle cx="17" cy="20" r="1.4" fill="currentColor"/></svg>
-        Cart <span class="cart-count" id="cartCount">0</span>
+        <span>Cart</span> <span class="cart-count" id="cartCount">0</span>
       </button>
+
+      {% if session.get('customer_id') %}
+      <a href="/account/orders" class="account-nav-btn" title="View my orders">📦 Orders</a>
+      <a href="/account/logout" class="account-logout-btn" title="Logout">Logout</a>
+      {% else %}
+      <a href="/account/login" class="account-nav-btn" title="Track orders & login">Track Orders</a>
+      {% endif %}
+
       <a href="#" class="btn btn-brass" id="waHeaderBtn">WhatsApp Us</a>
       <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
         <span></span><span></span><span></span>
@@ -179,6 +193,12 @@
   <div class="card-art">
     <img src="{{ url_for('static', filename='images/' + p.image_path) }}" alt="{{ p.name }} on model" loading="lazy" class="product-model-img">
     <span class="card-tag-badge">{{ cat_badges.get(p.category, 'Tailored') }}</span>
+    <button class="wishlist-card-btn"
+      data-id="{{ p.id }}"
+      aria-label="Save to Wishlist"
+      title="Save to Wishlist">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
     <button class="quick-view-btn"
       data-id="{{ p.id }}"
       data-name="{{ p.name }}"

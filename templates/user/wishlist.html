@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Wishlist — {{ settings.brand_name }}</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="simple-header">
+  <div class="wrap">
+    <a href="/" class="logo" style="font-size:20px;">SIZZLING <em>by KBA</em></a>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <a href="/account/orders" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px;">My Orders</a>
+      <a href="/account/logout" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px;">Logout</a>
+    </div>
+  </div>
+</div>
+
+<div class="simple-page">
+  <div class="wrap" style="max-width:960px;">
+    <div style="margin-bottom:32px;">
+      <span class="eyebrow">My Account</span>
+      <h1 style="margin-top:12px;">♡ My Wishlist</h1>
+      <p class="sub">Items you've saved for later.</p>
+    </div>
+
+    {% if products %}
+    <div class="grid" style="grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:22px;">
+      {% for p in products %}
+      <div class="card" style="position:relative;">
+        <div class="card-art">
+          <img src="{{ url_for('static', filename='images/' + p.image_path) }}" alt="{{ p.name }}">
+          <button class="wishlist-remove-btn" data-id="{{ p.id }}" title="Remove from wishlist"
+            style="position:absolute; top:10px; right:10px; background:rgba(20,23,28,0.8); border:none;
+                   color:#ef4444; width:32px; height:32px; border-radius:50%; font-size:16px;
+                   cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:5;">
+            ♥
+          </button>
+        </div>
+        <div class="card-body">
+          <h3>{{ p.name }}</h3>
+          <p class="desc">{{ p.description }}</p>
+          <div class="card-price-row">
+            <span class="card-price">₹{{ "%.0f"|format(p.price) if p.price else "Price on request" }}</span>
+          </div>
+          <a href="/#{{ p.category }}" class="btn btn-brass" style="margin-top:12px; width:100%; padding:12px;">
+            Shop This →
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:80px 20px; opacity:0.65;">
+      <div style="font-size:48px; margin-bottom:16px;">♡</div>
+      <p style="font-size:16px;">Your wishlist is empty.</p>
+      <p style="font-size:14px; margin-top:8px;">Click the ♡ heart on any product to save it here.</p>
+      <a href="/" class="btn btn-brass" style="margin-top:20px; padding:12px 28px;">Browse Collection →</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll(".wishlist-remove-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const productId = parseInt(btn.dataset.id);
+      fetch("/api/wishlist/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_id: productId })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && !res.wishlisted) {
+          btn.closest(".card").style.transition = "opacity 0.3s";
+          btn.closest(".card").style.opacity = "0";
+          setTimeout(() => btn.closest(".card").remove(), 300);
+        }
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

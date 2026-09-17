@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pay for Order #{{ order.id }} — {{ settings.brand_name }}</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -27,7 +28,10 @@
       <div style="font-family:var(--mono); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; opacity:0.6;">Amount to Pay</div>
       <div class="amount">₹{{ "%.0f"|format(order.total) }}</div>
 
-      <img class="qr" src="{{ url_for('static', filename='images/qr/order_' + order.id|string + '.png') }}" alt="UPI QR code">
+      <!-- QR code as inline base64 — works everywhere including Vercel -->
+      <div class="qr-wrapper">
+        <img class="qr" src="{{ qr_data_uri }}" alt="UPI QR code for ₹{{ '%.0f'|format(order.total) }}">
+      </div>
 
       <div><span class="upi-id">{{ settings.upi_id }}</span></div>
 
@@ -39,7 +43,7 @@
       </p>
     </div>
 
-    <div class="checkout-summary">
+    <div class="checkout-summary" style="margin-top:28px;">
       <div style="font-weight:700; margin-bottom:10px;">Order Summary</div>
       {% for i in items %}
       <div class="checkout-line">
@@ -53,31 +57,43 @@
       </div>
     </div>
 
-    <div class="form-card">
-      <h3 style="margin-bottom:6px;">After you've paid</h3>
+    <!-- Payment Reference Submission -->
+    <div class="form-card" id="payRefSection">
+      <h3 style="margin-bottom:6px;">Step 2 — Submit your payment reference</h3>
       <p style="font-size:14px; color:#666; margin-bottom:16px;">
-        Enter the UPI transaction / reference ID from your payment app so we can confirm it faster. This is optional but helps us process your order sooner.
+        After paying, enter the UPI transaction / reference ID from your payment app. <strong>Your order will be confirmed once we verify this.</strong>
       </p>
       <form id="paymentRefForm" class="payment-ref-form">
-        <input type="text" id="paymentRefInput" placeholder="e.g. 123456789012">
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <input type="text" id="paymentRefInput" placeholder="e.g. 123456789012" autocomplete="off">
+        <button type="submit" class="btn btn-primary">Submit Reference</button>
       </form>
       <div id="paymentRefStatus" class="form-status"></div>
 
       <p style="font-size:13px; margin-top:18px;">
-        Or simply <a href="{{ '#' }}" id="waConfirmLink">send us a screenshot on WhatsApp</a> — either works.
+        Or <a href="#" id="waConfirmLink" style="color:var(--brass); text-decoration:underline;">send us a screenshot on WhatsApp</a> — either works.
       </p>
-
-      <div style="margin-top:22px;">
-        <a href="{{ url_for('order_confirmation', order_id=order.id) }}" class="btn btn-outline" style="width:100%;">I've Paid — View Order Status</a>
-      </div>
     </div>
+
+    <!-- Post-submission panel (hidden initially) -->
+    <div class="form-card" id="postPaySection" style="display:none; text-align:center; padding:40px 30px;">
+      <div style="font-size:40px; margin-bottom:16px;">✅</div>
+      <h3 style="margin-bottom:10px;">Payment Reference Submitted!</h3>
+      <p style="color:#666; font-size:14.5px; margin-bottom:24px;">
+        We're verifying your payment. Your order will be confirmed shortly.<br>
+        You can track its status below.
+      </p>
+      <a href="{{ url_for('order_confirmation', order_id=order.id) }}" class="btn btn-brass" style="padding:14px 32px;">
+        Track Order #{{ order.id }} →
+      </a>
+    </div>
+
   </div>
 </div>
 
 <script>
   const ORDER_ID = {{ order.id }};
   const WHATSAPP_NUMBER = "{{ settings.whatsapp_number }}";
+
   document.getElementById("waConfirmLink").href =
     `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi, I've just paid for Order #" + ORDER_ID + " via UPI. Sharing my payment screenshot here.")}`;
 
@@ -90,6 +106,11 @@
       statusEl.className = "form-status error";
       return;
     }
+
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true;
+    btn.textContent = "Submitting...";
+
     fetch(`/api/order/${ORDER_ID}/submit_payment_ref`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -98,16 +119,20 @@
     .then(r => r.json())
     .then(res => {
       if (res.success) {
-        statusEl.textContent = "Thanks! We'll confirm your payment shortly.";
-        statusEl.className = "form-status success";
+        document.getElementById("payRefSection").style.display = "none";
+        document.getElementById("postPaySection").style.display = "block";
       } else {
         statusEl.textContent = res.error || "Something went wrong.";
         statusEl.className = "form-status error";
+        btn.disabled = false;
+        btn.textContent = "Submit Reference";
       }
     })
     .catch(() => {
       statusEl.textContent = "Could not reach the server. Please try again.";
       statusEl.className = "form-status error";
+      btn.disabled = false;
+      btn.textContent = "Submit Reference";
     });
   });
 </script>

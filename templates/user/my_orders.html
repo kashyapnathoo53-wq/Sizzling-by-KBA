@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Orders — {{ settings.brand_name }}</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="simple-header">
+  <div class="wrap">
+    <a href="/" class="logo" style="font-size:20px;">SIZZLING <em>by KBA</em></a>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <a href="/account/wishlist" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px;">♡ Wishlist</a>
+      <a href="/account/logout" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px;">Logout</a>
+    </div>
+  </div>
+</div>
+
+<div class="simple-page">
+  <div class="wrap" style="max-width:860px;">
+    <div style="margin-bottom:32px;">
+      <span class="eyebrow">My Account</span>
+      <h1 style="margin-top:12px;">Order History</h1>
+      <p class="sub">Phone: {{ customer_phone }}</p>
+    </div>
+
+    {% if orders %}
+    <div style="display:flex; flex-direction:column; gap:18px;">
+      {% for order in orders %}
+      <div class="order-card">
+        <div class="order-card-head">
+          <div>
+            <div style="font-family:var(--mono); font-size:11px; color:var(--brass); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:4px;">
+              Order #{{ order.id }} &middot; {{ order.created_at[:10] }}
+            </div>
+            <div style="font-size:16px; font-weight:600;">{{ order.customer_name }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--serif); font-size:22px; font-weight:700; color:var(--brass);">
+              ₹{{ "%.0f"|format(order.total) }}
+            </div>
+            <span class="order-status-badge status-{{ order.status }}">
+              {{ order.status.replace('_',' ').title() }}
+            </span>
+          </div>
+        </div>
+        <div class="order-card-foot">
+          {% if order.status == 'pending_payment' %}
+          <a href="{{ url_for('order_pay', order_id=order.id) }}" class="btn btn-brass" style="padding:10px 20px; font-size:13px;">
+            Complete Payment →
+          </a>
+          {% endif %}
+          <a href="{{ url_for('my_order_detail', order_id=order.id) }}" class="btn btn-ink" style="padding:10px 20px; font-size:13px;">
+            View Details / Track →
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:80px 20px; opacity:0.65;">
+      <div style="font-size:48px; margin-bottom:16px;">📦</div>
+      <p style="font-size:16px;">No orders yet. Start shopping!</p>
+      <a href="/" class="btn btn-brass" style="margin-top:20px; padding:12px 28px;">Browse Collection →</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+</body>
+</html>

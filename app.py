@@ -1,6 +1,12 @@
 import os
+import io
+import base64
+import random
+import string
 import sqlite3
-from datetime import datetime
+import urllib.request
+import urllib.parse
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import (
@@ -115,6 +121,7 @@ def init_db():
     cur.execute("""
     CREATE TABLE IF NOT EXISTS orders(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER,
         customer_name TEXT,
         phone TEXT,
         address TEXT,
@@ -125,6 +132,12 @@ def init_db():
         created_at TEXT DEFAULT (datetime('now'))
     )
     """)
+
+    # Add customer_id column to existing orders table if it doesn't exist (migration)
+    try:
+        cur.execute("ALTER TABLE orders ADD COLUMN customer_id INTEGER")
+    except Exception:
+        pass  # Column already exists
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS order_items(
@@ -138,6 +151,38 @@ def init_db():
         qty INTEGER,
         line_total REAL,
         FOREIGN KEY(order_id) REFERENCES orders(id)
+    )
+    """)
+
+    # Customer accounts (phone-based, OTP login)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS customers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        phone TEXT UNIQUE NOT NULL,
+        created_at TEXT DEFAULT (datetime('now'))
+    )
+    """)
+
+    # OTP codes for customer login
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS otp_codes(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        phone TEXT NOT NULL,
+        code TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used INTEGER DEFAULT 0
+    )
+    """)
+
+    # Wishlist items (per customer)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS wishlist(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        created_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(customer_id, product_id)
     )
     """)
 
@@ -410,7 +455,15 @@ def api_create_order():
     conn.commit()
     conn.close()
 
-    _generate_upi_qr(order_id, total)
+    # Also link order to customer if they are logged in
+    cust_id = session.get("customer_id")
+    if cust_id:
+        conn2 = get_db()
+        conn2.execute("UPDATE orders SET customer_id=? WHERE id=?", (cust_id, order_id))
+        conn2.commit()
+        conn2.close()
+
+    _generate_upi_qr(order_id, total)  # generate (side-effect: updates upi uri, ignore return)
 
     return jsonify({
         "success": True,
@@ -421,16 +474,22 @@ def api_create_order():
 
 
 def _generate_upi_qr(order_id, amount):
+    """Generate UPI QR as base64 data URI — no filesystem writes needed."""
     settings = get_settings()
-    upi_id = settings.get("upi_id", "")
-    payee = settings.get("upi_payee_name", settings.get("brand_name", "Shop"))
+    upi_id = settings.get("upi_id", "8595511923@ptaxis")
+    payee = settings.get("upi_payee_name", settings.get("brand_name", "SIZZLING by KBA"))
+    formatted_amount = f"{float(amount):.2f}"
     upi_uri = (
-        f"upi://pay?pa={upi_id}&pn={payee.replace(' ', '%20')}"
-        f"&am={amount:.2f}&cu=INR&tn=Order%20{order_id}"
+        f"upi://pay?pa={upi_id}&pn={urllib.parse.quote(payee)}"
+        f"&am={formatted_amount}&cu=INR&tn={urllib.parse.quote(f'Order #{order_id} Sizzling')}"
+        f"&tr={order_id}&mode=02"
     )
     img = qrcode.make(upi_uri)
-    img.save(os.path.join(QR_DIR, f"order_{order_id}.png"))
-    return upi_uri
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    b64 = base64.b64encode(buf.read()).decode("ascii")
+    return upi_uri, f"data:image/png;base64,{b64}"
 
 
 @app.route("/order/<int:order_id>/pay")
@@ -446,10 +505,11 @@ def order_pay(order_id):
     conn.close()
 
     settings = get_settings()
-    upi_uri = _generate_upi_qr(order_id, order["total"])  # regenerate in case settings changed
+    upi_uri, qr_data_uri = _generate_upi_qr(order_id, order["total"])
 
     return render_template(
-        "payment.html", order=order, items=items, settings=settings, upi_uri=upi_uri
+        "payment.html", order=order, items=items, settings=settings,
+        upi_uri=upi_uri, qr_data_uri=qr_data_uri
     )
 
 
@@ -668,8 +728,8 @@ def admin_product_delete(product_id):
 ORDER_STATUSES = [
     ("pending_payment", "Pending Payment"),
     ("payment_reported", "Payment Reported by Customer"),
-    ("paid", "Paid — Confirmed"),
-    ("fulfilled", "Fulfilled / Delivered"),
+    ("confirmed", "Confirmed & Accepted"),
+    ("dispatched", "Dispatched / In Transit"),
     ("cancelled", "Cancelled"),
 ]
 
@@ -684,6 +744,20 @@ def admin_orders():
     return render_template(
         "admin/orders.html", orders=orders, status_labels=status_labels
     )
+
+
+@app.route("/admin/orders/<int:order_id>/update_status", methods=["POST"])
+@login_required
+def admin_update_order_status(order_id):
+    new_status = request.form.get("status")
+    valid_statuses = [s[0] for s in ORDER_STATUSES]
+    if new_status in valid_statuses:
+        conn = get_db()
+        conn.execute("UPDATE orders SET status=? WHERE id=?", (new_status, order_id))
+        conn.commit()
+        conn.close()
+        flash(f"Order #{order_id} status updated to {new_status.replace('_', ' ').title()}.", "success")
+    return redirect(url_for("admin_orders"))
 
 
 @app.route("/admin/orders/<int:order_id>", methods=["GET", "POST"])
@@ -755,6 +829,266 @@ def admin_settings():
 
     settings = get_settings()
     return render_template("admin/settings.html", settings=settings)
+
+
+# =====================================================================
+# CUSTOMER ACCOUNT — OTP LOGIN
+# =====================================================================
+FAST2SMS_API_KEY = os.environ.get("FAST2SMS_API_KEY", "")
+
+
+def _send_otp_fast2sms(phone, otp):
+    """Send OTP via Fast2SMS. Returns True on success."""
+    if not FAST2SMS_API_KEY:
+        # Dev mode: print OTP to server logs
+        print(f"[DEV] OTP for {phone}: {otp}")
+        return True
+    try:
+        url = "https://www.fast2sms.com/dev/bulkV2"
+        payload = urllib.parse.urlencode({
+            "authorization": FAST2SMS_API_KEY,
+            "variables_values": otp,
+            "route": "otp",
+            "numbers": phone,
+        }).encode("ascii")
+        req = urllib.request.Request(
+            url, data=payload,
+            headers={"cache-control": "no-cache"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            return resp.status == 200
+    except Exception as exc:
+        print(f"[WARN] Fast2SMS error: {exc}")
+        return False
+
+
+def _generate_otp():
+    return "".join(random.choices(string.digits, k=6))
+
+
+def customer_login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("customer_id"):
+            if request.path.startswith("/api/"):
+                return jsonify({"success": False, "login_required": True, "error": "Login required"}), 401
+            return redirect(url_for("customer_login", next=request.path))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+@app.route("/account/login", methods=["GET", "POST"])
+def customer_login():
+    next_url = request.args.get("next") or url_for("my_orders")
+    if session.get("customer_id"):
+        return redirect(next_url)
+    step = request.args.get("step", "phone")
+    return render_template(
+        "user/login.html", step=step, next_url=next_url, settings=get_settings()
+    )
+
+
+@app.route("/api/account/send_otp", methods=["POST"])
+def api_send_otp():
+    data = request.json or {}
+    phone = (data.get("phone") or "").strip().lstrip("+")
+    if not phone.isdigit() or len(phone) < 10:
+        return jsonify({"success": False, "error": "Enter a valid 10-digit phone number."}), 400
+
+    otp = _generate_otp()
+    expires = (datetime.utcnow() + timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO otp_codes(phone, code, expires_at) VALUES (?,?,?)",
+        (phone, otp, expires),
+    )
+    conn.commit()
+    conn.close()
+
+    sent = _send_otp_fast2sms(phone, otp)
+    if not sent and FAST2SMS_API_KEY:
+        return jsonify({"success": False, "error": "Could not send OTP. Try again shortly."}), 500
+
+    resp_payload = {"success": True, "message": "OTP sent to your phone."}
+    if not FAST2SMS_API_KEY:
+        resp_payload["dev_otp"] = otp
+        resp_payload["message"] = f"OTP: {otp} (Demo mode: auto-filled)"
+    return jsonify(resp_payload)
+
+
+@app.route("/api/account/verify_otp", methods=["POST"])
+def api_verify_otp():
+    data = request.json or {}
+    phone = (data.get("phone") or "").strip().lstrip("+")
+    otp = (data.get("otp") or "").strip()
+    name = (data.get("name") or "").strip()
+
+    conn = get_db()
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    row = conn.execute(
+        """SELECT * FROM otp_codes
+           WHERE phone=? AND code=? AND used=0 AND expires_at > ?
+           ORDER BY id DESC LIMIT 1""",
+        (phone, otp, now),
+    ).fetchone()
+
+    if row is None:
+        conn.close()
+        return jsonify({"success": False, "error": "Invalid or expired OTP."}), 400
+
+    # Mark OTP as used
+    conn.execute("UPDATE otp_codes SET used=1 WHERE id=?", (row["id"],))
+
+    # Upsert customer
+    existing = conn.execute(
+        "SELECT * FROM customers WHERE phone=?", (phone,)
+    ).fetchone()
+    if existing:
+        cust_id = existing["id"]
+        if name and not existing["name"]:
+            conn.execute("UPDATE customers SET name=? WHERE id=?", (name, cust_id))
+    else:
+        conn.execute(
+            "INSERT INTO customers(name, phone) VALUES (?,?)", (name or "Customer", phone)
+        )
+        cust_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    # Link any orders by this phone to the customer account
+    conn.execute(
+        "UPDATE orders SET customer_id=? WHERE phone=? AND customer_id IS NULL",
+        (cust_id, phone),
+    )
+    conn.commit()
+    conn.close()
+
+    session["customer_id"] = cust_id
+    session["customer_phone"] = phone
+    return jsonify({"success": True, "redirect": url_for("my_orders")})
+
+
+@app.route("/account/logout")
+def customer_logout():
+    session.pop("customer_id", None)
+    session.pop("customer_phone", None)
+    return redirect(url_for("home"))
+
+
+@app.route("/account/orders")
+@customer_login_required
+def my_orders():
+    cust_id = session["customer_id"]
+    conn = get_db()
+    orders = conn.execute(
+        "SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC",
+        (cust_id,),
+    ).fetchall()
+    conn.close()
+    return render_template(
+        "user/my_orders.html",
+        orders=orders,
+        settings=get_settings(),
+        customer_phone=session.get("customer_phone"),
+    )
+
+
+@app.route("/account/order/<int:order_id>")
+@customer_login_required
+def my_order_detail(order_id):
+    cust_id = session["customer_id"]
+    conn = get_db()
+    order = conn.execute(
+        "SELECT * FROM orders WHERE id=? AND customer_id=?", (order_id, cust_id)
+    ).fetchone()
+    if order is None:
+        conn.close()
+        abort(404)
+    items = conn.execute(
+        "SELECT * FROM order_items WHERE order_id=?", (order_id,)
+    ).fetchall()
+    conn.close()
+    return render_template(
+        "user/order_detail.html",
+        order=order, items=items,
+        settings=get_settings(),
+    )
+
+
+# =====================================================================
+# WISHLIST (requires login)
+# =====================================================================
+@app.route("/api/wishlist", methods=["GET"])
+@customer_login_required
+def api_wishlist_get():
+    cust_id = session["customer_id"]
+    conn = get_db()
+    rows = conn.execute(
+        """SELECT w.product_id, p.name, p.category, p.price, p.image_path
+           FROM wishlist w JOIN products p ON w.product_id=p.id
+           WHERE w.customer_id=?""",
+        (cust_id,),
+    ).fetchall()
+    conn.close()
+    return jsonify({"success": True, "items": [dict(r) for r in rows]})
+
+
+@app.route("/api/wishlist/toggle", methods=["POST"])
+@customer_login_required
+def api_wishlist_toggle():
+    cust_id = session["customer_id"]
+    product_id = (request.json or {}).get("product_id")
+    if not product_id:
+        return jsonify({"success": False, "error": "product_id required"}), 400
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT id FROM wishlist WHERE customer_id=? AND product_id=?",
+        (cust_id, product_id),
+    ).fetchone()
+    if existing:
+        conn.execute("DELETE FROM wishlist WHERE id=?", (existing["id"],))
+        wishlisted = False
+    else:
+        conn.execute(
+            "INSERT OR IGNORE INTO wishlist(customer_id, product_id) VALUES (?,?)",
+            (cust_id, product_id),
+        )
+        wishlisted = True
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "wishlisted": wishlisted})
+
+
+@app.route("/api/wishlist/ids", methods=["GET"])
+def api_wishlist_ids():
+    """Return list of wishlisted product IDs for the current customer (or empty)."""
+    cust_id = session.get("customer_id")
+    if not cust_id:
+        return jsonify({"ids": []})
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT product_id FROM wishlist WHERE customer_id=?", (cust_id,)
+    ).fetchall()
+    conn.close()
+    return jsonify({"ids": [r["product_id"] for r in rows]})
+
+
+@app.route("/account/wishlist")
+@customer_login_required
+def my_wishlist():
+    cust_id = session["customer_id"]
+    conn = get_db()
+    rows = conn.execute(
+        """SELECT p.* FROM wishlist w JOIN products p ON w.product_id=p.id
+           WHERE w.customer_id=? AND p.active=1 ORDER BY w.id DESC""",
+        (cust_id,),
+    ).fetchall()
+    conn.close()
+    return render_template(
+        "user/wishlist.html",
+        products=[dict(r) for r in rows],
+        settings=get_settings(),
+    )
 
 
 if __name__ == "__main__":

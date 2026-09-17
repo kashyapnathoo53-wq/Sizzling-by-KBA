@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Order #{{ order.id }} — {{ settings.brand_name }}</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -21,16 +22,72 @@
 <div class="simple-page">
   <div class="wrap">
 
+    {% if order.status == 'pending_payment' %}
+    <div class="confirm-box" style="border-color: #e9aa1a;">
+      <div class="check" style="background:#e9aa1a; color:#1b1b1b;">⏳</div>
+      <h1>Awaiting Payment</h1>
+      <p class="sub">Order #{{ order.id }} — Please complete your payment to confirm.</p>
+    </div>
+    {% elif order.status == 'payment_reported' %}
+    <div class="confirm-box" style="border-color: #f59e0b;">
+      <div class="check" style="background:#f59e0b; color:#1b1b1b;">🔍</div>
+      <h1>Verifying Payment</h1>
+      <p class="sub">Order #{{ order.id }} — We received your payment reference and are verifying it. We'll confirm shortly.</p>
+    </div>
+    {% elif order.status == 'confirmed' %}
+    <div class="confirm-box" style="border-color: #22c55e;">
+      <div class="check" style="background:#22c55e; color:#fff;">✓</div>
+      <h1>Order Confirmed!</h1>
+      <p class="sub">Order #{{ order.id }} — Payment verified. We're getting started on your order.</p>
+    </div>
+    {% elif order.status == 'dispatched' %}
+    <div class="confirm-box" style="border-color: #3b82f6;">
+      <div class="check" style="background:#3b82f6; color:#fff;">🚚</div>
+      <h1>Order Dispatched</h1>
+      <p class="sub">Order #{{ order.id }} — Your order is on its way!</p>
+    </div>
+    {% elif order.status == 'cancelled' %}
+    <div class="confirm-box" style="border-color: #ef4444;">
+      <div class="check" style="background:#ef4444; color:#fff;">✕</div>
+      <h1>Order Cancelled</h1>
+      <p class="sub">Order #{{ order.id }} — This order has been cancelled. Please contact us for help.</p>
+    </div>
+    {% else %}
     <div class="confirm-box">
-      <div class="check">&#10003;</div>
+      <div class="check">✓</div>
       <h1>Order Received</h1>
       <p class="sub">Order #{{ order.id }} — we'll confirm your payment and get started shortly.</p>
+    </div>
+    {% endif %}
+
+    <!-- Status Timeline -->
+    <div class="status-timeline">
+      {% set steps = [
+        ('pending_payment', '💳', 'Payment Pending'),
+        ('payment_reported', '🔍', 'Payment Submitted'),
+        ('confirmed', '✓', 'Confirmed'),
+        ('dispatched', '🚚', 'Dispatched'),
+      ] %}
+      {% set status_order = ['pending_payment', 'payment_reported', 'confirmed', 'dispatched'] %}
+      {% set current_idx = status_order.index(order.status) if order.status in status_order else 0 %}
+      {% for s, icon, label in steps %}
+      {% set idx = loop.index0 %}
+      <div class="status-step {% if idx <= current_idx %}done{% endif %} {% if idx == current_idx %}active{% endif %}">
+        <div class="status-dot">{{ icon if idx == current_idx else ('✓' if idx < current_idx else '') }}</div>
+        <div class="status-label">{{ label }}</div>
+      </div>
+      {% if not loop.last %}<div class="status-line {% if loop.index0 < current_idx %}filled{% endif %}"></div>{% endif %}
+      {% endfor %}
     </div>
 
     <div class="checkout-summary">
       <div class="checkout-line">
+        <span>Order #</span>
+        <span style="font-family:var(--mono);">{{ order.id }}</span>
+      </div>
+      <div class="checkout-line">
         <span>Status</span>
-        <span style="text-transform:capitalize;">{{ order.status.replace('_',' ') }}</span>
+        <span class="order-status-badge status-{{ order.status }}">{{ order.status.replace('_',' ').title() }}</span>
       </div>
       <div class="checkout-line">
         <span>Customer</span>
@@ -53,15 +110,18 @@
     </div>
 
     {% if order.status == 'pending_payment' %}
-    <div style="text-align:center;">
-      <a href="{{ url_for('order_pay', order_id=order.id) }}" class="btn btn-brass">Complete Payment →</a>
+    <div style="text-align:center; margin-top:24px;">
+      <a href="{{ url_for('order_pay', order_id=order.id) }}" class="btn btn-brass" style="padding:14px 32px;">Complete Payment →</a>
     </div>
-    {% else %}
-    <p style="text-align:center; color:#666; font-size:14.5px;">
-      Questions about your order? Message us on WhatsApp at
-      <a href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" rel="noopener">{{ settings.whatsapp_number }}</a>.
-    </p>
     {% endif %}
+
+    <div style="text-align:center; margin-top:24px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+      <a href="https://wa.me/{{ settings.whatsapp_number }}?text={{ ('Hi, I have a question about Order #' ~ order.id)|urlencode }}"
+         class="btn btn-outline" target="_blank" rel="noopener">
+        💬 Ask on WhatsApp
+      </a>
+      <a href="/account/orders" class="btn btn-ink">My Orders →</a>
+    </div>
 
   </div>
 </div>

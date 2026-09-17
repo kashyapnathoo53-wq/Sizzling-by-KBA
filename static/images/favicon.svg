@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="12" fill="#14171c"/>
+  <!-- Scissors body -->
+  <circle cx="18" cy="28" r="7" fill="none" stroke="#b08d57" stroke-width="2.5"/>
+  <circle cx="18" cy="28" r="2.5" fill="#b08d57"/>
+  <circle cx="18" cy="44" r="7" fill="none" stroke="#b08d57" stroke-width="2.5"/>
+  <circle cx="18" cy="44" r="2.5" fill="#b08d57"/>
+  <!-- Blade 1 -->
+  <line x1="22" y1="24" x2="50" y2="16" stroke="#b08d57" stroke-width="3" stroke-linecap="round"/>
+  <!-- Blade 2 -->
+  <line x1="22" y1="48" x2="50" y2="48" stroke="#b08d57" stroke-width="3" stroke-linecap="round"/>
+  <!-- Pivot -->
+  <circle cx="30" cy="36" r="2" fill="#d9bd8b"/>
+  <!-- Flame spark -->
+  <path d="M50 15 Q53 10 51 6 Q55 9 54 14 Q57 11 56 7 Q60 12 57 17 Q55 22 50 20 Q46 18 50 15Z" fill="#d9bd8b" opacity="0.9"/>
+</svg>

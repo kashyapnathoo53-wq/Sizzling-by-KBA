@@ -571,4 +571,98 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ------------------------------------------------------------
+  // Wishlist Handling
+  // ------------------------------------------------------------
+  syncWishlistFromServer();
+
+  document.querySelectorAll(".wishlist-card-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const pid = btn.dataset.id;
+      toggleWishlist(pid, btn);
+    });
+  });
+
 });
+
+// ======================================================================
+// WISHLIST MANAGEMENT (localStorage + Server Sync)
+// ======================================================================
+const WISHLIST_KEY = "sizzling_wishlist";
+
+function getLocalWishlist() {
+  try {
+    const raw = localStorage.getItem(WISHLIST_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveLocalWishlist(list) {
+  localStorage.setItem(WISHLIST_KEY, JSON.stringify(list));
+  updateWishlistBadge();
+}
+
+function updateWishlistBadge() {
+  const badge = document.getElementById("wishlistCount");
+  if (!badge) return;
+  const list = getLocalWishlist();
+  badge.textContent = list.length;
+}
+
+function syncWishlistFromServer() {
+  fetch("/api/wishlist/ids")
+    .then(r => r.json())
+    .then(data => {
+      if (data && Array.isArray(data.ids)) {
+        if (data.ids.length > 0) {
+          const combined = Array.from(new Set([...getLocalWishlist(), ...data.ids]));
+          saveLocalWishlist(combined);
+        }
+        highlightWishlistButtons();
+      }
+    })
+    .catch(() => {
+      highlightWishlistButtons();
+    });
+}
+
+function highlightWishlistButtons() {
+  const wishlistedIds = new Set(getLocalWishlist().map(Number));
+  document.querySelectorAll(".wishlist-card-btn").forEach(btn => {
+    const pid = parseInt(btn.dataset.id, 10);
+    if (wishlistedIds.has(pid)) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+  updateWishlistBadge();
+}
+
+function toggleWishlist(productId, btnEl) {
+  productId = parseInt(productId, 10);
+  let localList = getLocalWishlist().map(Number);
+  const isCurrentlySaved = localList.includes(productId);
+
+  if (isCurrentlySaved) {
+    localList = localList.filter(id => id !== productId);
+    saveLocalWishlist(localList);
+    btnEl?.classList.remove("active");
+    showToast("Removed item from wishlist", "♡");
+  } else {
+    localList.push(productId);
+    saveLocalWishlist(localList);
+    btnEl?.classList.add("active");
+    showToast("Saved to your wishlist", "❤️");
+  }
+
+  fetch("/api/wishlist/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ product_id: productId })
+  }).catch(() => {});
+}
