@@ -813,10 +813,9 @@ def admin_enquiries():
 def admin_settings():
     if request.method == "POST":
         for key in ["whatsapp_number", "shop_phone", "brand_name", "owner_name",
-                    "address", "hours", "upi_id", "upi_payee_name"]:
+                    "address", "hours", "upi_id", "upi_payee_name", "fast2sms_api_key"]:
             value = request.form.get(key, "").strip()
-            if value:
-                set_setting(key, value)
+            set_setting(key, value)
 
         new_password = request.form.get("new_password", "").strip()
         if new_password:
@@ -839,25 +838,29 @@ FAST2SMS_API_KEY = os.environ.get("FAST2SMS_API_KEY", "")
 
 def _send_otp_fast2sms(phone, otp):
     """Send OTP via Fast2SMS. Returns True on success."""
-    if not FAST2SMS_API_KEY:
-        # Dev mode: print OTP to server logs
-        print(f"[DEV] OTP for {phone}: {otp}")
-        return True
+    api_key = os.environ.get("FAST2SMS_API_KEY", "") or get_settings().get("fast2sms_api_key", "")
+    if not api_key:
+        print(f"[OTP LOG] Generated OTP for {phone}: {otp} (Fast2SMS key not set)")
+        return False
     try:
         url = "https://www.fast2sms.com/dev/bulkV2"
         payload = urllib.parse.urlencode({
-            "authorization": FAST2SMS_API_KEY,
+            "authorization": api_key,
             "variables_values": otp,
             "route": "otp",
             "numbers": phone,
         }).encode("ascii")
         req = urllib.request.Request(
             url, data=payload,
-            headers={"cache-control": "no-cache"},
+            headers={
+                "cache-control": "no-cache",
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=8) as resp:
-            return resp.status == 200
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("return") is True
     except Exception as exc:
         print(f"[WARN] Fast2SMS error: {exc}")
         return False
@@ -908,14 +911,20 @@ def api_send_otp():
     conn.close()
 
     sent = _send_otp_fast2sms(phone, otp)
-    if not sent and FAST2SMS_API_KEY:
-        return jsonify({"success": False, "error": "Could not send OTP. Try again shortly."}), 500
 
-    resp_payload = {"success": True, "message": "OTP sent to your phone."}
-    if not FAST2SMS_API_KEY:
-        resp_payload["dev_otp"] = otp
-        resp_payload["message"] = f"OTP: {otp} (Demo mode: auto-filled)"
-    return jsonify(resp_payload)
+    if sent:
+        return jsonify({
+            "success": True,
+            "sms_sent": True,
+            "message": f"OTP sent to {phone} via SMS.",
+        })
+    else:
+        return jsonify({
+            "success": True,
+            "sms_sent": False,
+            "otp_code": otp,
+            "message": f"Verification code generated: {otp}",
+        })
 
 
 @app.route("/api/account/verify_otp", methods=["POST"])

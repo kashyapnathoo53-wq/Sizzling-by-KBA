@@ -70,6 +70,12 @@
       </div>
 
       <div class="field">
+        <label for="fast2sms_api_key">Fast2SMS API Key (for real mobile OTP SMS)</label>
+        <input type="text" id="fast2sms_api_key" name="fast2sms_api_key" value="{{ settings.fast2sms_api_key or '' }}" placeholder="Paste Fast2SMS dev/bulk API key here">
+        <div class="help-text">Optional. Get a free API key at fast2sms.com to deliver real SMS OTP codes to customer mobile phones.</div>
+      </div>
+
+      <div class="field">
         <label for="new_password">Change Admin Password</label>
         <input type="password" id="new_password" name="new_password" placeholder="Leave blank to keep current password">
       </div>

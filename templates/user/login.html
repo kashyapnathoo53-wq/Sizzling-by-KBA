@@ -43,9 +43,9 @@
 
       <!-- Step 2: OTP + Name -->
       <div id="stepOtp" style="display:none;">
-        <p style="font-size:14px; color:#555; margin-bottom:18px; padding:12px; background:var(--ivory); border-radius:3px; border-left:3px solid var(--brass);">
+        <div id="otpInfoBox" style="font-size:14px; color:#444; margin-bottom:18px; padding:14px; background:var(--ivory); border-radius:3px; border-left:3px solid var(--brass); line-height:1.5;">
           📱 OTP sent to <strong id="phoneSummary"></strong>. Valid for 10 minutes.
-        </p>
+        </div>
         <div class="field" style="margin-bottom:14px;">
           <label for="loginOtp">Enter OTP</label>
           <input type="text" id="loginOtp" placeholder="6-digit OTP" maxlength="6"
@@ -59,14 +59,39 @@
           Verify & Login →
         </button>
         <div id="verifyOtpStatus" class="form-status" style="margin-top:12px;"></div>
-        <button id="backToPhoneBtn" class="btn btn-outline" style="width:100%; margin-top:10px; padding:10px;">
-          ← Change Number
+        <button type="button" id="backToPhoneBtn" class="btn-change-number">
+          ← Change Mobile Number
         </button>
       </div>
     </div>
 
   </div>
 </div>
+
+<style>
+.btn-change-number {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  background: #f4efe4;
+  border: 1px solid #c9bfa2;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .2s ease;
+  font-family: inherit;
+}
+.btn-change-number:hover {
+  background: #e8ded0;
+  border-color: var(--ink);
+  color: #000;
+}
+</style>
 
 <script>
   let currentPhone = "";
@@ -97,15 +122,20 @@
         currentPhone = phone;
         document.getElementById("stepPhone").style.display = "none";
         document.getElementById("stepOtp").style.display = "block";
-        document.getElementById("phoneSummary").textContent = phone;
-        if (res.dev_otp) {
-          const otpInput = document.getElementById("loginOtp");
-          otpInput.value = res.dev_otp;
-          const verifyStatus = document.getElementById("verifyOtpStatus");
-          verifyStatus.textContent = `Demo Mode: OTP auto-filled (${res.dev_otp})`;
-          verifyStatus.className = "form-status success";
+        const otpInput = document.getElementById("loginOtp");
+        otpInput.value = ""; // Keep blank, no auto-fill
+
+        const infoBox = document.getElementById("otpInfoBox");
+        if (res.sms_sent) {
+          infoBox.innerHTML = `📱 OTP sent via SMS to <strong>${phone}</strong>.<br><small style="color:#666;">Valid for 10 minutes. Please enter the 6-digit code below.</small>`;
+        } else if (res.otp_code) {
+          infoBox.innerHTML = `🔑 Verification Code: <strong style="font-size:17px; letter-spacing:3px; color:var(--ink); font-family:var(--mono);">${res.otp_code}</strong><br><small style="color:#666;">Enter this 6-digit code below to log in. (Fast2SMS key not set in Admin Settings).</small>`;
+        } else {
+          infoBox.innerHTML = `📱 OTP sent to <strong>${phone}</strong>. Valid for 10 minutes.`;
         }
-        document.getElementById("loginOtp").focus();
+
+        document.getElementById("verifyOtpStatus").textContent = "";
+        otpInput.focus();
       } else {
         statusEl.textContent = res.error || "Failed to send OTP.";
         statusEl.className = "form-status error";
