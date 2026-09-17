@@ -910,28 +910,30 @@ def customer_login_required(view):
     return wrapped
 
 
-@app.route("/account/login", methods=["GET", "POST"])
-def customer_login():
-    next_url = request.args.get("next") or url_for("my_orders")
-    if session.get("customer_id"):
-        return redirect(next_url)
-    return render_template(
-        "user/login.html", next_url=next_url, settings=get_settings()
-    )
+def _normalize_phone(raw_phone):
+    import re
+    digits = re.sub(r"\D", "", str(raw_phone or ""))
+    if len(digits) > 10 and digits.startswith("91"):
+        digits = digits[-10:]
+    elif len(digits) == 11 and digits.startswith("0"):
+        digits = digits[1:]
+    return digits
 
 
-@app.route("/api/account/direct_login", methods=["POST"])
-def api_direct_login():
-    data = request.json or {}
-    phone = (data.get("phone") or "").strip().lstrip("+")
-    name = (data.get("name") or "").strip()
-
-    if not phone.isdigit() or len(phone) < 10:
-        return jsonify({"success": False, "error": "Please enter a valid 10-digit mobile number."}), 400
-
+def _login_or_register_customer(clean_phone, name=None):
     conn = get_db()
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS customers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        phone TEXT UNIQUE NOT NULL,
+        created_at TEXT DEFAULT (datetime('now'))
+    )
+    """)
+    conn.commit()
+
     existing = conn.execute(
-        "SELECT * FROM customers WHERE phone=?", (phone,)
+        "SELECT * FROM customers WHERE phone=?", (clean_phone,)
     ).fetchone()
 
     if existing:
@@ -941,23 +943,70 @@ def api_direct_login():
     else:
         conn.execute(
             "INSERT INTO customers(name, phone) VALUES (?,?)",
-            (name or "Customer", phone),
+            (name or "Customer", clean_phone),
         )
         cust_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
-    # Link any past orders placed with this phone number to this customer account
-    conn.execute(
-        "UPDATE orders SET customer_id=? WHERE phone=? AND (customer_id IS NULL OR customer_id != ?)",
-        (cust_id, phone, cust_id),
-    )
+    # Link past orders
+    try:
+        conn.execute(
+            "UPDATE orders SET customer_id=? WHERE (phone=? OR phone=? OR phone=?) AND (customer_id IS NULL OR customer_id != ?)",
+            (cust_id, clean_phone, f"91{clean_phone}", f"+91{clean_phone}", cust_id),
+        )
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 
     session["customer_id"] = cust_id
-    session["customer_phone"] = phone
+    session["customer_phone"] = clean_phone
+    return cust_id
 
-    next_url = request.args.get("next") or url_for("my_orders")
-    return jsonify({"success": True, "redirect": next_url})
+
+@app.route("/account/login", methods=["GET", "POST"])
+def customer_login():
+    next_url = request.args.get("next") or request.form.get("next") or url_for("my_orders")
+    if session.get("customer_id"):
+        return redirect(next_url)
+
+    if request.method == "POST":
+        raw_phone = request.form.get("phone", "")
+        name = request.form.get("name", "")
+        clean_phone = _normalize_phone(raw_phone)
+        if len(clean_phone) == 10:
+            try:
+                _login_or_register_customer(clean_phone, name)
+                return redirect(next_url)
+            except Exception as e:
+                flash("Login failed. Please try again.", "error")
+        else:
+            flash("Please enter a valid 10-digit mobile number.", "error")
+
+    return render_template(
+        "user/login.html", next_url=next_url, settings=get_settings()
+    )
+
+
+@app.route("/api/account/direct_login", methods=["POST"])
+def api_direct_login():
+    try:
+        data = request.get_json(silent=True) or request.form or {}
+        raw_phone = data.get("phone") or ""
+        name = data.get("name") or ""
+        clean_phone = _normalize_phone(raw_phone)
+
+        if len(clean_phone) != 10:
+            return jsonify({"success": False, "error": "Please enter a valid 10-digit mobile number."}), 400
+
+        _login_or_register_customer(clean_phone, name)
+
+        next_url = request.args.get("next") or request.form.get("next") or url_for("my_orders")
+        return jsonify({"success": True, "redirect": next_url})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"Login failed: {str(e)}"}), 500
 
 
 @app.route("/api/account/send_otp", methods=["POST"])
@@ -1047,11 +1096,15 @@ def customer_logout():
 @app.route("/account/orders")
 @customer_login_required
 def my_orders():
-    cust_id = session["customer_id"]
+    cust_id = session.get("customer_id")
+    phone = session.get("customer_phone", "")
     conn = get_db()
     orders = conn.execute(
-        "SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC",
-        (cust_id,),
+        """SELECT * FROM orders 
+           WHERE customer_id=? 
+              OR (phone IS NOT NULL AND phone != '' AND (phone=? OR phone=? OR phone=?))
+           ORDER BY id DESC""",
+        (cust_id, phone, f"91{phone}" if phone else "", f"+91{phone}" if phone else ""),
     ).fetchall()
     conn.close()
     return render_template(

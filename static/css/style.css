@@ -213,7 +213,7 @@ header{
 .btn-outline:hover{ border-color:var(--brass-light); color:var(--brass-light); background:rgba(197,160,89,0.1); }
 .btn-outline:hover{ border-color:var(--brass-light); color:var(--brass-light); }
 .btn-ink{ border-color:var(--text-dark); color:var(--text-dark); }
-.btn-ink:hover{ background:var(--ink); color:var(--ivory); }
+.btn-ink:hover{ background:var(--ink); color:#ffffff; }
 
 .menu-toggle{ display:none; flex-direction:column; gap:5px; background:none; border:none; padding:4px; }
 .menu-toggle span{ width:22px; height:2px; background:var(--text-light); }
@@ -226,8 +226,8 @@ header{
   pointer-events:none;
 }
 .hero-inner{ position:relative; display:grid; grid-template-columns:1.15fr 0.85fr; gap:60px; align-items:center; }
-.hero h1{ font-size:clamp(44px, 6vw, 78px); margin:22px 0 24px; color:var(--ivory); }
-.hero h1 em{ font-style:italic; color:var(--brass-light); font-weight:500; }
+.hero h1{ font-size:clamp(44px, 6vw, 78px); margin:22px 0 24px; color:#ffffff; text-shadow:0 2px 20px rgba(0,0,0,0.6); }
+.hero h1 em{ font-style:italic; color:var(--brass-light); font-weight:500; text-shadow:none; }
 .hero p{ font-size:17px; line-height:1.65; color:var(--text-dim); max-width:480px; margin-bottom:34px; }
 .hero-ctas{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:38px; }
 .hero-meta{ display:flex; gap:26px; flex-wrap:wrap; }
@@ -272,7 +272,7 @@ header{
   text-transform:uppercase; color:var(--brass-light); margin-bottom:3px;
 }
 .hero-badge-title{
-  display:block; font-family:var(--serif); font-size:16px; font-weight:600; color:var(--ivory);
+  display:block; font-family:var(--serif); font-size:16px; font-weight:600; color:#ffffff;
 }
 
 /* SIZE STRIP */
@@ -303,7 +303,7 @@ header{
   flex-shrink:0;
 }
 .trust-text strong{
-  display:block; font-size:13.5px; font-weight:600; color:var(--ivory);
+  display:block; font-size:13.5px; font-weight:600; color:#ffffff;
 }
 .trust-text small{
   display:block; font-size:12px; color:var(--text-dim); margin-top:2px;
@@ -937,7 +937,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   background: rgba(20, 23, 28, 0.75);
   backdrop-filter: blur(4px);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: var(--ivory);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -978,7 +978,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 }
 .simple-page {
   padding: 48px 0 80px;
-  background: var(--ivory);
+  background: var(--paper);
   min-height: calc(100vh - 80px);
 }
 .simple-page .wrap {
@@ -987,7 +987,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 }
 .pay-box {
   background: var(--ink);
-  color: var(--ivory);
+  color: #ffffff;
   border: 1px solid var(--brass);
   border-radius: 4px;
   padding: 32px 24px;

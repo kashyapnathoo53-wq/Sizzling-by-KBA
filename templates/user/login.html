@@ -29,17 +29,25 @@
     </div>
 
     <div class="form-card">
-      <form id="directLoginForm">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="form-status error" style="margin-bottom:16px; text-align:center;">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      <form id="directLoginForm" method="POST" action="/account/login">
+        <input type="hidden" name="next" value="{{ next_url }}">
         <div class="field" style="margin-bottom:16px;">
           <label for="loginPhone">Your Mobile Number</label>
-          <input type="tel" id="loginPhone" placeholder="10-digit number (e.g. 8595511923)"
-                 maxlength="10" inputmode="numeric" pattern="[0-9]*" required autocomplete="tel" autofocus>
+          <input type="tel" id="loginPhone" name="phone" placeholder="10-digit number (e.g. 8595511923)"
+                 maxlength="14" inputmode="numeric" required autocomplete="tel" autofocus>
           <small style="color:#777; font-size:12px; margin-top:4px; display:block;">Enter the number you used while placing your order.</small>
         </div>
 
         <div class="field" style="margin-bottom:20px;">
           <label for="loginName">Your Name <span style="opacity:0.5; font-weight:normal;">(optional)</span></label>
-          <input type="text" id="loginName" placeholder="e.g. Kashyap Nathoo" autocomplete="name">
+          <input type="text" id="loginName" name="name" placeholder="e.g. Kashyap Nathoo" autocomplete="name">
         </div>
 
         <button type="submit" class="btn btn-brass" id="loginSubmitBtn" style="width:100%; padding:14px; font-size:14px; font-weight:700;">
@@ -57,48 +65,68 @@
 </div>
 
 <script>
-  const nextUrl = new URLSearchParams(window.location.search).get("next") || "/account/orders";
+  const nextUrl = new URLSearchParams(window.location.search).get("next") || "{{ next_url or '/account/orders' }}";
 
-  document.getElementById("directLoginForm").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const phone = document.getElementById("loginPhone").value.trim();
-    const name = document.getElementById("loginName").value.trim();
+  document.getElementById("directLoginForm").addEventListener("submit", function(e) {
+    const rawPhone = document.getElementById("loginPhone").value.trim();
+    let digits = rawPhone.replace(/\D/g, "");
+    if (digits.length > 10 && digits.startsWith("91")) {
+      digits = digits.slice(-10);
+    } else if (digits.length === 11 && digits.startsWith("0")) {
+      digits = digits.slice(1);
+    }
+
     const statusEl = document.getElementById("loginStatus");
     const btn = document.getElementById("loginSubmitBtn");
 
-    if (!/^\d{10}$/.test(phone)) {
+    if (digits.length !== 10) {
+      e.preventDefault();
       statusEl.textContent = "Please enter a valid 10-digit mobile number.";
       statusEl.className = "form-status error";
       return;
     }
 
+    // Update input value with cleaned 10 digits
+    document.getElementById("loginPhone").value = digits;
+    const name = document.getElementById("loginName").value.trim();
+
+    // Prevent default to try fast AJAX, with immediate native form fallback on any network error
+    e.preventDefault();
     btn.disabled = true;
     btn.textContent = "Loading orders...";
     statusEl.textContent = "";
 
     fetch(`/api/account/direct_login?next=${encodeURIComponent(nextUrl)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, name })
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ phone: digits, name: name })
     })
-    .then(r => r.json())
-    .then(res => {
-      if (res.success) {
+    .then(async (r) => {
+      let res = null;
+      try {
+        res = await r.json();
+      } catch (err) {}
+
+      if (r.ok && res && res.success) {
         statusEl.textContent = "✓ Verified! Loading your orders...";
         statusEl.className = "form-status success";
         window.location.href = res.redirect || nextUrl;
-      } else {
-        statusEl.textContent = res.error || "Login failed. Please try again.";
+      } else if (res && res.error) {
+        statusEl.textContent = res.error;
         statusEl.className = "form-status error";
         btn.disabled = false;
         btn.textContent = "View My Orders & Wishlist →";
+      } else {
+        // Fallback: submit standard form natively
+        document.getElementById("directLoginForm").submit();
       }
     })
-    .catch(() => {
-      statusEl.textContent = "Network error. Please try again.";
-      statusEl.className = "form-status error";
-      btn.disabled = false;
-      btn.textContent = "View My Orders & Wishlist →";
+    .catch((err) => {
+      // In case of network error, seamlessly submit standard form so browser completes login
+      document.getElementById("directLoginForm").submit();
     });
   });
 </script>
