@@ -12,8 +12,19 @@ from werkzeug.utils import secure_filename
 import qrcode
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_NAME = os.path.join(BASE_DIR, "sizzling.db")
-UPLOAD_DIR = os.path.join(BASE_DIR, "static", "images", "uploads")
+
+# On Vercel the filesystem is read-only except for /tmp.
+# Detect Vercel by the presence of the VERCEL environment variable.
+_ON_VERCEL = os.environ.get("VERCEL") == "1"
+if _ON_VERCEL:
+    DB_NAME = "/tmp/sizzling.db"
+    UPLOAD_DIR = "/tmp/uploads"
+    QR_DIR_TMP = "/tmp/qr"
+else:
+    DB_NAME = os.path.join(BASE_DIR, "sizzling.db")
+    UPLOAD_DIR = os.path.join(BASE_DIR, "static", "images", "uploads")
+    QR_DIR_TMP = None
+
 ALLOWED_EXT = {"png", "jpg", "jpeg", "webp"}
 MAX_UPLOAD_MB = 8
 
@@ -39,7 +50,7 @@ UPPER_SIZES = [36, 38, 40, 42, 44]
 LOWER_SIZES = [30, 32, 34, 36, 38]
 
 DEFAULT_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "sizzling@2026")
-QR_DIR = os.path.join(BASE_DIR, "static", "images", "qr")
+QR_DIR = QR_DIR_TMP if _ON_VERCEL else os.path.join(BASE_DIR, "static", "images", "qr")
 os.makedirs(QR_DIR, exist_ok=True)
 
 
