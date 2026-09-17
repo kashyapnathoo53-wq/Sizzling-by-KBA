@@ -886,10 +886,49 @@ def customer_login():
     next_url = request.args.get("next") or url_for("my_orders")
     if session.get("customer_id"):
         return redirect(next_url)
-    step = request.args.get("step", "phone")
     return render_template(
-        "user/login.html", step=step, next_url=next_url, settings=get_settings()
+        "user/login.html", next_url=next_url, settings=get_settings()
     )
+
+
+@app.route("/api/account/direct_login", methods=["POST"])
+def api_direct_login():
+    data = request.json or {}
+    phone = (data.get("phone") or "").strip().lstrip("+")
+    name = (data.get("name") or "").strip()
+
+    if not phone.isdigit() or len(phone) < 10:
+        return jsonify({"success": False, "error": "Please enter a valid 10-digit mobile number."}), 400
+
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT * FROM customers WHERE phone=?", (phone,)
+    ).fetchone()
+
+    if existing:
+        cust_id = existing["id"]
+        if name and (not existing["name"] or existing["name"] == "Customer"):
+            conn.execute("UPDATE customers SET name=? WHERE id=?", (name, cust_id))
+    else:
+        conn.execute(
+            "INSERT INTO customers(name, phone) VALUES (?,?)",
+            (name or "Customer", phone),
+        )
+        cust_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    # Link any past orders placed with this phone number to this customer account
+    conn.execute(
+        "UPDATE orders SET customer_id=? WHERE phone=? AND (customer_id IS NULL OR customer_id != ?)",
+        (cust_id, phone, cust_id),
+    )
+    conn.commit()
+    conn.close()
+
+    session["customer_id"] = cust_id
+    session["customer_phone"] = phone
+
+    next_url = request.args.get("next") or url_for("my_orders")
+    return jsonify({"success": True, "redirect": next_url})
 
 
 @app.route("/api/account/send_otp", methods=["POST"])
