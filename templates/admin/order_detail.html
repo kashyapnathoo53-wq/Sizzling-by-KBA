@@ -10,11 +10,11 @@
 
 {% include "admin/_header.html" %}
 
-<div class="admin-wrap" style="max-width:960px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+<div class="admin-wrap" style="max-width:1040px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:24px;">
     <div>
-      <div class="admin-title">Order #{{ order.id }} Details</div>
-      <div class="admin-sub">Placed on {{ order.created_at }}</div>
+      <div class="admin-title">Order #{{ order.id }} Details &amp; Invoice</div>
+      <div class="admin-sub" style="margin-bottom:0;">Placed on {{ order.created_at }}</div>
     </div>
     <div>
       <a href="{{ url_for('admin_orders') }}" class="btn btn-outline">← Back to All Orders</a>
@@ -29,25 +29,25 @@
 
   <!-- Customer Contact Card -->
   <div class="panel">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
       <div>
-        <h3 style="margin-top:0;">Customer Identity</h3>
-        <p style="font-size:16px; font-weight:700; color:#111; margin:0 0 6px 0;">{{ order.customer_name }}</p>
-        <p style="margin:0 0 8px 0; font-size:14px; color:#555;">
-          📞 <strong>Mobile:</strong> <a href="tel:{{ order.phone }}">+91 {{ order.phone }}</a>
+        <h3>Customer Identity</h3>
+        <p style="font-size:18px; font-weight:700; color:#ffffff; margin:0 0 8px 0;">{{ order.customer_name }}</p>
+        <p style="margin:0 0 8px 0; font-size:14.5px; color:var(--text-muted); font-family:var(--font-mono);">
+          📞 <strong>Mobile:</strong> <a href="tel:{{ order.phone }}" style="color:var(--brass-light);">+91 {{ order.phone }}</a>
         </p>
-        <p style="margin:0 0 8px 0; font-size:14px; color:#555;">
+        <p style="margin:0 0 8px 0; font-size:14px; color:var(--text-muted);">
           📍 <strong>Delivery Address:</strong> {{ order.address }}
         </p>
         {% if order.notes %}
-        <p style="margin:8px 0 0 0; background:#fefce8; padding:8px 12px; border-radius:4px; font-size:13px; color:#854d0e; border-left:3px solid #eab308;">
+        <p style="margin:10px 0 0 0; background:rgba(245, 158, 11, 0.1); padding:10px 14px; border-radius:6px; font-size:13.5px; color:#fbbf24; border-left:3px solid #f59e0b;">
           📝 <strong>Customer Notes:</strong> {{ order.notes }}
         </p>
         {% endif %}
       </div>
       <div>
         <a href="https://wa.me/91{{ order.phone }}?text={{ ('Hi ' ~ order.customer_name ~ ', this is SIZZLING by KBA regarding your Order #' ~ order.id ~ '.')|urlencode }}"
-           class="btn btn-primary" target="_blank" rel="noopener" style="background:#25d366; border-color:#25d366; font-weight:700;">
+           class="btn btn-primary" target="_blank" rel="noopener" style="background:#25d366; border-color:#25d366; color:#05260f !important; font-weight:700;">
           💬 Chat with Customer on WhatsApp
         </a>
       </div>
@@ -56,7 +56,7 @@
 
   <!-- Ordered Garments -->
   <div class="panel">
-    <h3 style="margin-top:0;">Garments in this Order</h3>
+    <h3>Garments in this Order</h3>
     <table>
       <thead>
         <tr>
@@ -70,49 +70,51 @@
       <tbody>
         {% for i in items %}
         <tr>
-          <td data-label="Product"><strong>{{ i.product_name }}</strong></td>
-          <td data-label="Size"><span style="background:#eee; padding:2px 8px; border-radius:3px; font-weight:600;">{{ i.size }}</span></td>
-          <td data-label="Qty">{{ i.qty }}</td>
-          <td data-label="Price">₹{{ "%.0f"|format(i.price) }}</td>
-          <td data-label="Line Total" style="font-weight:700;">₹{{ "%.0f"|format(i.line_total) }}</td>
+          <td data-label="Product"><strong style="color:#ffffff;">{{ i.product_name }}</strong></td>
+          <td data-label="Size"><span style="background:#1c2436; color:var(--brass-light); padding:3px 10px; border-radius:4px; font-weight:700; font-family:var(--font-mono);">{{ i.size }}</span></td>
+          <td data-label="Qty" style="font-family:var(--font-mono);">{{ i.qty }}</td>
+          <td data-label="Price" style="font-family:var(--font-mono);">₹{{ "%.0f"|format(i.price) }}</td>
+          <td data-label="Line Total" style="font-weight:700; font-family:var(--font-mono); color:var(--brass-light);">₹{{ "%.0f"|format(i.line_total) }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-    <div style="text-align:right; font-weight:800; margin-top:16px; font-size:20px; color:#b08d57;">
+    <div style="text-align:right; font-weight:800; margin-top:20px; font-size:24px; color:var(--brass-light); font-family:var(--font-mono);">
       Total: ₹{{ "%.0f"|format(order.total) }}
     </div>
   </div>
 
   <!-- Payment & Status Management -->
   <div class="panel">
-    <h3 style="margin-top:0;">Payment &amp; Tailoring Status</h3>
+    <h3>Payment &amp; Tailoring Status</h3>
     
-    <div style="background:#f9f8f5; border:1px solid #e5e0d4; padding:16px; border-radius:6px; margin-bottom:18px;">
+    <div style="background:#0c1018; border:1px solid #1e2638; padding:18px 20px; border-radius:8px; margin-bottom:24px;">
       <div>
-        <strong>UPI Reference / UTR submitted by Customer:</strong><br>
+        <span style="font-size:11.5px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); font-weight:600;">
+          UPI Reference / UTR submitted by Customer:
+        </span><br>
         {% if order.payment_ref %}
-          <span style="font-family:monospace; font-size:16px; font-weight:700; color:#111; background:#fff; padding:4px 10px; border-radius:4px; border:1px solid #ccc; display:inline-block; margin-top:4px;">
+          <span style="font-family:var(--font-mono); font-size:17px; font-weight:700; color:var(--brass-light); background:#161d2d; padding:6px 14px; border-radius:6px; border:1px solid #28344e; display:inline-block; margin-top:6px;">
             {{ order.payment_ref }}
           </span>
         {% else %}
-          <em style="color:#888;">No payment reference submitted yet</em>
+          <em style="color:var(--text-dim); display:inline-block; margin-top:6px;">No payment reference submitted yet</em>
         {% endif %}
       </div>
 
-      <div style="margin-top:10px; font-size:13px; color:#666;">
+      <div style="margin-top:14px; font-size:14px; color:var(--text-muted);">
         Current Payment Status: 
-        <strong style="color:{% if order.payment_status == 'payment_verified' %}#15803d{% elif order.payment_status == 'payment_submitted' %}#d97706{% else %}#b91c1c{% endif %};">
+        <strong style="color:{% if order.payment_status == 'payment_verified' %}#34d399{% elif order.payment_status == 'payment_submitted' %}#fbbf24{% else %}#f87171{% endif %}; font-family:var(--font-mono);">
           {{ payment_status_labels.get(order.payment_status, order.payment_status or 'Unpaid') }}
         </strong>
         {% if order.payment_verified_at %}
-          <span style="font-size:12px; color:#888;">(Verified at {{ order.payment_verified_at }})</span>
+          <span style="font-size:12px; color:var(--text-dim); font-family:var(--font-mono); margin-left:6px;">(Verified at {{ order.payment_verified_at }})</span>
         {% endif %}
       </div>
 
       {% if order.payment_status == 'payment_submitted' or order.status == 'payment_reported' %}
-      <form method="POST" action="{{ url_for('admin_verify_payment', order_id=order.id) }}" style="margin-top:12px;">
-        <button type="submit" class="btn btn-primary" style="background:#16a34a; border-color:#16a34a; font-weight:700;">
+      <form method="POST" action="{{ url_for('admin_verify_payment', order_id=order.id) }}" style="margin-top:14px;">
+        <button type="submit" class="btn btn-primary" style="background:#10b981; border-color:#10b981; color:#042f1a !important; font-weight:700;">
           ✓ Confirm Credit in Bank &amp; Mark Verified
         </button>
       </form>
@@ -122,6 +124,15 @@
     <form method="POST">
       <div class="field-row">
         <div class="field">
+          <label for="payment_status">Payment Status</label>
+          <select id="payment_status" name="payment_status" onchange="syncOrderDetailDropdown()">
+            {% for pval, plab in payment_statuses %}
+            <option value="{{ pval }}" {% if order.payment_status == pval %}selected{% endif %}>{{ plab }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
           <label for="status">Order Tailoring / Fulfillment Status</label>
           <select id="status" name="status">
             {% for value, label in statuses %}
@@ -129,26 +140,32 @@
             {% endfor %}
           </select>
         </div>
-
-        <div class="field">
-          <label for="payment_status">Payment Status</label>
-          <select id="payment_status" name="payment_status">
-            {% for pval, plab in payment_statuses %}
-            <option value="{{ pval }}" {% if order.payment_status == pval %}selected{% endif %}>{{ plab }}</option>
-            {% endfor %}
-          </select>
-        </div>
       </div>
 
       <div class="field">
-        <label for="admin_notes">Store / Tailor Update Note (Visible to Customer on Tracking Screen)</label>
-        <input type="text" id="admin_notes" name="admin_notes" value="{{ order.admin_notes or '' }}" placeholder="e.g. Fabric cut and handed to Master Tailor Ramesh. Trial scheduled for Saturday.">
+        <label for="admin_notes">Store / Tailor Update Note (Visible to Customer on Live Tracking Screen)</label>
+        <input type="text" id="admin_notes" name="admin_notes" value="{{ order.admin_notes or '' }}" placeholder="e.g. Fabric cut and handed to Master Tailor. Trial ready on Saturday.">
       </div>
 
-      <button type="submit" class="btn btn-primary" style="padding:10px 24px;">Save All Updates</button>
+      <button type="submit" class="btn btn-primary" style="padding:12px 28px; font-size:14px;">Save All Updates</button>
     </form>
   </div>
 </div>
+
+<script>
+function syncOrderDetailDropdown() {
+  const paySel = document.getElementById('payment_status');
+  const statusSel = document.getElementById('status');
+  if (!paySel || !statusSel) return;
+  if (paySel.value === 'payment_verified') {
+    if (['awaiting_payment_confirmation', 'pending_payment', 'payment_reported'].includes(statusSel.value)) {
+      statusSel.value = 'confirmed';
+    }
+  } else if (paySel.value === 'payment_rejected') {
+    statusSel.value = 'cancelled';
+  }
+}
+</script>
 
 </body>
 </html>

@@ -30,6 +30,14 @@
     </div>
 
     <!-- Status Timeline -->
+    {% set is_paid = (order.payment_status == 'payment_verified') or (order.status in ['confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered']) %}
+    {% set display_status = order.status %}
+    {% if is_paid and display_status in ['pending_payment', 'awaiting_payment_confirmation', 'payment_reported'] %}
+      {% set display_status = 'confirmed' %}
+    {% elif order.payment_status == 'payment_rejected' %}
+      {% set display_status = 'cancelled' %}
+    {% endif %}
+
     {% set status_order = ['awaiting_payment_confirmation', 'pending_payment', 'payment_reported', 'confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered'] %}
     {% set steps = [
       ('payment_reported', '💳', 'Payment Submitted'),
@@ -38,7 +46,7 @@
       ('trial_ready', '🪡', 'Trial Ready'),
       ('dispatched', '🚚', 'Dispatched / Delivered'),
     ] %}
-    {% set current_idx = status_order.index(order.status) if order.status in status_order else 0 %}
+    {% set current_idx = status_order.index(display_status) if display_status in status_order else 0 %}
 
     <div class="status-timeline" style="margin-bottom:32px;">
       {% for s, icon, label in steps %}
@@ -52,38 +60,38 @@
     </div>
 
     <!-- Status Info Box -->
-    {% if order.status in ['pending_payment', 'awaiting_payment_confirmation'] %}
+    {% if display_status in ['pending_payment', 'awaiting_payment_confirmation'] %}
     <div class="status-info-box warning">
       <strong>⏳ Payment not completed yet.</strong> Your order is not placed until you complete payment and submit your UPI reference.
       <div style="margin-top:12px;">
         <a href="{{ url_for('order_pay', order_id=order.id) }}" class="btn btn-brass" style="padding:10px 22px; font-weight:700;">Pay Now &amp; Submit UTR →</a>
       </div>
     </div>
-    {% elif order.status == 'payment_reported' %}
+    {% elif display_status == 'payment_reported' %}
     <div class="status-info-box warning" style="border-color:#f59e0b; color:#fbbf24;">
       <strong>🔍 Verifying your payment.</strong> We've received your UPI reference (<code>{{ order.payment_ref }}</code>) and our accounts team is confirming it with our bank.
     </div>
-    {% elif order.status == 'confirmed' %}
+    {% elif display_status == 'confirmed' %}
     <div class="status-info-box success">
       <strong>✅ Payment confirmed &amp; order accepted!</strong> Our master tailors have received your order details and are preparing your cloth.
     </div>
-    {% elif order.status == 'tailoring' %}
+    {% elif display_status == 'tailoring' %}
     <div class="status-info-box" style="background:rgba(139,92,246,0.12); border:1px solid #8b5cf6; color:#c4b5fd;">
       <strong>✂️ In Tailoring &amp; Cutting.</strong> Your garment is currently on the cutting table and undergoing handcrafted tailoring.
     </div>
-    {% elif order.status == 'trial_ready' %}
+    {% elif display_status == 'trial_ready' %}
     <div class="status-info-box" style="background:rgba(6,182,212,0.12); border:1px solid #06b6d4; color:#67e8f9;">
       <strong>🪡 Trial Ready at Karol Bagh Store!</strong> Your bespoke trial is ready for you. Visit our shop or message us to schedule your fitting.
     </div>
-    {% elif order.status == 'dispatched' %}
+    {% elif display_status == 'dispatched' %}
     <div class="status-info-box" style="background:rgba(59,130,246,0.12); border:1px solid #3b82f6; color:#93c5fd;">
       <strong>🚚 Your order has been dispatched!</strong> Your package is in transit to your delivery address.
     </div>
-    {% elif order.status == 'delivered' %}
+    {% elif display_status == 'delivered' %}
     <div class="status-info-box success">
       <strong>🏆 Order Delivered &amp; Completed.</strong> Thank you for choosing SIZZLING by KBA!
     </div>
-    {% elif order.status == 'cancelled' %}
+    {% elif display_status == 'cancelled' %}
     <div class="status-info-box" style="background:rgba(239,68,68,0.12); border:1px solid #ef4444; color:#fca5a5;">
       <strong>❌ This order was cancelled.</strong> Please contact us on WhatsApp if you need help.
     </div>

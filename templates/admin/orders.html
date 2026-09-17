@@ -3,145 +3,150 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Order Management Database — SIZZLING by KBA Admin</title>
+<title>Master Orders Database — SIZZLING by KBA Admin</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 <style>
   :root {
-    --gold: #b08d57;
+    --gold: #c5a059;
     --gold-light: #dfc691;
-    --border: #e2ded2;
+    --card-bg: #101520;
+    --border-color: #1e2638;
   }
-  .admin-wrap { max-width: 1320px; margin: 0 auto; padding: 28px 20px 60px; }
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .admin-wrap { max-width: 1360px; margin: 0 auto; padding: 28px 24px 70px; }
+  
+  /* Stats Cards */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
   .stat-card {
-    background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03); position: relative; overflow: hidden;
+    background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px 22px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35); position: relative; overflow: hidden;
   }
-  .stat-card.alert-card { border-color: #f59e0b; background: #fffdf8; }
-  .stat-card .num { font-size: 28px; font-weight: 700; color: #1c1c1c; font-family: 'Fraunces', serif; }
-  .stat-card.alert-card .num { color: #d97706; }
-  .stat-card .label { font-size: 12px; color: #666; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-card.alert-card { border-color: rgba(245, 158, 11, 0.4); background: #161411; }
+  .stat-card .num { font-size: 28px; font-weight: 700; color: #fff; font-family: var(--font-mono); }
+  .stat-card.alert-card .num { color: #fbbf24; }
+  .stat-card .label { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 
-  /* Section Titles */
+  /* Section Banners */
   .section-banner {
-    background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 20px; margin-bottom: 16px;
+    background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px 22px; margin-bottom: 18px;
     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
   }
   .section-banner.alert-banner {
-    background: #fffbeb; border-color: #f59e0b;
+    background: #171410; border-color: rgba(245, 158, 11, 0.45);
   }
-  .section-title { font-size: 17px; font-weight: 700; color: #1c1c1c; display: flex; align-items: center; gap: 8px; }
-  .section-desc { font-size: 13px; color: #666; margin-top: 2px; }
+  .section-title { font-size: 17px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px; font-family: var(--font-serif); }
+  .section-desc { font-size: 13.5px; color: var(--text-muted); margin-top: 2px; }
 
-  /* Verification Cards */
+  /* Action Verification Cards */
   .verify-card {
-    background: #fff; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin-bottom: 16px;
-    display: grid; grid-template-columns: 240px 1fr 260px; gap: 20px; align-items: start;
-    box-shadow: 0 4px 14px rgba(245,158,11,0.1);
+    background: #131722; border: 1px solid #f59e0b; border-radius: 10px; padding: 22px; margin-bottom: 18px;
+    display: grid; grid-template-columns: 250px 1fr 270px; gap: 24px; align-items: start;
+    box-shadow: 0 6px 24px rgba(245, 158, 11, 0.12);
   }
 
+  /* Filter Tabs & Search Bar */
   .filter-bar {
-    display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; align-items: center; justify-content: space-between;
   }
   .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
   .filter-tab {
     padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;
-    background: #fff; border: 1px solid var(--border); color: #555; display: inline-flex; align-items: center; gap: 6px;
+    background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px;
     transition: all 0.15s ease;
   }
-  .filter-tab:hover { background: #f9f8f5; color: #1c1c1c; border-color: #c5a059; text-decoration: none; }
-  .filter-tab.active { background: #14171c; color: #dfc691; border-color: #14171c; }
+  .filter-tab:hover { background: #182030; color: #fff; border-color: var(--brass); text-decoration: none; }
+  .filter-tab.active { background: rgba(197, 160, 89, 0.15); color: var(--brass-light); border-color: var(--brass); }
   .filter-tab .count-badge {
-    padding: 2px 7px; border-radius: 10px; font-size: 11px; background: #eee; color: #444; font-weight: 700;
+    padding: 2px 7px; border-radius: 10px; font-size: 11px; background: #1c2436; color: #cbd5e1; font-weight: 700; font-family: var(--font-mono);
   }
-  .filter-tab.active .count-badge { background: #333; color: #fff; }
+  .filter-tab.active .count-badge { background: #c5a059; color: #090c12; }
 
   .search-form { display: flex; gap: 8px; }
   .search-input {
-    padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 13.5px; width: 260px;
-    background: #fff;
+    padding: 9px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13.5px; width: 280px;
+    background: var(--bg-input); color: #fff;
   }
-  .search-btn { padding: 8px 16px; background: #14171c; color: #dfc691; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .search-btn {
+    padding: 9px 18px; background: var(--brass); color: #090c12; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .search-btn:hover { opacity: 0.9; }
 
+  /* Orders Master Card */
   .orders-table-card {
-    background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.03); margin-bottom: 32px;
+    background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35); margin-bottom: 40px;
   }
   .order-row-item {
-    padding: 20px 24px; border-bottom: 1px solid #eee; display: grid;
-    grid-template-columns: 220px 1fr 240px; gap: 20px; align-items: start;
-    transition: background 0.1s;
+    padding: 22px 24px; border-bottom: 1px solid var(--border-color); display: grid;
+    grid-template-columns: 240px 1fr 270px; gap: 24px; align-items: start;
+    transition: background 0.12s;
   }
-  .order-row-item:hover { background: #faf9f6; }
+  .order-row-item:hover { background: #141b29; }
   .order-row-item:last-child { border-bottom: none; }
 
-  .order-id-badge { font-family: monospace; font-size: 16px; font-weight: 700; color: #1c1c1c; }
-  .order-time { font-size: 12px; color: #777; margin-top: 3px; }
+  .order-id-badge { font-family: var(--font-mono); font-size: 17px; font-weight: 700; color: #ffffff; }
+  .order-time { font-size: 12px; color: var(--text-dim); margin-top: 4px; font-family: var(--font-mono); }
 
-  .customer-name { font-size: 15px; font-weight: 700; color: #111; display: flex; align-items: center; gap: 8px; }
-  .customer-phone { font-size: 13px; color: #555; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
-  .customer-address { font-size: 12.5px; color: #666; margin-top: 6px; line-height: 1.4; background: #f9f8f5; padding: 6px 10px; border-radius: 4px; }
-  .customer-notes { font-size: 12px; color: #854d0e; background: #fefce8; padding: 6px 10px; border-radius: 4px; margin-top: 6px; border-left: 3px solid #eab308; }
+  .customer-name { font-size: 15.5px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 10px; }
+  .customer-phone { font-size: 13.5px; color: var(--text-muted); margin-top: 5px; display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); }
+  .customer-phone a { color: var(--brass-light); }
+  .customer-address { font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.45; background: #0c1018; padding: 8px 12px; border-radius: 6px; border: 1px solid #1c2436; }
+  .customer-notes { font-size: 12.5px; color: #fbbf24; background: rgba(245, 158, 11, 0.1); padding: 8px 12px; border-radius: 6px; margin-top: 8px; border-left: 3px solid #f59e0b; }
 
-  .items-tag-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .items-tag-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
   .item-chip {
-    font-size: 13px; background: #f4f3ef; border: 1px solid #e5e0d4; padding: 6px 10px; border-radius: 5px;
-    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; background: #0d121c; border: 1px solid #1f283a; padding: 7px 12px; border-radius: 6px;
+    display: flex; justify-content: space-between; align-items: center; color: #e2e8f0;
   }
-  .item-chip strong { color: #1c1c1c; }
-  .item-chip .qty-size { font-size: 12px; color: #666; }
+  .item-chip strong { color: #ffffff; }
+  .item-chip .qty-size { font-size: 12px; color: var(--text-muted); }
 
-  .order-total-display { font-size: 18px; font-weight: 800; color: #b08d57; margin-top: 8px; font-family: 'Fraunces', serif; }
+  .order-total-display { font-size: 20px; font-weight: 800; color: var(--brass-light); margin-top: 8px; font-family: var(--font-mono); }
 
   /* Status Badges */
   .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
-  .badge-awaiting_payment_confirmation { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-  .badge-pending_payment { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-  .badge-payment_reported { background: #fffbeb; color: #d97706; border: 1px solid #f59e0b; }
-  .badge-confirmed { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-  .badge-tailoring { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
-  .badge-trial_ready { background: #cffafe; color: #0e7490; border: 1px solid #a5f3fc; }
-  .badge-dispatched { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
-  .badge-delivered { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
-  .badge-cancelled { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  .badge-awaiting_payment_confirmation { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+  .badge-pending_payment { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+  .badge-payment_reported { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
+  .badge-confirmed { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+  .badge-tailoring { background: rgba(139, 92, 246, 0.15); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.4); }
+  .badge-trial_ready { background: rgba(6, 182, 212, 0.15); color: #67e8f9; border: 1px solid rgba(6, 182, 212, 0.4); }
+  .badge-dispatched { background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); }
+  .badge-delivered { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; }
+  .badge-cancelled { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
 
-  .pay-status-pill {
-    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; margin-top: 4px;
-  }
-  .pay-unpaid { background: #fee2e2; color: #b91c1c; }
-  .pay-submitted { background: #fef3c7; color: #b45309; }
-  .pay-verified { background: #dcfce7; color: #15803d; }
-
+  /* Quick Actions */
   .quick-verify-btn {
-    width: 100%; background: #16a34a; color: #fff; border: none; padding: 10px 14px; border-radius: 6px;
-    font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-    transition: background 0.15s;
+    width: 100%; background: #10b981; color: #042f1a; border: none; padding: 11px 16px; border-radius: 6px;
+    font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.15s; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
   }
-  .quick-verify-btn:hover { background: #15803d; }
+  .quick-verify-btn:hover { background: #34d399; color: #000; }
 
   .quick-reject-btn {
-    width: 100%; background: #fff; color: #dc2626; border: 1px solid #fca5a5; padding: 8px 12px; border-radius: 6px;
-    font-size: 12.5px; font-weight: 600; cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; background: transparent; color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 8px 12px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.15s;
   }
-  .quick-reject-btn:hover { background: #fee2e2; }
+  .quick-reject-btn:hover { background: rgba(239, 68, 68, 0.2); color: #fff; }
 
-  .update-form { margin-top: 10px; background: #fbfaf8; border: 1px solid #ede8de; padding: 12px; border-radius: 6px; }
-  .update-select { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12.5px; background: #fff; margin-bottom: 8px; }
-  .update-input { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; margin-bottom: 8px; box-sizing: border-box; }
+  .update-form { margin-top: 12px; background: #0c1018; border: 1px solid #1e2638; padding: 14px; border-radius: 8px; }
+  .update-select { width: 100%; padding: 8px 10px; border: 1px solid #28334a; border-radius: 5px; font-size: 12.5px; background: #111724; color: #f1f5f9; margin-bottom: 10px; }
+  .update-input { width: 100%; padding: 8px 10px; border: 1px solid #28334a; border-radius: 5px; font-size: 12px; background: #111724; color: #f1f5f9; margin-bottom: 10px; box-sizing: border-box; }
   .save-status-btn {
-    width: 100%; background: #14171c; color: #dfc691; border: none; padding: 8px; border-radius: 4px;
-    font-size: 12.5px; font-weight: 700; cursor: pointer;
+    width: 100%; background: var(--brass); color: #090c12; border: none; padding: 9px; border-radius: 5px;
+    font-size: 12.5px; font-weight: 700; cursor: pointer; transition: opacity 0.15s;
   }
-  .save-status-btn:hover { background: #282e38; }
+  .save-status-btn:hover { opacity: 0.9; }
 
   .whatsapp-link {
-    background: #25d366; color: #fff !important; padding: 3px 8px; border-radius: 4px; font-size: 11px;
-    font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+    background: #25d366; color: #05260f !important; padding: 3px 8px; border-radius: 4px; font-size: 11px;
+    font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
   }
-  .whatsapp-link:hover { background: #1ebc59; text-decoration: none; }
+  .whatsapp-link:hover { background: #40f283; text-decoration: none; }
 
-  @media (max-width: 900px) {
-    .verify-card, .order-row-item { grid-template-columns: 1fr; gap: 14px; }
+  @media (max-width: 960px) {
+    .verify-card, .order-row-item { grid-template-columns: 1fr; gap: 16px; }
     .search-input { width: 100%; }
     .search-form { width: 100%; }
   }
@@ -152,22 +157,22 @@
 {% include "admin/_header.html" %}
 
 <div class="admin-wrap">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
     <div>
       <div class="admin-title">Orders Management Database</div>
       <div class="admin-sub" style="margin-bottom:0;">
-        Orders are <strong>only taken after bank payment verification</strong>. Review incoming payment proofs, confirm orders, and update live tailoring progress.
+        Orders are <strong>verified upon bank credit</strong>. Review payment references, accept verified orders, and update real-time tailoring milestones.
       </div>
     </div>
     <div style="display:flex; gap:10px;">
-      <a href="{{ url_for('admin_export_orders_csv') }}" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px;">📥 Export Database (CSV)</a>
-      <a href="{{ url_for('admin_orders') }}" class="btn btn-primary" style="padding:8px 14px; font-size:12.5px;">↻ Refresh</a>
+      <a href="{{ url_for('admin_export_orders_csv') }}" class="btn btn-outline" style="padding:9px 16px; font-size:13px;">📥 Export Database (CSV)</a>
+      <a href="{{ url_for('admin_orders') }}" class="btn btn-primary" style="padding:9px 16px; font-size:13px;">↻ Refresh Live</a>
     </div>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat, msg in messages %}
-    <div class="flash {{ cat }}" style="margin-bottom:18px;">{{ msg }}</div>
+    <div class="flash {{ cat }}" style="margin-bottom:20px;">{{ msg }}</div>
     {% endfor %}
   {% endwith %}
 
@@ -204,11 +209,11 @@
   {% if pending_verify_orders %}
   <div class="section-banner alert-banner">
     <div>
-      <div class="section-title" style="color:#b45309;">
-        ⚠️ Action Required: Incoming Orders Pending Payment Verification ({{ pending_verify_orders|length }})
+      <div class="section-title" style="color:#fbbf24;">
+        ⚠️ Action Required: Payment Verification Queue ({{ pending_verify_orders|length }})
       </div>
       <div class="section-desc">
-        These customers have submitted UPI reference numbers. <strong>Verify the credit in your bank app, then click "Verify Payment &amp; Accept Order" to officially take the order.</strong>
+        These customers have submitted their UPI Reference (UTR). <strong>Check your bank app or WhatsApp, then click "Verify Payment &amp; Take Order" to update the customer's order live.</strong>
       </div>
     </div>
   </div>
@@ -221,11 +226,11 @@
       <div class="order-time">{{ o.created_at[:16] }}</div>
       <div class="order-total-display">₹{{ "%.0f"|format(o.total) }}</div>
 
-      <div style="margin-top:12px; background:#fffbeb; border:1px solid #f59e0b; padding:10px 12px; border-radius:6px;">
-        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#b45309; letter-spacing:0.04em;">
+      <div style="margin-top:14px; background:#1c170e; border:1px solid #f59e0b; padding:12px 14px; border-radius:6px;">
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#fbbf24; letter-spacing:0.04em;">
           Submitted UPI UTR / Ref:
         </div>
-        <div style="font-family:monospace; font-size:15px; font-weight:700; color:#111; margin-top:2px;">
+        <div style="font-family:var(--font-mono); font-size:15.5px; font-weight:700; color:#ffffff; margin-top:4px;">
           {{ o.payment_ref or 'Pending Submission' }}
         </div>
       </div>
@@ -240,10 +245,16 @@
           💬 WhatsApp
         </a>
       </div>
-      <div class="customer-phone">📞 <a href="tel:{{ o.phone }}">+91 {{ o.phone }}</a></div>
-      <div class="customer-address">📍 <strong>Delivery Address:</strong> {{ o.address }}</div>
+      <div class="customer-phone">
+        📞 <a href="tel:{{ o.phone }}">+91 {{ o.phone }}</a>
+      </div>
+      <div class="customer-address">
+        📍 <strong>Address:</strong> {{ o.address }}
+      </div>
       {% if o.notes %}
-      <div class="customer-notes">📝 <strong>Customer Notes:</strong> {{ o.notes }}</div>
+      <div class="customer-notes">
+        📝 <strong>Customer Notes:</strong> {{ o.notes }}
+      </div>
       {% endif %}
 
       <div class="items-tag-list">
@@ -253,7 +264,7 @@
             <strong>{{ item.product_name }}</strong>
             <span class="qty-size">· Size <strong>{{ item.size }}</strong> &times; {{ item.qty }}</span>
           </div>
-          <div style="font-weight:700;">₹{{ "%.0f"|format(item.line_total) }}</div>
+          <div style="font-weight:700; color:var(--brass-light);">₹{{ "%.0f"|format(item.line_total) }}</div>
         </div>
         {% endfor %}
       </div>
@@ -274,8 +285,8 @@
         </button>
       </form>
 
-      <div style="text-align:center; margin-top:8px;">
-        <a href="{{ url_for('admin_order_detail', order_id=o.id) }}" style="font-size:12px; color:#666; text-decoration:underline;">View Full Invoice ↗</a>
+      <div style="text-align:center; margin-top:10px;">
+        <a href="{{ url_for('admin_order_detail', order_id=o.id) }}" style="font-size:12.5px; color:var(--text-muted); text-decoration:underline;">View Full Order Record ↗</a>
       </div>
     </div>
   </div>
@@ -283,13 +294,13 @@
   {% endif %}
 
   <!-- SECTION 2: MASTER ORDERS DATABASE (ACCEPTED & CONFIRMED ORDERS) -->
-  <div class="section-banner" style="margin-top:28px;">
+  <div class="section-banner" style="margin-top:32px;">
     <div>
       <div class="section-title">
-        📋 Master Orders Database (Accepted &amp; Confirmed Orders)
+        📋 Master Orders Database (Live Tailoring &amp; Dispatch Tracking)
       </div>
       <div class="section-desc">
-        All orders that have been verified, taken, and are progressing through tailoring and delivery.
+        All orders in the system. Updating statuses here automatically reflects in the customer's live tracking view.
       </div>
     </div>
   </div>
@@ -316,10 +327,10 @@
 
     <form method="GET" action="{{ url_for('admin_orders') }}" class="search-form">
       <input type="hidden" name="status" value="{{ filter_status }}">
-      <input type="text" name="q" value="{{ search }}" placeholder="Search customer, phone, order #..." class="search-input">
+      <input type="text" name="q" value="{{ search }}" placeholder="Search customer, phone, order #, UTR..." class="search-input">
       <button type="submit" class="search-btn">Search</button>
       {% if search %}
-      <a href="{{ url_for('admin_orders', status=filter_status) }}" class="btn btn-outline" style="padding:8px 12px; font-size:12px;">Clear</a>
+      <a href="{{ url_for('admin_orders', status=filter_status) }}" class="btn btn-outline" style="padding:9px 12px; font-size:12px;">Clear</a>
       {% endif %}
     </form>
   </div>
@@ -332,19 +343,19 @@
         
         <!-- Left: Order Number, Time, Status Badges -->
         <div>
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span class="order-id-badge">Order #{{ o.id }}</span>
-            <a href="{{ url_for('admin_order_detail', order_id=o.id) }}" style="font-size:12px; color:#b08d57; text-decoration:underline;">Invoice ↗</a>
+            <a href="{{ url_for('admin_order_detail', order_id=o.id) }}" style="font-size:12.5px; color:var(--brass); text-decoration:underline;">Invoice ↗</a>
           </div>
           <div class="order-time">{{ o.created_at[:16] }}</div>
 
-          <div style="margin-top:10px;">
+          <div style="margin-top:12px;">
             <span class="badge badge-{{ o.status }}">
               {{ status_labels.get(o.status, o.status.replace('_',' ').title()) }}
             </span>
           </div>
 
-          <div style="margin-top:4px;">
+          <div style="margin-top:6px;">
             <span class="pay-status-pill {% if o.payment_status == 'payment_verified' %}pay-verified{% elif o.payment_status == 'payment_submitted' %}pay-submitted{% else %}pay-unpaid{% endif %}">
               💳 {{ payment_status_labels.get(o.payment_status, o.payment_status or 'Unpaid') }}
             </span>
@@ -353,8 +364,8 @@
           <div class="order-total-display">₹{{ "%.0f"|format(o.total) }}</div>
 
           {% if o.payment_ref %}
-          <div style="margin-top:8px; font-size:11px; color:#555;">
-            <strong>UPI Ref:</strong> <span style="font-family:monospace; background:#eee; padding:1px 5px; border-radius:3px;">{{ o.payment_ref }}</span>
+          <div style="margin-top:10px; font-size:12px; color:var(--text-muted);">
+            <strong>UPI Ref:</strong> <span style="font-family:var(--font-mono); background:#1a2233; color:var(--brass-light); padding:2px 6px; border-radius:4px; border:1px solid #28344e;">{{ o.payment_ref }}</span>
           </div>
           {% endif %}
         </div>
@@ -381,7 +392,7 @@
           {% endif %}
 
           {% if o.admin_notes %}
-          <div style="font-size:12px; color:#0369a1; background:#f0f9ff; padding:6px 10px; border-radius:4px; margin-top:6px; border-left:3px solid #0284c7;">
+          <div style="font-size:12.5px; color:#38bdf8; background:rgba(56, 189, 248, 0.1); padding:8px 12px; border-radius:6px; margin-top:8px; border-left:3px solid #0284c7;">
             📢 <strong>Store Note / Tracking:</strong> {{ o.admin_notes }}
           </div>
           {% endif %}
@@ -394,7 +405,7 @@
                 <strong>{{ item.product_name }}</strong>
                 <span class="qty-size">· Size <strong>{{ item.size }}</strong> &times; {{ item.qty }}</span>
               </div>
-              <div style="font-weight:700; color:#444;">₹{{ "%.0f"|format(item.line_total) }}</div>
+              <div style="font-weight:700; color:var(--brass-light);">₹{{ "%.0f"|format(item.line_total) }}</div>
             </div>
             {% endfor %}
           </div>
@@ -403,7 +414,7 @@
         <!-- Right: Status Updater -->
         <div>
           {% if o.payment_status == 'payment_submitted' or o.status == 'payment_reported' %}
-          <form method="POST" action="{{ url_for('admin_verify_payment', order_id=o.id) }}" style="margin-bottom:8px;">
+          <form method="POST" action="{{ url_for('admin_verify_payment', order_id=o.id) }}" style="margin-bottom:10px;">
             <button type="submit" class="quick-verify-btn" onclick="return confirm('Verify bank credit for Order #{{ o.id }}?');">
               ✓ Verify Payment &amp; Take Order
             </button>
@@ -411,22 +422,22 @@
           {% endif %}
 
           <div class="update-form">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; margin-bottom:4px;">
-              Update Tailoring Status:
-            </div>
             <form method="POST" action="{{ url_for('admin_update_order_status', order_id=o.id) }}">
-              <select name="status" class="update-select">
-                {% for code, label in statuses %}
-                <option value="{{ code }}" {% if o.status == code %}selected{% endif %}>{{ label }}</option>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:4px; font-family:var(--font-mono);">
+                Payment Status:
+              </div>
+              <select name="payment_status" class="update-select" id="paySelect_{{ o.id }}" onchange="syncStatusDropdown('{{ o.id }}')">
+                {% for pcode, plabel in payment_statuses %}
+                <option value="{{ pcode }}" {% if o.payment_status == pcode %}selected{% endif %}>{{ plabel }}</option>
                 {% endfor %}
               </select>
 
-              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; margin-bottom:4px;">
-                Payment Status:
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:4px; font-family:var(--font-mono);">
+                Tailoring &amp; Delivery Status:
               </div>
-              <select name="payment_status" class="update-select">
-                {% for pcode, plabel in payment_statuses %}
-                <option value="{{ pcode }}" {% if o.payment_status == pcode %}selected{% endif %}>{{ plabel }}</option>
+              <select name="status" class="update-select" id="statusSelect_{{ o.id }}">
+                {% for code, label in statuses %}
+                <option value="{{ code }}" {% if o.status == code %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
 
@@ -440,9 +451,9 @@
       </div>
       {% endfor %}
     {% else %}
-      <div style="text-align:center; padding:80px 20px; color:#888;">
+      <div style="text-align:center; padding:80px 20px; color:var(--text-muted);">
         <div style="font-size:44px; margin-bottom:12px;">📦</div>
-        <div style="font-size:16px; font-weight:600; color:#333;">No orders found in this view</div>
+        <div style="font-size:16px; font-weight:600; color:#ffffff;">No orders found in this view</div>
         <p style="font-size:13.5px; margin-top:4px;">Try switching the filter tab or clearing your search term.</p>
         <a href="{{ url_for('admin_orders') }}" class="btn btn-outline" style="margin-top:14px;">View All Orders</a>
       </div>
@@ -450,6 +461,21 @@
   </div>
 
 </div>
+
+<script>
+function syncStatusDropdown(orderId) {
+  const paySel = document.getElementById('paySelect_' + orderId);
+  const statusSel = document.getElementById('statusSelect_' + orderId);
+  if (!paySel || !statusSel) return;
+  if (paySel.value === 'payment_verified') {
+    if (['awaiting_payment_confirmation', 'pending_payment', 'payment_reported'].includes(statusSel.value)) {
+      statusSel.value = 'confirmed';
+    }
+  } else if (paySel.value === 'payment_rejected') {
+    statusSel.value = 'cancelled';
+  }
+}
+</script>
 
 </body>
 </html>

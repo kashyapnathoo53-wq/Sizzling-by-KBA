@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — SIZZLING Admin</title>
+<title>Database Dashboard — SIZZLING Admin</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
@@ -11,83 +11,130 @@
 {% include "admin/_header.html" %}
 
 <div class="admin-wrap">
-  <div class="admin-title">Dashboard</div>
-  <div class="admin-sub">A quick look at your catalog and recent customer interest.</div>
+  <div class="actions-row">
+    <div>
+      <div class="admin-title">Database Overview &amp; Store Analytics</div>
+      <div class="admin-sub" style="margin-bottom:0;">Live performance metrics for Karol Bagh atelier, catalog items, and order inquiries.</div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="{{ url_for('admin_orders') }}" class="btn btn-primary">📋 Open Master Orders Database →</a>
+    </div>
+  </div>
 
   <div class="stat-cards">
-    <div class="stat-card"><div class="num">{{ product_count }}</div><div class="label">Products Listed</div></div>
-    <div class="stat-card"><div class="num">{{ order_count }}</div><div class="label">Orders Placed</div></div>
-    <div class="stat-card"><div class="num">{{ pending_payment_count }}</div><div class="label">Awaiting Payment Check</div></div>
-    <div class="stat-card"><div class="num">₹{{ "%.0f"|format(paid_total) }}</div><div class="label">Confirmed Revenue</div></div>
-    <div class="stat-card"><div class="num">{{ enquiry_count }}</div><div class="label">Enquiries Received</div></div>
-    <div class="stat-card"><div class="num">{{ click_count }}</div><div class="label">"Order on WhatsApp" Clicks</div></div>
+    <div class="stat-card">
+      <div class="num">{{ order_count }}</div>
+      <div class="label">Orders Officially Taken</div>
+    </div>
+    <div class="stat-card {% if pending_payment_count > 0 %}alert-card{% endif %}">
+      <div class="num">{{ pending_payment_count }}</div>
+      <div class="label">⚠️ Payment Verification Queue</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">₹{{ "%.0f"|format(paid_total) }}</div>
+      <div class="label">Confirmed Revenue</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ product_count }}</div>
+      <div class="label">Products in Catalog</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ enquiry_count }}</div>
+      <div class="label">Direct Customer Enquiries</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ click_count }}</div>
+      <div class="label">WhatsApp Purchase Clicks</div>
+    </div>
   </div>
 
   <div class="panel">
-    <h3>Recent Orders</h3>
+    <h3>📋 Recent Orders in Database</h3>
     {% if recent_orders %}
     <table>
-      <thead><tr><th>#</th><th>Customer</th><th>Total</th><th>Status</th><th>When</th><th></th></tr></thead>
+      <thead>
+        <tr>
+          <th>Order #</th>
+          <th>Customer</th>
+          <th>Total</th>
+          <th>Payment Status</th>
+          <th>Tailoring Status</th>
+          <th>Placed When</th>
+          <th>Action</th>
+        </tr>
+      </thead>
       <tbody>
         {% for o in recent_orders %}
         <tr>
-          <td data-label="#">{{ o.id }}</td>
-          <td data-label="Customer">{{ o.customer_name }}</td>
-          <td data-label="Total">₹{{ "%.0f"|format(o.total) }}</td>
-          <td data-label="Status"><span class="badge {{ 'active' if o.status in ['paid','fulfilled'] else 'inactive' }}">{{ o.status.replace('_',' ') }}</span></td>
-          <td data-label="When">{{ o.created_at }}</td>
-          <td><a href="{{ url_for('admin_order_detail', order_id=o.id) }}">View →</a></td>
+          <td data-label="Order #"><span style="font-family:var(--font-mono); font-weight:700; color:#fff;">#{{ o.id }}</span></td>
+          <td data-label="Customer">
+            <strong style="color:#ffffff;">{{ o.customer_name }}</strong><br>
+            <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-muted);">+91 {{ o.phone }}</span>
+          </td>
+          <td data-label="Total" style="font-family:var(--font-mono); font-weight:700; color:var(--brass-light);">₹{{ "%.0f"|format(o.total) }}</td>
+          <td data-label="Payment Status">
+            <span class="pay-status-pill {% if o.payment_status == 'payment_verified' %}pay-verified{% elif o.payment_status == 'payment_submitted' %}pay-submitted{% else %}pay-unpaid{% endif %}">
+              {{ (o.payment_status or 'unpaid').replace('_',' ').title() }}
+            </span>
+          </td>
+          <td data-label="Tailoring Status">
+            <span class="badge badge-{{ o.status }}">
+              {{ o.status.replace('_',' ').title() }}
+            </span>
+          </td>
+          <td data-label="Placed When" style="font-family:var(--font-mono); font-size:12px; color:var(--text-dim);">{{ o.created_at[:16] }}</td>
+          <td><a href="{{ url_for('admin_order_detail', order_id=o.id) }}" class="btn btn-sm btn-outline">Manage Order →</a></td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% else %}
-    <div class="empty">No orders yet — they'll appear here once a customer checks out.</div>
+    <div class="empty">No orders logged yet — incoming customer orders will automatically appear here.</div>
     {% endif %}
-    <div style="margin-top:14px;"><a href="{{ url_for('admin_orders') }}">View all orders →</a></div>
+    <div style="margin-top:18px;"><a href="{{ url_for('admin_orders') }}" style="font-weight:600; color:var(--brass-light);">View Full Orders Database →</a></div>
   </div>
 
   <div class="panel">
-    <h3>Recent Enquiries</h3>
+    <h3>💬 Recent Enquiries</h3>
     {% if recent_enquiries %}
     <table>
       <thead><tr><th>Name</th><th>Phone</th><th>Item</th><th>Size</th><th>When</th></tr></thead>
       <tbody>
         {% for e in recent_enquiries %}
         <tr>
-          <td data-label="Name">{{ e.name }}</td>
-          <td data-label="Phone">{{ e.phone }}</td>
+          <td data-label="Name"><strong style="color:#ffffff;">{{ e.name }}</strong></td>
+          <td data-label="Phone" style="font-family:var(--font-mono); color:var(--brass-light);">+91 {{ e.phone }}</td>
           <td data-label="Item">{{ e.item }}</td>
-          <td data-label="Size">{{ e.size }}</td>
-          <td data-label="When">{{ e.created_at }}</td>
+          <td data-label="Size"><span style="background:#1c2436; padding:2px 8px; border-radius:4px; font-family:var(--font-mono);">{{ e.size }}</span></td>
+          <td data-label="When" style="font-family:var(--font-mono); font-size:12px; color:var(--text-dim);">{{ e.created_at }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% else %}
-    <div class="empty">No enquiries yet — they'll show up here as customers submit the order form.</div>
+    <div class="empty">No enquiries yet — customer form submissions will appear here.</div>
     {% endif %}
-    <div style="margin-top:14px;"><a href="{{ url_for('admin_enquiries') }}">View all →</a></div>
+    <div style="margin-top:18px;"><a href="{{ url_for('admin_enquiries') }}" style="font-weight:600; color:var(--brass-light);">View All Enquiries →</a></div>
   </div>
 
   <div class="panel">
-    <h3>Recent "Order on WhatsApp" Clicks</h3>
+    <h3>📈 Product Interest &amp; WhatsApp Clicks</h3>
     {% if recent_clicks %}
     <table>
-      <thead><tr><th>Product</th><th>Category</th><th>Size</th><th>When</th></tr></thead>
+      <thead><tr><th>Product Name</th><th>Category</th><th>Size Selected</th><th>When</th></tr></thead>
       <tbody>
         {% for c in recent_clicks %}
         <tr>
-          <td data-label="Product">{{ c.product_name }}</td>
-          <td data-label="Category">{{ c.category }}</td>
-          <td data-label="Size">{{ c.size }}</td>
-          <td data-label="When">{{ c.created_at }}</td>
+          <td data-label="Product"><strong style="color:#ffffff;">{{ c.product_name }}</strong></td>
+          <td data-label="Category">{{ c.category.title() }}</td>
+          <td data-label="Size"><span style="background:#1c2436; padding:2px 8px; border-radius:4px; font-family:var(--font-mono);">{{ c.size }}</span></td>
+          <td data-label="When" style="font-family:var(--font-mono); font-size:12px; color:var(--text-dim);">{{ c.created_at }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% else %}
-    <div class="empty">No clicks logged yet — this fills up once customers start tapping "Order on WhatsApp" on the site.</div>
+    <div class="empty">No clicks logged yet — tracking customer interactions on the shop.</div>
     {% endif %}
   </div>
 </div>

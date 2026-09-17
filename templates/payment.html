@@ -69,7 +69,7 @@
     </div>
 
     <!-- Step 2: Payment Reference Submission -->
-    {% set is_already_submitted = order.payment_ref or (order.status not in ['awaiting_payment_confirmation', 'pending_payment']) %}
+    {% set is_already_submitted = (order.payment_status == 'payment_verified') or order.payment_ref or (order.status not in ['awaiting_payment_confirmation', 'pending_payment']) %}
     
     <div class="form-card{% if is_already_submitted %} is-hidden{% endif %}" id="payRefSection" style="margin-top:24px;">
       <h3 style="margin-bottom:6px; color:#ffffff;">Step 2 — Submit Payment Reference (UTR)</h3>

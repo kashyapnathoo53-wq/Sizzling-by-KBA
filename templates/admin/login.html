@@ -3,29 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Login — SIZZLING by KBA</title>
+<title>Database Portal Login — SIZZLING by KBA</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<style>
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: radial-gradient(circle at top center, #151d2c 0%, #090c12 70%);
+  }
+  .login-container {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+  }
+  .login-wrap {
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  .brand-emblem {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-emblem em {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--brass-light);
+    font-weight: 400;
+  }
+  .password-row {
+    position: relative;
+  }
+  .toggle-pwd-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .toggle-pwd-btn:hover {
+    color: var(--brass-light);
+  }
+</style>
 </head>
 <body>
 
-<div class="login-wrap">
-  <h2>Admin Login</h2>
-  <p>SIZZLING by KBA — website management</p>
+<div class="login-container">
+  <div class="login-wrap">
+    <div class="brand-emblem">SIZZLING <em>by KBA</em></div>
+    <p style="color:var(--brass); font-family:var(--font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:20px;">
+      Database &amp; Store Management Portal
+    </p>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for category, message in messages %}
-      <div class="flash {{ category }}">{{ message }}</div>
-    {% endfor %}
-  {% endwith %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
 
-  <form method="POST">
-    <div class="field">
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" required autofocus>
+    <form method="POST">
+      <div class="field">
+        <label for="password">Master Admin Password</label>
+        <div class="password-row">
+          <input type="password" id="password" name="password" required autofocus autocomplete="current-password" placeholder="Enter password...">
+          <button type="button" class="toggle-pwd-btn" id="togglePwd" onclick="togglePasswordVisibility()">👁</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:13px; font-size:14px; margin-top:8px;">
+        Unlock Database Portal →
+      </button>
+    </form>
+
+    <div style="margin-top:24px; text-align:center; padding-top:18px; border-top:1px solid var(--border-subtle);">
+      <a href="/" style="font-size:12.5px; color:var(--text-muted);">← Return to Customer Website</a>
     </div>
-    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Log In</button>
-  </form>
+  </div>
 </div>
+
+<script>
+function togglePasswordVisibility() {
+  const pwd = document.getElementById("password");
+  const btn = document.getElementById("togglePwd");
+  if (!pwd) return;
+  if (pwd.type === "password") {
+    pwd.type = "text";
+    btn.textContent = "🔒";
+  } else {
+    pwd.type = "password";
+    btn.textContent = "👁";
+  }
+}
+</script>
 
 </body>
 </html>

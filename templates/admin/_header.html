@@ -1,12 +1,15 @@
 <div class="admin-header">
-  <div class="brand">SIZZLING <span>by KBA — Admin</span></div>
+  <div class="brand">
+    <a href="{{ url_for('admin_dashboard') }}" style="color:inherit;">SIZZLING</a>
+    <span>Database Portal</span>
+  </div>
   <nav class="admin-nav">
-    <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-    <a href="{{ url_for('admin_products') }}">Products</a>
-    <a href="{{ url_for('admin_orders') }}">Orders</a>
-    <a href="{{ url_for('admin_enquiries') }}">Enquiries</a>
-    <a href="{{ url_for('admin_settings') }}">Settings</a>
-    <a href="/" target="_blank">View Site ↗</a>
+    <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">📊 Dashboard</a>
+    <a href="{{ url_for('admin_orders') }}" class="{% if request.endpoint in ['admin_orders', 'admin_order_detail'] %}active{% endif %}">📋 Orders Database</a>
+    <a href="{{ url_for('admin_products') }}" class="{% if request.endpoint in ['admin_products', 'admin_product_new', 'admin_product_edit'] %}active{% endif %}">👔 Catalog</a>
+    <a href="{{ url_for('admin_enquiries') }}" class="{% if request.endpoint == 'admin_enquiries' %}active{% endif %}">💬 Enquiries</a>
+    <a href="{{ url_for('admin_settings') }}" class="{% if request.endpoint == 'admin_settings' %}active{% endif %}">⚙️ Settings</a>
+    <a href="/" target="_blank" style="color:var(--brass-light); opacity:0.85;">Live Site ↗</a>
     <a class="logout" href="{{ url_for('admin_logout') }}">Log Out</a>
   </nav>
 </div>

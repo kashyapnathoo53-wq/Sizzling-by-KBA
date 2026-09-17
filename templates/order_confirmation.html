@@ -23,7 +23,15 @@
 <div class="simple-page">
   <div class="wrap" style="max-width:680px;">
 
-    {% if order.status in ['pending_payment', 'awaiting_payment_confirmation'] %}
+    {% set is_paid = (order.payment_status == 'payment_verified') or (order.status in ['confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered']) %}
+    {% set display_status = order.status %}
+    {% if is_paid and display_status in ['pending_payment', 'awaiting_payment_confirmation', 'payment_reported'] %}
+      {% set display_status = 'confirmed' %}
+    {% elif order.payment_status == 'payment_rejected' %}
+      {% set display_status = 'cancelled' %}
+    {% endif %}
+
+    {% if display_status in ['pending_payment', 'awaiting_payment_confirmation'] %}
     <div class="confirm-box" style="border-color: #e9aa1a;">
       <div class="check" style="background:#e9aa1a; color:#1b1b1b;">⏳</div>
       <h1>Awaiting Payment Confirmation</h1>
@@ -32,43 +40,43 @@
         Complete Payment &amp; Submit UTR Now →
       </a>
     </div>
-    {% elif order.status == 'payment_reported' %}
+    {% elif display_status == 'payment_reported' %}
     <div class="confirm-box" style="border-color: #f59e0b;">
       <div class="check" style="background:#f59e0b; color:#1b1b1b;">🔍</div>
       <h1>Payment Submitted — Verification Pending</h1>
       <p class="sub">Order #{{ order.id }} &middot; We have received your UPI reference (<strong>{{ order.payment_ref }}</strong>). Our team is verifying the credit in our bank.</p>
     </div>
-    {% elif order.status == 'confirmed' %}
+    {% elif display_status == 'confirmed' %}
     <div class="confirm-box" style="border-color: #22c55e;">
       <div class="check" style="background:#22c55e; color:#fff;">✓</div>
       <h1>Payment Verified &amp; Order Confirmed!</h1>
       <p class="sub">Order #{{ order.id }} &middot; Your payment has been verified. Master tailors are preparing your fabrics.</p>
     </div>
-    {% elif order.status == 'tailoring' %}
+    {% elif display_status == 'tailoring' %}
     <div class="confirm-box" style="border-color: #8b5cf6;">
       <div class="check" style="background:#8b5cf6; color:#fff;">✂️</div>
       <h1>In Tailoring &amp; Cutting</h1>
       <p class="sub">Order #{{ order.id }} &middot; Your bespoke garment is currently being cut and crafted at our Karol Bagh workshop.</p>
     </div>
-    {% elif order.status == 'trial_ready' %}
+    {% elif display_status == 'trial_ready' %}
     <div class="confirm-box" style="border-color: #06b6d4;">
       <div class="check" style="background:#06b6d4; color:#fff;">🪡</div>
       <h1>Trial Ready at Karol Bagh Store</h1>
       <p class="sub">Order #{{ order.id }} &middot; Your trial garment is ready for fitting at our store!</p>
     </div>
-    {% elif order.status == 'dispatched' %}
+    {% elif display_status == 'dispatched' %}
     <div class="confirm-box" style="border-color: #3b82f6;">
       <div class="check" style="background:#3b82f6; color:#fff;">🚚</div>
       <h1>Order Dispatched / In Transit</h1>
       <p class="sub">Order #{{ order.id }} &middot; Your tailored garments are on their way to your delivery address.</p>
     </div>
-    {% elif order.status == 'delivered' %}
+    {% elif display_status == 'delivered' %}
     <div class="confirm-box" style="border-color: #10b981;">
       <div class="check" style="background:#10b981; color:#fff;">🏆</div>
       <h1>Order Delivered</h1>
       <p class="sub">Order #{{ order.id }} &middot; Delivered and completed. Wear it with pride!</p>
     </div>
-    {% elif order.status == 'cancelled' %}
+    {% elif display_status == 'cancelled' %}
     <div class="confirm-box" style="border-color: #ef4444;">
       <div class="check" style="background:#ef4444; color:#fff;">✕</div>
       <h1>Order Cancelled</h1>
@@ -92,7 +100,7 @@
         ('dispatched', '🚚', 'Dispatched / Delivered'),
       ] %}
       {% set status_order = ['awaiting_payment_confirmation', 'pending_payment', 'payment_reported', 'confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered'] %}
-      {% set current_idx = status_order.index(order.status) if order.status in status_order else 0 %}
+      {% set current_idx = status_order.index(display_status) if display_status in status_order else 0 %}
       {% for s, icon, label in steps %}
       {% set step_idx = status_order.index(s) if s in status_order else loop.index %}
       <div class="status-step {% if current_idx >= step_idx %}done{% endif %} {% if current_idx == step_idx %}active{% endif %}">
@@ -121,7 +129,7 @@
       </div>
       <div class="checkout-line">
         <span>Order Status</span>
-        <span class="order-status-badge status-{{ order.status }}">{{ order.status.replace('_',' ').title() }}</span>
+        <span class="order-status-badge status-{{ display_status }}">{{ display_status.replace('_',' ').title() }}</span>
       </div>
       <div class="checkout-line">
         <span>Payment Status</span>

@@ -88,6 +88,23 @@ def get_db():
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # Auto-reconcile order status if payment_status or status was directly updated in database
+    try:
+        conn.execute("""
+            UPDATE orders
+            SET status = 'confirmed'
+            WHERE payment_status = 'payment_verified'
+              AND status IN ('awaiting_payment_confirmation', 'pending_payment', 'payment_reported')
+        """)
+        conn.execute("""
+            UPDATE orders
+            SET payment_status = 'payment_verified'
+            WHERE status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered')
+              AND (payment_status IS NULL OR payment_status != 'payment_verified')
+        """)
+        conn.commit()
+    except Exception:
+        pass
     return conn
 
 
@@ -996,6 +1013,18 @@ def admin_update_order_status(order_id):
     admin_notes = request.form.get("admin_notes", "").strip()
 
     valid_statuses = [s[0] for s in ORDER_STATUSES]
+    valid_payment_statuses = [s[0] for s in PAYMENT_STATUSES]
+
+    # Auto correlate payment_status and tailoring status
+    if payment_status == "payment_verified":
+        if not new_status or new_status in ["awaiting_payment_confirmation", "pending_payment", "payment_reported"]:
+            new_status = "confirmed"
+    elif payment_status == "payment_rejected":
+        if not new_status or new_status not in ["cancelled"]:
+            new_status = "cancelled"
+    elif new_status in ["confirmed", "tailoring", "trial_ready", "dispatched", "delivered"]:
+        payment_status = "payment_verified"
+
     conn = get_db()
     now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -1004,7 +1033,7 @@ def admin_update_order_status(order_id):
     if new_status in valid_statuses:
         updates.append("status=?")
         params.append(new_status)
-    if payment_status in [s[0] for s in PAYMENT_STATUSES]:
+    if payment_status in valid_payment_statuses:
         updates.append("payment_status=?")
         params.append(payment_status)
         if payment_status == "payment_verified":
@@ -1037,12 +1066,25 @@ def admin_order_detail(order_id):
         admin_notes = request.form.get("admin_notes", "").strip()
         now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
+        valid_statuses = [s[0] for s in ORDER_STATUSES]
+        valid_payment_statuses = [s[0] for s in PAYMENT_STATUSES]
+
+        # Auto correlate payment_status and tailoring status
+        if payment_status == "payment_verified":
+            if not new_status or new_status in ["awaiting_payment_confirmation", "pending_payment", "payment_reported"]:
+                new_status = "confirmed"
+        elif payment_status == "payment_rejected":
+            if not new_status or new_status not in ["cancelled"]:
+                new_status = "cancelled"
+        elif new_status in ["confirmed", "tailoring", "trial_ready", "dispatched", "delivered"]:
+            payment_status = "payment_verified"
+
         updates = []
         params = []
-        if new_status in dict(ORDER_STATUSES):
+        if new_status in valid_statuses:
             updates.append("status=?")
             params.append(new_status)
-        if payment_status in dict(PAYMENT_STATUSES):
+        if payment_status in valid_payment_statuses:
             updates.append("payment_status=?")
             params.append(payment_status)
             if payment_status == "payment_verified":
