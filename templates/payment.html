@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  .is-hidden { display: none !important; }
+</style>
 </head>
 <body>
 
@@ -68,35 +71,35 @@
     <!-- Step 2: Payment Reference Submission -->
     {% set is_already_submitted = order.payment_ref or (order.status not in ['awaiting_payment_confirmation', 'pending_payment']) %}
     
-    <div class="form-card" id="payRefSection" style="{% if is_already_submitted %}display:none;{% endif %} margin-top:24px;">
+    <div class="form-card{% if is_already_submitted %} is-hidden{% endif %}" id="payRefSection" style="margin-top:24px;">
       <h3 style="margin-bottom:6px; color:#ffffff;">Step 2 — Submit Payment Reference (UTR)</h3>
       <p style="font-size:14px; color:#aaa; margin-bottom:18px; line-height:1.5;">
         After paying, enter the <strong>12-digit UPI Reference / UTR Number</strong> from your payment receipt below. <strong>Your order is officially placed and sent to tailoring once submitted.</strong>
       </p>
       <form id="paymentRefForm" class="payment-ref-form">
-        <input type="text" id="paymentRefInput" placeholder="e.g. 423819284729 (12-digit UPI Ref / UTR)" autocomplete="off" required style="padding:14px; font-size:14px;">
+        <input type="text" id="paymentRefInput" name="payment_ref" aria-label="12-digit UPI Reference or UTR Number" placeholder="e.g. 423819284729 (12-digit UPI Ref / UTR)" autocomplete="off" required style="padding:14px; font-size:14px;">
         <button type="submit" id="paymentRefBtn" class="btn btn-brass" style="padding:14px 24px; font-weight:700;">Confirm Payment &amp; Place Order →</button>
       </form>
       <div id="paymentRefStatus" class="form-status" style="margin-top:12px;"></div>
 
       <div style="margin-top:20px; padding-top:16px; border-top:1px solid #232b3b; font-size:13.5px; color:#aaa;">
-        Paid on your phone and want instant verification? <a href="#" id="waConfirmLink" target="_blank" rel="noopener" style="color:var(--brass); text-decoration:underline; font-weight:600;">Send payment screenshot on WhatsApp 💬</a>
+        Paid on your phone and want instant verification? <a href="https://wa.me/{{ settings.whatsapp_number }}?text={{ ('Hi SIZZLING by KBA, I have completed the UPI payment of ₹' ~ ('%.0f'|format(order.total)) ~ ' for Order #' ~ order.id ~ '. Sharing my payment screenshot for verification.')|urlencode }}" id="waConfirmLink" target="_blank" rel="noopener" style="color:var(--brass); text-decoration:underline; font-weight:600;">Send payment screenshot on WhatsApp 💬</a>
       </div>
     </div>
 
     <!-- Post-submission confirmation panel -->
-    <div class="form-card" id="postPaySection" style="{% if not is_already_submitted %}display:none;{% endif %} text-align:center; padding:40px 30px; margin-top:24px;">
+    <div class="form-card{% if not is_already_submitted %} is-hidden{% endif %}" id="postPaySection" style="text-align:center; padding:40px 30px; margin-top:24px;">
       <div style="font-size:44px; margin-bottom:16px;">🎉</div>
       <h2 style="margin-bottom:10px; font-size:24px; color:#ffffff;">Payment Reference Submitted!</h2>
       <p style="color:#bbb; font-size:15px; margin-bottom:24px; line-height:1.6; max-width:440px; margin-left:auto; margin-right:auto;">
         We have received your payment confirmation for <strong>Order #{{ order.id }}</strong>. Our team is verifying the credit in our bank and will initiate tailoring immediately.
       </p>
-      {% if order.payment_ref %}
-      <div style="margin-bottom:20px; font-family:var(--mono); font-size:13px; color:var(--brass); background:#131824; padding:8px 16px; border-radius:4px; display:inline-block; border:1px solid #283347;">
-        Submitted Ref: {{ order.payment_ref }}
+      
+      <div id="submittedRefDisplay" class="{% if not order.payment_ref %}is-hidden{% endif %}" style="margin-bottom:20px; font-family:var(--mono); font-size:13px; color:var(--brass); background:#131824; padding:8px 16px; border-radius:4px; display:inline-block; border:1px solid #283347;">
+        Submitted Ref: <span id="paymentRefVal">{{ order.payment_ref or '' }}</span>
       </div>
       <br>
-      {% endif %}
+
       <a href="{{ url_for('order_confirmation', order_id=order.id) }}" class="btn btn-brass" style="padding:14px 36px; font-weight:700; font-size:14px;">
         View Live Order Tracking →
       </a>
@@ -111,7 +114,7 @@
      data-order-total="{{ '%.0f'|format(order.total) }}"
      data-whatsapp="{{ settings.whatsapp_number }}"
      data-upi-id="{{ settings.upi_id }}"
-     style="display:none;"></div>
+     class="is-hidden"></div>
 
 <script>
   (function() {
@@ -164,10 +167,21 @@
               localStorage.removeItem("sizzling_cart");
             } catch (err) {}
 
+            const refValEl = document.getElementById("paymentRefVal");
+            if (refValEl) refValEl.textContent = ref;
+            const refDisplayEl = document.getElementById("submittedRefDisplay");
+            if (refDisplayEl) refDisplayEl.classList.remove("is-hidden");
+
             const refSection = document.getElementById("payRefSection");
             const postSection = document.getElementById("postPaySection");
-            if (refSection) refSection.style.display = "none";
-            if (postSection) postSection.style.display = "block";
+            if (refSection) {
+              refSection.classList.add("is-hidden");
+              refSection.style.display = "none";
+            }
+            if (postSection) {
+              postSection.classList.remove("is-hidden");
+              postSection.style.display = "block";
+            }
           } else {
             if (statusEl) {
               statusEl.textContent = (res && res.error) ? res.error : "Something went wrong.";
