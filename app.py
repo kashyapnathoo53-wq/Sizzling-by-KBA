@@ -218,69 +218,72 @@ def init_db():
 
 
 def seed_products(cur):
+    import json
     seed = {
         "suits": [
-            ("Midnight Two-Piece Suit", "Deep navy, notch lapel, a first-suit that also works for the tenth interview.", 8999),
-            ("Charcoal Windowpane Suit", "Subtle check, cut for the boardroom, built to travel well between meetings.", 9999),
-            ("Ivory Tuxedo Suit", "Satin lapel, evening-only — for the dinner where the invite says black tie.", 12999),
+            ("Midnight Two-Piece Suit", "Deep navy, notch lapel, a first-suit that also works for the tenth interview.", 8999, "suit_midnight_navy.jpg"),
+            ("Charcoal Windowpane Suit", "Subtle check, cut for the boardroom, built to travel well between meetings.", 9999, "suit_charcoal_windowpane.jpg"),
+            ("Ivory Tuxedo Suit", "Satin lapel, evening-only — for the dinner where the invite says black tie.", 12999, "suit_ivory_tuxedo.jpg"),
+            ("Royal Prince Check Suit", "Italian-cut Prince-of-Wales check, structured shoulder, handcrafted lapel roll.", 10999, "suit_prince_check.jpg"),
+            ("Classic Black Tie 3-Piece Suit", "Jet-black barathea wool with sculpted waistcoat and grosgrain lapels.", 11999, "suit_black_tie.jpg"),
+            ("Double-Breasted Olive Tweed Suit", "Modern 6-button double-breasted cut in heavy textured olive weave.", 9499, "suit_olive_tweed.jpg"),
         ],
         "blazers": [
-            ("Bottle Green Velvet Blazer", "Textured velvet, single button — the piece that carries a festive evening.", 5499),
-            ("Navy Textured Blazer", "Everyday blazer, pairs cleanly with formal or semi-formal trousers.", 4999),
-            ("Rust Tweed Blazer", "Heavier weave for cooler months, worn open over a plain shirt.", 5999),
+            ("Bottle Green Velvet Blazer", "Textured velvet, single button — the piece that carries a festive evening.", 5499, "blazer_bottle_green.jpg"),
+            ("Navy Textured Blazer", "Everyday blazer, pairs cleanly with formal or semi-formal trousers.", 4999, "blazer_navy_textured.jpg"),
+            ("Rust Tweed Blazer", "Heavier weave for cooler months, worn open over a plain shirt.", 5999, "blazer_rust_tweed.jpg"),
+            ("Royal Wine Velvet Blazer", "Deep burgundy velvet with lustrous silk peak lapel and horn button.", 5799, "blazer_royal_wine.jpg"),
+            ("Herringbone Camel Wool Blazer", "Warm camel tone in classic herringbone weave with natural horn buttons.", 5299, "blazer_camel_herringbone.jpg"),
+            ("Midnight Jacquard Dinner Jacket", "Micro-woven floral jacquard in midnight ink with satin shawl collar.", 6499, "blazer_midnight_jacquard.jpg"),
         ],
         "jackets": [
-            ("Quilted Bomber Jacket", "Structured quilting, zip front — smart enough to wear over a shirt.", 6499),
-            ("Wool Overcoat", "Full-length layer for Delhi winters, worn straight over a suit.", 8999),
-            ("Textured Field Jacket", "Four-pocket utility cut, sits between casual and smart-casual.", 5999),
+            ("Quilted Bomber Jacket", "Structured quilting, zip front — smart enough to wear over a shirt.", 6499, "jacket_quilted_bomber.jpg"),
+            ("Wool Overcoat", "Full-length layer for Delhi winters, worn straight over a suit.", 8999, "jacket_wool_overcoat.jpg"),
+            ("Textured Field Jacket", "Four-pocket utility cut, sits between casual and smart-casual.", 5999, "jacket_textured_field.jpg"),
+            ("Suede Harrington Jacket", "Buttery tan suede finish with antique brass zip and storm collar.", 6999, "jacket_suede_harrington.jpg"),
+            ("Double-Breasted Trench Overcoat", "Heavy charcoal wool trench with waist cinch belt and epaulets.", 9499, "jacket_trench_overcoat.jpg"),
+            ("Minimalist Leather Biker Jacket", "Supple dark lambskin finish with structured collar and tailored silhouette.", 7999, "jacket_leather_biker.jpg"),
         ],
         "shirts": [
-            ("Crisp White Dress Shirt", "The one every formal wardrobe is built around. Spread collar.", 1299),
-            ("Sky Blue Formal Shirt", "Slightly softer than white, easy to wear with or without a tie.", 1199),
-            ("Fine Striped Business Shirt", "Subtle stripe, holds its shape through a full working day.", 1399),
+            ("Crisp White Dress Shirt", "The one every formal wardrobe is built around. Spread collar.", 1299, "shirt_crisp_white.jpg"),
+            ("Sky Blue Formal Shirt", "Slightly softer than white, easy to wear with or without a tie.", 1199, "shirt_sky_blue.jpg"),
+            ("Fine Striped Business Shirt", "Subtle stripe, holds its shape through a full working day.", 1399, "shirt_fine_striped.jpg"),
+            ("Royal Oxford Pink Shirt", "Pinpoint Oxford cotton in subtle blush rose with mother-of-pearl buttons.", 1349, "shirt_royal_oxford_pink.jpg"),
+            ("Midnight Charcoal Satin Shirt", "Lustrous evening shirt with concealed placket and Milanese cuffs.", 1499, "shirt_midnight_charcoal.jpg"),
+            ("French Cuff Classic Blue Shirt", "Cutaway collar with double cuffs, engineered for heirloom cufflinks.", 1599, "shirt_french_cuff_blue.jpg"),
         ],
         "pants": [
-            ("Classic Charcoal Trouser", "Flat-front, straight leg — the trouser that goes under any jacket.", 1799),
-            ("Slim-Fit Navy Trouser", "Tapered through the leg, worn on its own or with a blazer.", 1699),
-            ("Pleated Grey Trouser", "Traditional pleat for a roomier fit, favoured for longer days.", 1899),
+            ("Classic Charcoal Trouser", "Flat-front, straight leg — the trouser that goes under any jacket.", 1799, "pants_classic_charcoal.jpg"),
+            ("Slim-Fit Navy Trouser", "Tapered through the leg, worn on its own or with a blazer.", 1699, "pants_slim_navy.jpg"),
+            ("Pleated Grey Trouser", "Traditional pleat for a roomier fit, favoured for longer days.", 1899, "pants_pleated_grey.jpg"),
+            ("Khaki Gurkha Waist Trouser", "High-rise waistband with double brass side-buckles and forward pleats.", 1999, "pants_khaki_gurkha.jpg"),
+            ("Jet Black Tailored Tux Trouser", "Straight formal cut with satin side stripe and pick-stitched pockets.", 1899, "pants_jet_black_tux.jpg"),
+            ("Olive Wool Blend Trouser", "Mid-rise tapered formal trouser in breathable wool blend.", 1799, "pants_olive_wool.jpg"),
         ],
         "sherwanis": [
-            ("Royal Gold Zari Sherwani", "Hand-worked zari embroidery, the outfit built for the pheras.", 15999),
-            ("Ivory Silk Sherwani", "Raw silk base, understated embroidery for the sangeet or reception.", 13999),
-            ("Maroon Velvet Sherwani", "Deep velvet body, gold detailing at collar and placket.", 17999),
-            ("Pastel Peach Sherwani", "Lighter tone for a daytime function, subtle thread work throughout.", 11999),
+            ("Royal Gold Zari Sherwani", "Hand-worked zari embroidery, the outfit built for the pheras.", 15999, "sherwani_royal_gold.jpg"),
+            ("Ivory Silk Sherwani", "Raw silk base, understated embroidery for the sangeet or reception.", 13999, "sherwani_ivory_silk.jpg"),
+            ("Maroon Velvet Sherwani", "Deep velvet body, gold detailing at collar and placket.", 17999, "sherwani_maroon_velvet.jpg"),
+            ("Pastel Peach Sherwani", "Lighter tone for a daytime function, subtle thread work throughout.", 11999, "sherwani_pastel_peach.jpg"),
+            ("Emerald Green Hand-Embroidered Sherwani", "Pure banarasi raw silk with antique gold dabka and zardozi collar.", 16999, "sherwani_emerald_embroidered.jpg"),
+            ("Midnight Blue Indo-Western Sherwani", "Modern asymmetrical overlap with handcrafted metallic crest buttons.", 14499, "sherwani_midnight_blue.jpg"),
         ],
-    }
-
-    seed_images = {
-        "Midnight Two-Piece Suit": "products/suit_midnight_navy.jpg",
-        "Charcoal Windowpane Suit": "products/suit_charcoal_windowpane.jpg",
-        "Ivory Tuxedo Suit": "products/suit_ivory_tuxedo.jpg",
-        "Bottle Green Velvet Blazer": "products/blazer_bottle_green.jpg",
-        "Navy Textured Blazer": "products/blazer_navy_textured.jpg",
-        "Rust Tweed Blazer": "products/blazer_rust_tweed.jpg",
-        "Quilted Bomber Jacket": "products/jacket_quilted_bomber.jpg",
-        "Wool Overcoat": "products/jacket_wool_overcoat.jpg",
-        "Textured Field Jacket": "products/jacket_textured_field.jpg",
-        "Crisp White Dress Shirt": "products/shirt_crisp_white.jpg",
-        "Sky Blue Formal Shirt": "products/shirt_sky_blue.jpg",
-        "Fine Striped Business Shirt": "products/shirt_fine_striped.jpg",
-        "Classic Charcoal Trouser": "products/pants_classic_charcoal.jpg",
-        "Slim-Fit Navy Trouser": "products/pants_slim_navy.jpg",
-        "Pleated Grey Trouser": "products/pants_pleated_grey.jpg",
-        "Royal Gold Zari Sherwani": "products/sherwani_royal_gold.jpg",
-        "Ivory Silk Sherwani": "products/sherwani_ivory_silk.jpg",
-        "Maroon Velvet Sherwani": "products/sherwani_maroon_velvet.jpg",
-        "Pastel Peach Sherwani": "products/sherwani_pastel_peach.jpg",
     }
 
     for category, items in seed.items():
-        for i, (name, desc, price) in enumerate(items):
-            prod_image = seed_images.get(name, f"products/{category}.jpg")
+        for i, (name, desc, price, img_file) in enumerate(items):
+            prod_image = f"products/{img_file}"
+            base_name = img_file.rsplit(".", 1)[0]
+            gallery = json.dumps([
+                prod_image,
+                f"products/gallery/{base_name}_detail.jpg",
+                f"products/gallery/{base_name}_angle.jpg",
+                f"products/gallery/{base_name}_fabric.jpg"
+            ])
             cur.execute("""
-                INSERT INTO products(category, name, description, price, image_path, sort_order)
-                VALUES (?,?,?,?,?,?)
-            """, (category, name, desc, price, prod_image, i))
+                INSERT INTO products(category, name, description, price, image_path, gallery_images, sort_order)
+                VALUES (?,?,?,?,?,?,?)
+            """, (category, name, desc, price, prod_image, gallery, i))
 
 
 init_db()

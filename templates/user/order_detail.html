@@ -66,11 +66,11 @@
       <strong>✅ Payment confirmed!</strong> We're working on your order. We'll reach out if we need any measurements or alterations info.
     </div>
     {% elif order.status == 'dispatched' %}
-    <div class="status-info-box" style="background:#eff6ff; border-color:#3b82f6;">
+    <div class="status-info-box" style="background:rgba(59,130,246,0.12); border:1px solid #3b82f6; color:#93c5fd;">
       <strong>🚚 Your order has been dispatched!</strong> Please reach out on WhatsApp for delivery details.
     </div>
     {% elif order.status == 'cancelled' %}
-    <div class="status-info-box" style="background:#fef2f2; border-color:#ef4444;">
+    <div class="status-info-box" style="background:rgba(239,68,68,0.12); border:1px solid #ef4444; color:#fca5a5;">
       <strong>❌ This order was cancelled.</strong> Please contact us on WhatsApp for assistance.
     </div>
     {% endif %}

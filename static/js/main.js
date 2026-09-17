@@ -167,6 +167,47 @@ function openQuickView(prodData) {
   document.getElementById("qvDesc").textContent = prodData.desc || "Bespoke Karol Bagh craftsmanship.";
   document.getElementById("qvPrice").textContent = prodData.price > 0 ? `₹${parseFloat(prodData.price).toLocaleString('en-IN')}` : "Price on Request";
 
+  // Multi-image gallery thumbnails (supports >3 images per product)
+  const thumbsContainer = document.getElementById("qvThumbnails");
+  if (thumbsContainer) {
+    thumbsContainer.innerHTML = "";
+    let galleryList = [];
+    if (Array.isArray(prodData.gallery) && prodData.gallery.length > 0) {
+      galleryList = prodData.gallery.map(p => p.startsWith("/") ? p : `/static/images/${p}`);
+    } else {
+      galleryList = [prodData.image];
+    }
+
+    const labels = ["Front View", "Collar & Lapel", "Tailored Fit", "Fabric Detail"];
+    galleryList.forEach((thumbSrc, idx) => {
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = `qv-thumb-btn ${idx === 0 ? "active" : ""}`;
+      thumb.title = labels[idx] || `View ${idx+1}`;
+      thumb.innerHTML = `<img src="${thumbSrc}" alt="${prodData.name} ${labels[idx] || idx+1}" loading="lazy">`;
+      thumb.addEventListener("click", () => {
+        document.getElementById("qvImage").src = thumbSrc;
+        thumbsContainer.querySelectorAll(".qv-thumb-btn").forEach(t => t.classList.remove("active"));
+        thumb.classList.add("active");
+      });
+      thumbsContainer.appendChild(thumb);
+    });
+  }
+
+  // Sync Wishlist button state
+  const qvWishlistBtn = document.getElementById("qvWishlistBtn");
+  const qvWishlistText = document.getElementById("qvWishlistText");
+  if (qvWishlistBtn) {
+    const isSaved = getLocalWishlist().map(Number).includes(parseInt(prodData.id, 10));
+    if (isSaved) {
+      qvWishlistBtn.classList.add("active");
+      if (qvWishlistText) qvWishlistText.textContent = "Saved in Wishlist";
+    } else {
+      qvWishlistBtn.classList.remove("active");
+      if (qvWishlistText) qvWishlistText.textContent = "Add to Wishlist";
+    }
+  }
+
   // Populate size pills
   const pillsContainer = document.getElementById("qvSizePills");
   pillsContainer.innerHTML = "";
@@ -321,6 +362,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".quick-view-btn").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
+      let gallery = [];
+      try {
+        if (btn.dataset.gallery) gallery = JSON.parse(btn.dataset.gallery);
+      } catch (err) {}
       openQuickView({
         id: parseInt(btn.dataset.id, 10),
         name: btn.dataset.name,
@@ -328,6 +373,7 @@ document.addEventListener("DOMContentLoaded", () => {
         price: parseFloat(btn.dataset.price),
         desc: btn.dataset.desc,
         image: btn.dataset.image,
+        gallery: gallery,
         sizes: btn.dataset.sizes
       });
     });
@@ -373,6 +419,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     closeQuickView();
     window.location.href = "/checkout";
+  });
+
+  // Quick View Wishlist button handler
+  document.getElementById("qvWishlistBtn")?.addEventListener("click", () => {
+    if (!currentQuickViewProduct) return;
+    const pid = parseInt(currentQuickViewProduct.id, 10);
+    toggleWishlist(pid);
+    const isSaved = getLocalWishlist().map(Number).includes(pid);
+    const qvWishlistBtn = document.getElementById("qvWishlistBtn");
+    const qvWishlistText = document.getElementById("qvWishlistText");
+    if (isSaved) {
+      qvWishlistBtn?.classList.add("active");
+      if (qvWishlistText) qvWishlistText.textContent = "Saved in Wishlist";
+    } else {
+      qvWishlistBtn?.classList.remove("active");
+      if (qvWishlistText) qvWishlistText.textContent = "Add to Wishlist";
+    }
+    highlightWishlistButtons();
   });
 
   // ------------------------------------------------------------

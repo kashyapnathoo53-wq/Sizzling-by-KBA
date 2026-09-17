@@ -206,6 +206,7 @@
       data-price="{{ p.price or 0 }}"
       data-desc="{{ p.description or '' }}"
       data-image="{{ url_for('static', filename='images/' + p.image_path) }}"
+      data-gallery='{{ p.gallery_images or "[]" }}'
       data-sizes="{{ size_list | join(',') }}">
       🔍 Quick View
     </button>
@@ -404,7 +405,12 @@
     <button class="modal-close" id="quickViewCloseBtn" aria-label="Close quick view">&times;</button>
     <div class="quick-view-grid">
       <div class="qv-image-col">
-        <img id="qvImage" src="" alt="Product on model" class="qv-img">
+        <div class="qv-main-image-wrap">
+          <img id="qvImage" src="" alt="Product on model" class="qv-img">
+        </div>
+        <div class="qv-thumbnails" id="qvThumbnails">
+          <!-- Populated dynamically by JS with multi-angle shots -->
+        </div>
       </div>
       <div class="qv-info-col">
         <span class="eyebrow" id="qvCategory">Tailored Menswear</span>
@@ -427,7 +433,11 @@
 
         <div class="qv-actions-row">
           <button class="btn btn-brass" id="qvAddCartBtn">Add to Cart</button>
-          <button class="btn btn-outline" id="qvBuyNowBtn">Buy Now</button>
+          <button class="btn btn-buy-now" id="qvBuyNowBtn">⚡ Buy Now</button>
+          <button class="btn btn-qv-wishlist" id="qvWishlistBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span id="qvWishlistText">Add to Wishlist</span>
+          </button>
           <a href="#" class="btn btn-ink" id="qvWaBtn">Order on WhatsApp</a>
         </div>
 
