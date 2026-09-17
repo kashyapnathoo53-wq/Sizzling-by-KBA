@@ -41,9 +41,25 @@ MAX_UPLOAD_MB = 8
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+_SECRET_KEY_DEFAULT = "sizzling_by_kba_karol_bagh_bespoke_menswear_secret_key_2026_jwt_session_secure_x9"
+_raw_env_secret = (os.environ.get("SECRET_KEY") or "").strip()
+_ACTIVE_SECRET_KEY = _raw_env_secret if _raw_env_secret else _SECRET_KEY_DEFAULT
+
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "change-this-secret-key-before-deploying")
+app.secret_key = _ACTIVE_SECRET_KEY
+app.config["SECRET_KEY"] = _ACTIVE_SECRET_KEY
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
+
+
+@app.before_request
+def _ensure_valid_secret_key():
+    if not app.secret_key or not str(app.secret_key).strip():
+        app.secret_key = _SECRET_KEY_DEFAULT
+        app.config["SECRET_KEY"] = _SECRET_KEY_DEFAULT
+
 
 CATEGORIES = [
     ("suits", "Suits", "upper"),
