@@ -20,8 +20,13 @@ import qrcode
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # On Vercel the filesystem is read-only except for /tmp.
-# Detect Vercel by the presence of the VERCEL environment variable.
-_ON_VERCEL = os.environ.get("VERCEL") == "1"
+# Detect Vercel / serverless environment reliably.
+_ON_VERCEL = bool(
+    os.environ.get("VERCEL")
+    or os.environ.get("VERCEL_ENV")
+    or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+    or not os.access(BASE_DIR, os.W_OK)
+)
 if _ON_VERCEL:
     DB_NAME = "/tmp/sizzling.db"
     UPLOAD_DIR = "/tmp/uploads"
@@ -82,11 +87,17 @@ def init_db():
         description TEXT,
         price REAL,
         image_path TEXT,
+        gallery_images TEXT,
         active INTEGER DEFAULT 1,
         sort_order INTEGER DEFAULT 0,
         created_at TEXT DEFAULT (datetime('now'))
     )
     """)
+
+    try:
+        cur.execute("ALTER TABLE products ADD COLUMN gallery_images TEXT")
+    except Exception:
+        pass
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS enquiries(
@@ -286,7 +297,22 @@ def seed_products(cur):
             """, (category, name, desc, price, prod_image, gallery, i))
 
 
-init_db()
+if _ON_VERCEL:
+    src_db = os.path.join(BASE_DIR, "sizzling.db")
+    if os.path.exists(src_db) and not os.path.exists("/tmp/sizzling.db"):
+        try:
+            import shutil
+            shutil.copy2(src_db, "/tmp/sizzling.db")
+        except Exception:
+            pass
+
+try:
+    init_db()
+except Exception as e:
+    import traceback
+    print("Database initialization warning:", e)
+    traceback.print_exc()
+
 
 
 # =====================================================================
