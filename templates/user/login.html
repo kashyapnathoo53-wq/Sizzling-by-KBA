@@ -126,13 +126,7 @@
         otpInput.value = ""; // Keep blank, no auto-fill
 
         const infoBox = document.getElementById("otpInfoBox");
-        if (res.sms_sent) {
-          infoBox.innerHTML = `📱 OTP sent via SMS to <strong>${phone}</strong>.<br><small style="color:#666;">Valid for 10 minutes. Please enter the 6-digit code below.</small>`;
-        } else if (res.otp_code) {
-          infoBox.innerHTML = `🔑 Verification Code: <strong style="font-size:17px; letter-spacing:3px; color:var(--ink); font-family:var(--mono);">${res.otp_code}</strong><br><small style="color:#666;">Enter this 6-digit code below to log in. (Fast2SMS key not set in Admin Settings).</small>`;
-        } else {
-          infoBox.innerHTML = `📱 OTP sent to <strong>${phone}</strong>. Valid for 10 minutes.`;
-        }
+        infoBox.innerHTML = `📱 An OTP has been sent to <strong>+91 ${phone}</strong>.<br><small style="color:#666;">Valid for 10 minutes. Please check your SMS messages and enter the 6-digit code below.</small>`;
 
         document.getElementById("verifyOtpStatus").textContent = "";
         otpInput.focus();

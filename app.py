@@ -912,19 +912,11 @@ def api_send_otp():
 
     sent = _send_otp_fast2sms(phone, otp)
 
-    if sent:
-        return jsonify({
-            "success": True,
-            "sms_sent": True,
-            "message": f"OTP sent to {phone} via SMS.",
-        })
-    else:
-        return jsonify({
-            "success": True,
-            "sms_sent": False,
-            "otp_code": otp,
-            "message": f"Verification code generated: {otp}",
-        })
+    return jsonify({
+        "success": True,
+        "sms_sent": sent,
+        "message": f"OTP sent to {phone} via SMS.",
+    })
 
 
 @app.route("/api/account/verify_otp", methods=["POST"])
