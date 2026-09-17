@@ -196,13 +196,35 @@ def seed_products(cur):
         ],
     }
 
+    seed_images = {
+        "Midnight Two-Piece Suit": "products/suit_midnight_navy.jpg",
+        "Charcoal Windowpane Suit": "products/suit_charcoal_windowpane.jpg",
+        "Ivory Tuxedo Suit": "products/suit_ivory_tuxedo.jpg",
+        "Bottle Green Velvet Blazer": "products/blazer_bottle_green.jpg",
+        "Navy Textured Blazer": "products/blazer_navy_textured.jpg",
+        "Rust Tweed Blazer": "products/blazer_rust_tweed.jpg",
+        "Quilted Bomber Jacket": "products/jacket_quilted_bomber.jpg",
+        "Wool Overcoat": "products/jacket_wool_overcoat.jpg",
+        "Textured Field Jacket": "products/jacket_textured_field.jpg",
+        "Crisp White Dress Shirt": "products/shirt_crisp_white.jpg",
+        "Sky Blue Formal Shirt": "products/shirt_sky_blue.jpg",
+        "Fine Striped Business Shirt": "products/shirt_fine_striped.jpg",
+        "Classic Charcoal Trouser": "products/pants_classic_charcoal.jpg",
+        "Slim-Fit Navy Trouser": "products/pants_slim_navy.jpg",
+        "Pleated Grey Trouser": "products/pants_pleated_grey.jpg",
+        "Royal Gold Zari Sherwani": "products/sherwani_royal_gold.jpg",
+        "Ivory Silk Sherwani": "products/sherwani_ivory_silk.jpg",
+        "Maroon Velvet Sherwani": "products/sherwani_maroon_velvet.jpg",
+        "Pastel Peach Sherwani": "products/sherwani_pastel_peach.jpg",
+    }
+
     for category, items in seed.items():
-        default_image = f"defaults/{category}.svg"
         for i, (name, desc, price) in enumerate(items):
+            prod_image = seed_images.get(name, f"products/{category}.jpg")
             cur.execute("""
                 INSERT INTO products(category, name, description, price, image_path, sort_order)
                 VALUES (?,?,?,?,?,?)
-            """, (category, name, desc, price, default_image, i))
+            """, (category, name, desc, price, prod_image, i))
 
 
 init_db()

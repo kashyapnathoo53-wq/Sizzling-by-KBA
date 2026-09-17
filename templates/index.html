@@ -21,8 +21,10 @@
       <a href="#suits">Suits</a>
       <a href="#blazers">Blazers</a>
       <a href="#jackets">Jackets</a>
-      <a href="#shirts">Shirts &amp; Pants</a>
+      <a href="#shirts">Shirts</a>
+      <a href="#pants">Pants</a>
       <a href="#sherwanis">Wedding Sherwanis</a>
+      <a href="#" class="nav-size-link" id="navSizeGuideLink">Size Guide</a>
       <a href="#contact">Visit Us</a>
     </nav>
 
@@ -42,36 +44,31 @@
 
 <section class="hero" id="top">
   <div class="wrap hero-inner">
-    <div>
+    <div class="hero-text-col">
       <span class="eyebrow">Tailored Menswear &middot; Est. Karol Bagh</span>
       <h1>Cut sharp.<br><em>Worn with intent.</em></h1>
-      <p>Suits, blazers, jackets and formal wear built for men who want their tailoring to speak first. From the boardroom to the baraat — including sherwanis made for the groom's one big day.</p>
+      <p>Suits, blazers, jackets and formal wear built for men who want their tailoring to speak first. From the boardroom to the baraat — including hand-finished sherwanis made for the groom's one big day.</p>
       <div class="hero-ctas">
         <a href="#sherwanis" class="btn btn-brass">Shop Wedding Sherwanis</a>
         <a href="#suits" class="btn btn-outline">Browse Suits &amp; Blazers</a>
+        <button class="btn btn-ghost" id="heroSizeBtn">📏 Size Chart</button>
       </div>
       <div class="hero-meta">
         <span class="tag">Upper 36–44</span>
         <span class="tag">Lower 30–38</span>
-        <span class="tag">Men only</span>
+        <span class="tag">Bespoke Fit Guarantee</span>
       </div>
     </div>
 
     <div class="hero-visual">
       <span class="corner tl"></span><span class="corner br"></span>
-      <svg viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#d9bd8b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
-        <path d="M100 18 L84 34 L74 30 L58 46 L64 60 L58 250 L142 250 L136 60 L142 46 L126 30 L116 34 Z"/>
-        <path d="M84 34 L100 58 L116 34"/>
-        <path d="M100 58 L100 250"/>
-        <path d="M64 60 L100 78 L136 60"/>
-        <circle cx="100" cy="92" r="1.6" fill="#d9bd8b"/>
-        <circle cx="100" cy="112" r="1.6" fill="#d9bd8b"/>
-        <circle cx="100" cy="132" r="1.6" fill="#d9bd8b"/>
-        <circle cx="100" cy="152" r="1.6" fill="#d9bd8b"/>
-        <circle cx="100" cy="172" r="1.6" fill="#d9bd8b"/>
-        <path d="M58 46 L38 96 L48 104 L64 66" />
-        <path d="M142 46 L162 96 L152 104 L136 66"/>
-      </svg>
+      <div class="hero-media-wrapper">
+        <img src="{{ url_for('static', filename='images/products/hero_banner.jpg') }}" alt="SIZZLING by KBA Bespoke Tailored Suit Model" class="hero-image" loading="eager">
+        <div class="hero-badge">
+          <span class="hero-badge-tag">Karol Bagh Tailoring House</span>
+          <span class="hero-badge-title">Hand-Checked Fit &amp; Finish</span>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -85,6 +82,40 @@
     <span>Made for Men</span>
   </div>
 </div>
+
+<!-- TRUST / CRAFTSMANSHIP STRIP -->
+<section class="trust-strip">
+  <div class="wrap trust-grid">
+    <div class="trust-item">
+      <div class="trust-icon">✂</div>
+      <div class="trust-text">
+        <strong>Master Tailored Fit</strong>
+        <small>Upper 36–44 &bull; Lower 30–38</small>
+      </div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">🏛</div>
+      <div class="trust-text">
+        <strong>Karol Bagh Heritage</strong>
+        <small>Dev Nagar, Gali No. 5</small>
+      </div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">💬</div>
+      <div class="trust-text">
+        <strong>WhatsApp Fitting Support</strong>
+        <small>Direct tailor advice &amp; sizing</small>
+      </div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">⚡</div>
+      <div class="trust-text">
+        <strong>Fast Order Delivery</strong>
+        <small>In-store pickup or courier</small>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section class="about" id="about">
   <div class="wrap about-inner">
@@ -106,28 +137,73 @@
   </div>
 </section>
 
-<nav class="cat-nav">
-  <div class="wrap">
-    <a class="cat-pill" href="#suits">Suits</a>
-    <a class="cat-pill" href="#blazers">Blazers</a>
-    <a class="cat-pill" href="#jackets">Jackets</a>
-    <a class="cat-pill" href="#shirts">Formal Shirts</a>
-    <a class="cat-pill" href="#pants">Formal Pants</a>
-    <a class="cat-pill groom" href="#sherwanis">Wedding Sherwanis</a>
+<!-- STICKY CATALOG NAV WITH LIVE SEARCH & SIZE GUIDE -->
+<nav class="cat-nav" id="catNav">
+  <div class="wrap cat-nav-container">
+    <div class="cat-pills-row" id="catPillsRow">
+      <a class="cat-pill active" href="#suits" data-cat="suits">Suits</a>
+      <a class="cat-pill" href="#blazers" data-cat="blazers">Blazers</a>
+      <a class="cat-pill" href="#jackets" data-cat="jackets">Jackets</a>
+      <a class="cat-pill" href="#shirts" data-cat="shirts">Formal Shirts</a>
+      <a class="cat-pill" href="#pants" data-cat="pants">Formal Pants</a>
+      <a class="cat-pill groom" href="#sherwanis" data-cat="sherwanis">Wedding Sherwanis</a>
+    </div>
+    
+    <div class="cat-nav-actions">
+      <div class="catalog-search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="catalogSearch" placeholder="Search suits, fabric, sherwanis..." aria-label="Search garments">
+        <button id="searchClearBtn" class="search-clear-btn" aria-label="Clear search" style="display:none;">&times;</button>
+      </div>
+      <button class="size-guide-pill-btn" id="openSizeGuideBtn">📏 Sizing Chart</button>
+    </div>
   </div>
 </nav>
 
+<div class="search-results-bar wrap" id="searchResultsBar" style="display:none;">
+  <span id="searchResultsCount">0 items found</span>
+  <button id="clearSearchLink" class="clear-search-link">Show all items</button>
+</div>
+
+{% set cat_badges = {
+  'suits': 'Bespoke Cut',
+  'blazers': 'Festive Velvet & Weave',
+  'jackets': 'Winter Tailoring',
+  'shirts': '100% Fine Cotton',
+  'pants': 'Tailored Crease',
+  'sherwanis': 'Groom Handcrafted'
+} %}
+
 {% macro product_card(p, size_list) %}
-<div class="card">
+<div class="card" data-id="{{ p.id }}" data-category="{{ p.category }}" data-name="{{ p.name }}" data-desc="{{ p.description or '' }}" data-price="{{ p.price or 0 }}">
   <div class="card-art">
-    <img src="{{ url_for('static', filename='images/' + p.image_path) }}" alt="{{ p.name }}" loading="lazy">
+    <img src="{{ url_for('static', filename='images/' + p.image_path) }}" alt="{{ p.name }} on model" loading="lazy" class="product-model-img">
+    <span class="card-tag-badge">{{ cat_badges.get(p.category, 'Tailored') }}</span>
+    <button class="quick-view-btn"
+      data-id="{{ p.id }}"
+      data-name="{{ p.name }}"
+      data-category="{{ p.category }}"
+      data-price="{{ p.price or 0 }}"
+      data-desc="{{ p.description or '' }}"
+      data-image="{{ url_for('static', filename='images/' + p.image_path) }}"
+      data-sizes="{{ size_list | join(',') }}">
+      🔍 Quick View
+    </button>
   </div>
   <div class="card-body">
-    <h3>{{ p.name }}</h3>
+    <div class="card-title-row">
+      <h3>{{ p.name }}</h3>
+    </div>
     <p class="desc">{{ p.description or "" }}</p>
-    <p class="card-price">{% if p.price %}&#8377; {{ "%.0f"|format(p.price) }}{% else %}Price on request{% endif %}</p>
+    <div class="card-price-row">
+      <span class="card-price">{% if p.price %}&#8377; {{ "{:,.0f}".format(p.price) }}{% else %}Price on request{% endif %}</span>
+      <span class="card-fit-note">Bespoke Fit</span>
+    </div>
     <div class="size-select-row">
-      <label for="size-{{ p.id }}">Size</label>
+      <div class="size-label-wrap">
+        <label for="size-{{ p.id }}">Size</label>
+        <button class="card-size-guide-link" data-type="{{ 'lower' if p.category == 'pants' else 'upper' }}">Guide</button>
+      </div>
       <select id="size-{{ p.id }}">
         {% for s in size_list %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
       </select>
@@ -148,7 +224,7 @@
         Buy Now
       </button>
     </div>
-    <a href="#" class="wa-quick-link order-btn" data-name="{{ p.name }}" data-category="{{ p.category }}" data-select="size-{{ p.id }}">Or ask on WhatsApp instead</a>
+    <a href="#" class="wa-quick-link order-btn" data-name="{{ p.name }}" data-category="{{ p.category }}" data-select="size-{{ p.id }}">Or ask on WhatsApp</a>
     {% else %}
     <p class="no-price-note">Price on request — message us on WhatsApp for a quote.</p>
     <button class="order-btn" data-name="{{ p.name }}" data-category="{{ p.category }}" data-select="size-{{ p.id }}">
@@ -172,7 +248,7 @@
 {% set cat_heading = {'suits':'Suits','blazers':'Blazers','jackets':'Jackets','shirts':'Formal Shirts','pants':'Formal Pants','sherwanis':'Wedding Sherwanis'} %}
 
 {% for key, label, size_type in categories %}
-<section class="category {{ cat_classes[key] }}" id="{{ key }}">
+<section class="category {{ cat_classes[key] }}" id="{{ key }}" data-section-cat="{{ key }}">
   <div class="wrap">
     <div class="cat-head">
       <div>
@@ -301,6 +377,120 @@
     <a href="/checkout" class="btn btn-brass" style="width:100%;">Proceed to Checkout</a>
   </div>
 </div>
+
+<!-- QUICK VIEW MODAL -->
+<div class="modal-overlay" id="quickViewOverlay">
+  <div class="modal-dialog quick-view-modal">
+    <button class="modal-close" id="quickViewCloseBtn" aria-label="Close quick view">&times;</button>
+    <div class="quick-view-grid">
+      <div class="qv-image-col">
+        <img id="qvImage" src="" alt="Product on model" class="qv-img">
+      </div>
+      <div class="qv-info-col">
+        <span class="eyebrow" id="qvCategory">Tailored Menswear</span>
+        <h2 id="qvTitle">Product Name</h2>
+        <div class="qv-price-badge-row">
+          <span class="qv-price" id="qvPrice">₹0</span>
+          <span class="qv-tag-chip" id="qvTagChip">Bespoke Fit</span>
+        </div>
+        <p class="qv-desc" id="qvDesc">Detailed description of this garment.</p>
+
+        <div class="qv-size-group">
+          <div class="qv-size-header">
+            <label>Select Size:</label>
+            <button class="card-size-guide-link" id="qvSizeGuideLink">View Size Chart →</button>
+          </div>
+          <div class="qv-size-pills" id="qvSizePills">
+            <!-- Populated dynamically by JS -->
+          </div>
+        </div>
+
+        <div class="qv-actions-row">
+          <button class="btn btn-brass" id="qvAddCartBtn">Add to Cart</button>
+          <button class="btn btn-outline" id="qvBuyNowBtn">Buy Now</button>
+          <a href="#" class="btn btn-ink" id="qvWaBtn">Order on WhatsApp</a>
+        </div>
+
+        <div class="qv-guarantees">
+          <div class="qv-guarantee-item"><span>✂</span> Karol Bagh custom tailoring check</div>
+          <div class="qv-guarantee-item"><span>✨</span> Complimentary fitting alterations</div>
+          <div class="qv-guarantee-item"><span>🚚</span> Fast Delhi pickup or insured shipping</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SIZE GUIDE MODAL -->
+<div class="modal-overlay" id="sizeGuideOverlay">
+  <div class="modal-dialog size-guide-modal">
+    <button class="modal-close" id="sizeGuideCloseBtn" aria-label="Close size guide">&times;</button>
+    <div class="size-guide-content">
+      <span class="eyebrow">Sizing &amp; Fitting Chart</span>
+      <h2>Karol Bagh Master Sizing</h2>
+      <p>All garments are crafted following standard Indian bespoke tailor specifications. For customized fitting or alterations, our master tailor is always available on WhatsApp.</p>
+
+      <div class="size-tabs">
+        <button class="size-tab active" data-tab="upper" id="tabBtnUpper">Upper Garments (Suits, Blazers, Shirts, Sherwanis)</button>
+        <button class="size-tab" data-tab="lower" id="tabBtnLower">Lower Garments (Formal Trousers)</button>
+      </div>
+
+      <div class="size-tab-panel active" id="panelUpper">
+        <div class="table-scroll">
+          <table class="size-table">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>Chest (Inches)</th>
+                <th>Shoulder (Inches)</th>
+                <th>Jacket Length</th>
+                <th>Sleeve Length</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>36</strong> (S)</td><td>36" – 38"</td><td>17.0"</td><td>28.5"</td><td>24.5"</td></tr>
+              <tr><td><strong>38</strong> (M)</td><td>38" – 40"</td><td>17.5"</td><td>29.0"</td><td>25.0"</td></tr>
+              <tr><td><strong>40</strong> (L)</td><td>40" – 42"</td><td>18.0"</td><td>29.5"</td><td>25.5"</td></tr>
+              <tr><td><strong>42</strong> (XL)</td><td>42" – 44"</td><td>18.5"</td><td>30.0"</td><td>26.0"</td></tr>
+              <tr><td><strong>44</strong> (XXL)</td><td>44" – 46"</td><td>19.0"</td><td>30.5"</td><td>26.5"</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="size-tab-panel" id="panelLower" style="display:none;">
+        <div class="table-scroll">
+          <table class="size-table">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>Waist (Inches)</th>
+                <th>Hip (Inches)</th>
+                <th>Trouser Inseam</th>
+                <th>Thigh Circumference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>30</strong></td><td>30" – 31"</td><td>37"</td><td>32.0"</td><td>22.5"</td></tr>
+              <tr><td><strong>32</strong></td><td>32" – 33"</td><td>39"</td><td>32.5"</td><td>23.5"</td></tr>
+              <tr><td><strong>34</strong></td><td>34" – 35"</td><td>41"</td><td>33.0"</td><td>24.5"</td></tr>
+              <tr><td><strong>36</strong></td><td>36" – 37"</td><td>43"</td><td>33.0"</td><td>25.5"</td></tr>
+              <tr><td><strong>38</strong></td><td>38" – 39"</td><td>45"</td><td>33.5"</td><td>26.5"</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="size-guide-footer">
+        <p>Unsure about your measurements? Message our Karol Bagh master tailor on WhatsApp with your height &amp; weight for an exact recommendation.</p>
+        <a href="#" class="btn btn-brass" id="sizeGuideWaBtn">Ask Master Tailor on WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
   const SIZZLING_SETTINGS = {
