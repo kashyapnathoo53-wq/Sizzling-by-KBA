@@ -7,13 +7,29 @@
 <meta name="description" content="{{ settings.brand_name }} — Suits, blazers, jackets, formal shirts, trousers and wedding sherwanis for men. {{ settings.address }}.">
 
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
-<link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon_32.png') }}">
+<link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='images/favicon.png') }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+
+{% if session.get('is_admin') %}
+<div class="admin-top-bar" style="background:linear-gradient(90deg, #101726, #162033); border-bottom:1px solid #c5a059; padding:8px 20px; font-size:12.5px; color:#f1f5f9; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; position:relative; z-index:1003;">
+  <div style="display:flex; align-items:center; gap:8px;">
+    <span style="background:var(--brass); color:#0b0e14; font-weight:700; font-size:11px; padding:2px 8px; border-radius:3px; text-transform:uppercase; letter-spacing:0.06em;">Admin Active</span>
+    <span>You are browsing the website with Master Admin permissions.</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <a href="/admin" style="background:#c5a059; color:#0b0d12; padding:4px 12px; border-radius:4px; font-weight:700; text-decoration:none; font-size:12px;">Open Database Portal →</a>
+    <a href="/admin/database" style="color:#dfc691; text-decoration:underline; font-size:12px;">🗄️ Raw Tables</a>
+    <a href="/admin/logout" style="color:#f87171; text-decoration:underline; font-size:12px;">Logout</a>
+  </div>
+</div>
+{% endif %}
 
 <header>
   <div class="wrap nav-row">
@@ -26,8 +42,12 @@
       <a href="#shirts">Shirts</a>
       <a href="#pants">Pants</a>
       <a href="#sherwanis">Sherwanis</a>
+      <a href="#ties_bows">Ties &amp; Bows</a>
       <a href="#" class="nav-size-link" id="navSizeGuideLink">Size Guide</a>
       <a href="#contact">Visit Us</a>
+      {% if session.get('is_admin') %}
+      <a href="/admin" style="color:var(--brass-light); font-weight:700;">🗄️ Database</a>
+      {% endif %}
     </nav>
 
     <div class="nav-cta">
@@ -41,11 +61,16 @@
         <span>Cart</span> <span class="cart-count" id="cartCount">0</span>
       </button>
 
-      {% if session.get('customer_id') or session.get('customer_phone') %}
+      {% if session.get('is_admin') %}
+      <a href="/admin" class="account-nav-btn admin-db-btn" title="Open Master Database Portal" style="background:linear-gradient(135deg, rgba(197,160,89,0.25), rgba(197,160,89,0.08)); border:1.5px solid var(--brass); color:var(--brass-light); font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 0 10px rgba(197,160,89,0.2);">
+        <span>🗄️ Database Portal</span>
+      </a>
+      <a href="/admin/logout" class="account-logout-btn" title="Logout Admin">Logout</a>
+      {% elif session.get('customer_id') or session.get('customer_phone') %}
       <a href="/account/orders" class="account-nav-btn" title="View my orders">📦 Orders</a>
       <a href="/account/logout" class="account-logout-btn" title="Logout">Logout</a>
       {% else %}
-      <a href="/account/login" class="account-nav-btn" title="Track orders & login">Track Orders</a>
+      <a href="/login" class="account-nav-btn" title="Sign In with Admin credentials or track orders">🔑 Login / Database</a>
       {% endif %}
 
       <a href="#" class="btn btn-brass" id="waHeaderBtn">WhatsApp Us</a>
@@ -141,7 +166,7 @@
     </div>
     <div class="about-card">
       <div class="row"><span>Brand</span><span>{{ settings.brand_name }}</span></div>
-      <div class="row"><span>Proprietor</span><span>{{ settings.owner_name }}</span></div>
+      <div class="row"><span>Atelier</span><span>SIZZLING Bespoke Atelier</span></div>
       <div class="row"><span>Address</span><span>{{ settings.address }}</span></div>
       <div class="row"><span>Category</span><span>Formal &amp; Wedding Menswear</span></div>
       <div class="row"><span>Sizing — Upper</span><span>36 – 44</span></div>
@@ -191,10 +216,16 @@
 } %}
 
 {% macro product_card(p, size_list) %}
-<div class="card" data-id="{{ p.id }}" data-category="{{ p.category }}" data-name="{{ p.name }}" data-desc="{{ p.description or '' }}" data-price="{{ p.price or 0 }}">
+<div class="card {% if p.is_out_of_stock %}out-of-stock-card{% endif %}" data-id="{{ p.id }}" data-category="{{ p.category }}" data-name="{{ p.name }}" data-desc="{{ p.description or '' }}" data-price="{{ p.price or 0 }}" data-stock="{{ 0 if p.is_out_of_stock else 1 }}" data-bestseller="{{ 1 if p.is_bestseller else 0 }}">
   <div class="card-art">
     <img src="{{ url_for('static', filename='images/' + p.image_path) }}" alt="{{ p.name }} on model" loading="lazy" class="product-model-img">
     <span class="card-tag-badge">{{ cat_badges.get(p.category, 'Tailored') }}</span>
+    {% if p.is_bestseller %}
+      <span class="card-bestseller-badge">★ BESTSELLER</span>
+    {% endif %}
+    {% if p.is_out_of_stock %}
+      <span class="card-stock-badge">OUT OF STOCK</span>
+    {% endif %}
     <button class="wishlist-card-btn"
       data-id="{{ p.id }}"
       aria-label="Save to Wishlist"
@@ -207,6 +238,8 @@
       data-category="{{ p.category }}"
       data-price="{{ p.price or 0 }}"
       data-desc="{{ p.description or '' }}"
+      data-stock="{{ 0 if p.is_out_of_stock else 1 }}"
+      data-bestseller="{{ 1 if p.is_bestseller else 0 }}"
       data-image="{{ url_for('static', filename='images/' + p.image_path) }}"
       data-gallery='{{ p.gallery_images or "[]" }}'
       data-sizes="{{ size_list | join(',') }}">
@@ -220,19 +253,26 @@
     <p class="desc">{{ p.description or "" }}</p>
     <div class="card-price-row">
       <span class="card-price">{% if p.price %}&#8377; {{ "{:,.0f}".format(p.price) }}{% else %}Price on request{% endif %}</span>
-      <span class="card-fit-note">Bespoke Fit</span>
+      <span class="card-fit-note">{% if p.is_out_of_stock %}<strong style="color:#ef4444;">Sold Out</strong>{% elif p.is_bestseller %}<strong style="color:var(--brass-light);">Top Seller</strong>{% else %}Bespoke Fit{% endif %}</span>
     </div>
     <div class="size-select-row">
       <div class="size-label-wrap">
         <label for="size-{{ p.id }}">Size</label>
         <button class="card-size-guide-link" data-type="{{ 'accessory' if p.category == 'ties_bows' else ('lower' if p.category == 'pants' else 'upper') }}">Guide</button>
       </div>
-      <select id="size-{{ p.id }}">
+      <select id="size-{{ p.id }}" {% if p.is_out_of_stock %}disabled{% endif %}>
         {% for s in size_list %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
       </select>
     </div>
 
-    {% if p.price %}
+    {% if p.is_out_of_stock %}
+    <div class="card-actions">
+      <button class="btn btn-sold-out" disabled style="width:100%; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; font-size:12.5px; font-weight:700; cursor:not-allowed; padding:11px 12px; border-radius:2px; opacity:0.85;">
+        ✕ Currently Out of Stock
+      </button>
+    </div>
+    <a href="#" class="wa-quick-link order-btn" data-name="{{ p.name }}" data-category="{{ p.category }}" data-select="size-{{ p.id }}" style="color:#dfc691;">Notify When Available on WhatsApp</a>
+    {% elif p.price %}
     <div class="card-actions">
       <button class="add-cart-btn"
         data-id="{{ p.id }}" data-name="{{ p.name }}" data-category="{{ p.category }}"
@@ -324,6 +364,7 @@
               <option>Formal Shirt</option>
               <option>Formal Pants</option>
               <option>Wedding Sherwani</option>
+              <option>Ties &amp; Bow Ties</option>
             </select>
           </div>
           <div class="field">
@@ -368,8 +409,8 @@
       </div>
 
       <div class="contact-block">
-        <h4>Proprietor</h4>
-        <p>{{ settings.owner_name }}</p>
+        <h4>Bespoke Atelier</h4>
+        <p>SIZZLING by KBA &middot; Master Tailors</p>
         <h4 style="margin-top:22px;">Hours</h4>
         <p>{{ settings.hours | safe }}</p>
       </div>
@@ -377,7 +418,7 @@
 
     <div class="footer-bottom">
       <span class="logo">SIZZLING <em>by KBA</em></span>
-      <span>&copy; <span id="year"></span> {{ settings.brand_name }}. All rights reserved. &middot; <a href="/admin" style="color:var(--brass); text-decoration:none; opacity:0.75; font-size:12px;">Admin Portal ↗</a></span>
+      <span>&copy; <span id="year"></span> {{ settings.brand_name }}. All rights reserved. &middot; <a href="/login?tab=admin" style="color:var(--brass-light); text-decoration:underline; font-weight:600; font-size:12.5px;">🗄️ Admin Database Portal ↗</a></span>
     </div>
   </div>
 </footer>
@@ -397,8 +438,35 @@
     <div class="cart-drawer-empty">Your cart is empty.</div>
   </div>
   <div class="cart-drawer-foot" id="cartFoot" style="display:none;">
-    <div class="cart-subtotal-row"><span>Subtotal</span><span id="cartSubtotal">₹0</span></div>
-    <a href="/checkout" class="btn btn-brass" style="width:100%;">Proceed to Checkout</a>
+    <!-- COUPON SECTION -->
+    <div class="cart-coupon-wrap" id="cartCouponWrap" style="margin-bottom:14px; background:#121622; border:1px solid #232b3b; border-radius:4px; padding:10px 12px;">
+      <div class="coupon-input-row" id="couponInputRow" style="display:flex; gap:8px;">
+        <input type="text" id="couponInput" placeholder="Coupon Code (e.g. KBA200)" maxlength="16" style="flex:1; background:#080b10; border:1px solid #283347; color:#f3efe6; padding:8px 10px; font-family:var(--mono); font-size:12px; text-transform:uppercase; border-radius:2px;">
+        <button type="button" class="btn btn-outline" id="couponApplyBtn" style="padding:8px 12px; font-size:11.5px; border-color:var(--brass); color:var(--brass-light);">Apply</button>
+      </div>
+      <div class="coupon-applied-tag" id="couponAppliedTag" style="display:none; align-items:center; justify-content:space-between; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.3); border-radius:3px; padding:6px 10px; font-size:12px; color:#86efac; font-weight:600;">
+        <span>🏷️ <strong id="appliedCouponCode">KBA200</strong> applied (-₹200)</span>
+        <button type="button" class="remove-coupon-btn" id="removeCouponBtn" style="background:none; border:none; color:#fca5a5; cursor:pointer; font-size:14px; padding:0 4px;" title="Remove coupon">&times;</button>
+      </div>
+      <div class="coupon-status" id="couponStatus" style="font-size:11.5px; margin-top:5px; display:none;"></div>
+    </div>
+
+    <div class="cart-subtotal-row" style="display:flex; justify-content:space-between; font-size:14.5px; margin-bottom:6px; opacity:0.85;">
+      <span>Subtotal</span>
+      <span id="cartSubtotal">₹0</span>
+    </div>
+
+    <div class="cart-discount-row" id="cartDiscountRow" style="display:none; justify-content:space-between; font-size:14px; font-weight:600; color:#22c55e; margin-bottom:8px;">
+      <span>Coupon Discount (<span id="cartDiscountLabel">KBA200</span>)</span>
+      <span id="cartDiscountAmount">-₹200</span>
+    </div>
+
+    <div class="cart-total-row" style="display:flex; justify-content:space-between; font-size:17px; font-weight:700; margin-bottom:14px; border-top:1px dashed #232b3b; padding-top:10px; color:var(--text-light);">
+      <span>Total</span>
+      <span id="cartFinalTotal" style="color:var(--brass-light); font-family:var(--serif); font-size:20px;">₹0</span>
+    </div>
+
+    <a href="/checkout" class="btn btn-brass" style="width:100%; padding:13px; font-size:14px;">Proceed to Checkout →</a>
   </div>
 </div>
 

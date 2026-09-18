@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pay for Order #{{ order.id }} — {{ settings.brand_name }}</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon_32.png') }}">
+<link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='images/favicon.png') }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -309,9 +312,9 @@
     </div>
 
     <div class="rzp-tabs">
-      <button type="button" class="rzp-tab-btn active" onclick="switchRzpTab('upi')">📱 UPI</button>
-      <button type="button" class="rzp-tab-btn" onclick="switchRzpTab('card')">💳 Card</button>
-      <button type="button" class="rzp-tab-btn" onclick="switchRzpTab('netbanking')">🏦 NetBanking</button>
+      <button type="button" class="rzp-tab-btn active" onclick="switchRzpTab('upi', event)">📱 UPI</button>
+      <button type="button" class="rzp-tab-btn" onclick="switchRzpTab('card', event)">💳 Card</button>
+      <button type="button" class="rzp-tab-btn" onclick="switchRzpTab('netbanking', event)">🏦 NetBanking</button>
     </div>
 
     <!-- Tab 1: UPI -->
@@ -533,12 +536,16 @@
       }
     };
 
-    window.switchRzpTab = function(tabName) {
+    window.switchRzpTab = function(tabName, evt) {
       document.querySelectorAll(".rzp-tab-btn").forEach(function(b) { b.classList.remove("active"); });
       document.querySelectorAll(".rzp-tab-pane").forEach(function(p) { p.classList.remove("active"); });
 
-      const btn = event.target;
-      if (btn) btn.classList.add("active");
+      const e = evt || window.event;
+      if (e && e.currentTarget) {
+        e.currentTarget.classList.add("active");
+      } else if (e && e.target) {
+        e.target.classList.add("active");
+      }
       const pane = document.getElementById("rzpTab-" + tabName);
       if (pane) pane.classList.add("active");
     };
@@ -590,7 +597,7 @@
             localStorage.removeItem("sizzling_cart");
             window.dispatchEvent(new Event("cartUpdated"));
           } catch(e) {}
-          window.location.href = res.redirect || ("/order/" + ORDER_ID + "/confirmation?verified=1");
+          window.location.href = res.redirect || ("/order/" + ORDER_ID + "/confirmation?verified=1&auto_wa=1");
         } else {
           alert((res && res.error) ? res.error : "Payment verification failed.");
           const submitBtns = document.querySelectorAll(".rzp-pay-submit-btn");
@@ -598,7 +605,7 @@
         }
       })
       .catch(function() {
-        window.location.href = "/order/" + ORDER_ID + "/confirmation?verified=1";
+        window.location.href = "/order/" + ORDER_ID + "/confirmation?verified=1&auto_wa=1";
       });
     }
 

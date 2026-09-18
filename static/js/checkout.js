@@ -1,4 +1,5 @@
 const CART_KEY = "sizzling_cart";
+const COUPON_KEY = "sizzling_coupon";
 
 function getCart(){
   try {
@@ -13,6 +14,29 @@ function cartTotal(cart){
   return cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 }
 
+function getAppliedCoupon(){
+  try {
+    return localStorage.getItem(COUPON_KEY) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setAppliedCoupon(code){
+  try {
+    if (code) localStorage.setItem(COUPON_KEY, code.toUpperCase());
+    else localStorage.removeItem(COUPON_KEY);
+  } catch (e) {}
+}
+
+function calculateDiscount(subtotal){
+  const code = getAppliedCoupon();
+  if (code === "KBA200" && subtotal > 0) {
+    return Math.min(200, subtotal);
+  }
+  return 0;
+}
+
 function renderSummary(){
   const container = document.getElementById("checkoutSummary");
   const cart = getCart();
@@ -22,9 +46,15 @@ function renderSummary(){
       <p style="text-align:center; padding:20px 0;">
         Your cart is empty. <a href="/" onclick="window.location.href='/'; return true;" style="color:var(--brass); text-decoration:underline;">Go back and add something you like →</a>
       </p>`;
-    document.getElementById("checkoutSubmitBtn").disabled = true;
+    const btn = document.getElementById("checkoutSubmitBtn");
+    if (btn) btn.disabled = true;
     return;
   }
+
+  const subtotal = cartTotal(cart);
+  const appliedCode = getAppliedCoupon();
+  const discount = calculateDiscount(subtotal);
+  const finalTotal = Math.max(0, subtotal - discount);
 
   const lines = cart.map(item => `
     <div class="checkout-line">
@@ -33,12 +63,74 @@ function renderSummary(){
     </div>
   `).join("");
 
-  container.innerHTML = lines + `
-    <div class="checkout-line checkout-total-line">
-      <span>Total</span>
-      <span>₹${cartTotal(cart).toFixed(0)}</span>
+  let couponHtml = "";
+  if (appliedCode && discount > 0) {
+    couponHtml = `
+      <div class="checkout-line" style="color:#22c55e; font-weight:600;">
+        <span>Coupon Discount (${appliedCode})</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>-₹${discount.toFixed(0)}</span>
+          <button type="button" id="removeCheckoutCouponBtn" style="background:none; border:none; color:#fca5a5; font-size:11.5px; text-decoration:underline; cursor:pointer;" title="Remove coupon">Remove</button>
+        </div>
+      </div>
+    `;
+  } else {
+    couponHtml = `
+      <div style="padding:12px 0; border-bottom:1px solid #232b3b;">
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="checkoutCouponInput" placeholder="Coupon Code (e.g. KBA200)" maxlength="16" style="flex:1; background:#080b10; border:1px solid #283347; color:#f3efe6; padding:8px 12px; font-family:var(--mono); font-size:12.5px; text-transform:uppercase; border-radius:2px;">
+          <button type="button" id="applyCheckoutCouponBtn" class="btn btn-outline" style="padding:8px 14px; font-size:12px;">Apply</button>
+        </div>
+        <div id="checkoutCouponMsg" style="font-size:11.5px; margin-top:5px; display:none;"></div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    ${lines}
+    <div class="checkout-line" style="opacity:0.8; font-size:14px;">
+      <span>Subtotal</span>
+      <span>₹${subtotal.toFixed(0)}</span>
+    </div>
+    ${couponHtml}
+    <div class="checkout-line checkout-total-line" style="font-size:18px; font-weight:700; color:var(--brass-light); padding-top:12px;">
+      <span>Total to Pay</span>
+      <span>₹${finalTotal.toFixed(0)}</span>
     </div>
   `;
+
+  // Bind coupon actions in summary
+  const applyBtn = document.getElementById("applyCheckoutCouponBtn");
+  const inputEl = document.getElementById("checkoutCouponInput");
+  const removeBtn = document.getElementById("removeCheckoutCouponBtn");
+  const msgEl = document.getElementById("checkoutCouponMsg");
+
+  if (applyBtn && inputEl) {
+    applyBtn.onclick = () => {
+      const code = inputEl.value.trim().toUpperCase();
+      if (!code) return;
+      if (code === "KBA200") {
+        setAppliedCoupon("KBA200");
+        renderSummary();
+      } else {
+        if (msgEl) {
+          msgEl.style.display = "block";
+          msgEl.style.color = "#ef4444";
+          msgEl.textContent = "Invalid coupon code. Try KBA200.";
+        }
+      }
+    };
+    inputEl.onkeyup = (e) => {
+      if (e.key === "Enter") applyBtn.click();
+    };
+  }
+
+  if (removeBtn) {
+    removeBtn.onclick = () => {
+      setAppliedCoupon(null);
+      renderSummary();
+    };
+  }
 }
 
 renderSummary();
@@ -81,7 +173,7 @@ renderSummary();
   document.getElementById("caddress")?.addEventListener("input", saveDetails);
 })();
 
-document.getElementById("checkoutForm").addEventListener("submit", (e) => {
+document.getElementById("checkoutForm")?.addEventListener("submit", (e) => {
   e.preventDefault();
 
   const cart = getCart();
@@ -108,6 +200,8 @@ document.getElementById("checkoutForm").addEventListener("submit", (e) => {
   btn.disabled = true;
   btn.textContent = "Setting up payment...";
 
+  const appliedCode = getAppliedCoupon();
+
   fetch("/api/create_order", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -119,7 +213,8 @@ document.getElementById("checkoutForm").addEventListener("submit", (e) => {
         size: item.size,
         qty: item.qty
       })),
-      customer: { name, phone, address, notes }
+      customer: { name, phone, address, notes },
+      coupon_code: appliedCode
     })
   })
   .then(r => r.json())
@@ -131,9 +226,10 @@ document.getElementById("checkoutForm").addEventListener("submit", (e) => {
       btn.textContent = "Continue to Payment & Verification →";
       return;
     }
-    // Clear cart immediately so consecutive orders can be placed without old cart collision
+    // Clear cart and coupon immediately upon successful order creation
     try {
       localStorage.removeItem(CART_KEY);
+      localStorage.removeItem(COUPON_KEY);
       window.dispatchEvent(new Event("cartUpdated"));
     } catch (e) {}
 

@@ -28,18 +28,57 @@
   <div class="panel">
     {% if products %}
     <table>
-      <thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Image</th>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Highlight</th>
+          <th>Visibility</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
       <tbody>
         {% for p in products %}
         <tr>
           <td data-label="Image"><img class="thumb" src="{{ url_for('static', filename='images/' + p.image_path) }}" alt=""></td>
-          <td data-label="Name">{{ p.name }}</td>
+          <td data-label="Name" style="font-weight:600;">{{ p.name }}</td>
           <td data-label="Category">{{ category_labels.get(p.category, p.category) }}</td>
           <td data-label="Price">{% if p.price %}₹{{ "%.0f"|format(p.price) }}{% else %}—{% endif %}</td>
-          <td data-label="Status">
+          <td data-label="Stock">
+            {% if p.is_out_of_stock %}
+              <span class="badge" style="background:rgba(239,68,68,0.18); color:#ef4444; border:1px solid rgba(239,68,68,0.4); font-weight:700;">Out of Stock</span>
+            {% else %}
+              <span class="badge" style="background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid rgba(34,197,94,0.3); font-weight:600;">✓ In Stock</span>
+            {% endif %}
+          </td>
+          <td data-label="Highlight">
+            {% if p.is_bestseller %}
+              <span class="badge" style="background:rgba(197,160,89,0.22); color:#dfc691; border:1px solid rgba(197,160,89,0.5); font-weight:700;">★ Bestseller</span>
+            {% else %}
+              <span style="color:#64748b; font-size:12px;">Standard</span>
+            {% endif %}
+          </td>
+          <td data-label="Visibility">
             {% if p.active %}<span class="badge active">Live</span>{% else %}<span class="badge inactive">Hidden</span>{% endif %}
           </td>
-          <td data-label="Actions">
+          <td data-label="Actions" style="white-space:nowrap;">
+            <!-- Quick Stock Toggle -->
+            <form method="POST" action="{{ url_for('admin_product_toggle_stock', product_id=p.id) }}" style="display:inline;">
+              <button type="submit" class="btn btn-sm" title="Toggle Stock" style="font-size:11px; padding:4px 8px; {% if p.is_out_of_stock %}border-color:#22c55e; color:#22c55e;{% else %}border-color:#ef4444; color:#ef4444;{% endif %}">
+                {% if p.is_out_of_stock %}Mark In-Stock{% else %}Mark Sold-Out{% endif %}
+              </button>
+            </form>
+
+            <!-- Quick Bestseller Toggle -->
+            <form method="POST" action="{{ url_for('admin_product_toggle_bestseller', product_id=p.id) }}" style="display:inline;">
+              <button type="submit" class="btn btn-sm" title="Toggle Bestseller" style="font-size:11px; padding:4px 8px; {% if p.is_bestseller %}border-color:#c5a059; color:#dfc691; background:rgba(197,160,89,0.15);{% endif %}">
+                {% if p.is_bestseller %}★ Bestseller{% else %}☆ Make Bestseller{% endif %}
+              </button>
+            </form>
+
             <a class="btn btn-sm" href="{{ url_for('admin_product_edit', product_id=p.id) }}">Edit</a>
             <form method="POST" action="{{ url_for('admin_product_delete', product_id=p.id) }}" style="display:inline;" data-confirm-delete="{{ p.name }}">
               <button type="submit" class="btn btn-sm btn-danger">Delete</button>

@@ -41,7 +41,36 @@ function saveCart(cart){
   updateCartBadge();
 }
 
-function addToCart({ id, name, category, price, image, size }){
+const COUPON_KEY = "sizzling_coupon";
+
+function getAppliedCoupon(){
+  try {
+    return localStorage.getItem(COUPON_KEY) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setAppliedCoupon(code){
+  try {
+    if (code) localStorage.setItem(COUPON_KEY, code.toUpperCase());
+    else localStorage.removeItem(COUPON_KEY);
+  } catch (e) {}
+}
+
+function calculateDiscount(subtotal){
+  const code = getAppliedCoupon();
+  if (code === "KBA200" && subtotal > 0) {
+    return Math.min(200, subtotal);
+  }
+  return 0;
+}
+
+function addToCart({ id, name, category, price, image, size, stock }){
+  if (stock === 0 || stock === "0") {
+    showToast(`"${name}" is currently out of stock.`, "🚫");
+    return getCart();
+  }
   const cart = getCart();
   const existing = cart.find(item => item.id === id && item.size === size);
   if (existing) {
@@ -122,9 +151,81 @@ function renderCartDrawer(){
     </div>
   `).join("");
 
+  const subtotal = cartTotal(cart);
+  const discount = calculateDiscount(subtotal);
+  const finalTotal = Math.max(0, subtotal - discount);
+
   if (foot) {
     foot.style.display = "block";
-    document.getElementById("cartSubtotal").textContent = `₹${cartTotal(cart).toLocaleString('en-IN')}`;
+    const subtotalEl = document.getElementById("cartSubtotal");
+    const discountRow = document.getElementById("cartDiscountRow");
+    const discountAmtEl = document.getElementById("cartDiscountAmount");
+    const discountLabelEl = document.getElementById("cartDiscountLabel");
+    const finalTotalEl = document.getElementById("cartFinalTotal");
+    const couponInputRow = document.getElementById("couponInputRow");
+    const couponAppliedTag = document.getElementById("couponAppliedTag");
+    const appliedCodeEl = document.getElementById("appliedCouponCode");
+
+    if (subtotalEl) subtotalEl.textContent = `₹${subtotal.toLocaleString('en-IN')}`;
+
+    const appliedCode = getAppliedCoupon();
+    if (appliedCode && discount > 0) {
+      if (discountRow) discountRow.style.display = "flex";
+      if (discountAmtEl) discountAmtEl.textContent = `-₹${discount.toLocaleString('en-IN')}`;
+      if (discountLabelEl) discountLabelEl.textContent = appliedCode;
+      if (couponInputRow) couponInputRow.style.display = "none";
+      if (couponAppliedTag) couponAppliedTag.style.display = "flex";
+      if (appliedCodeEl) appliedCodeEl.textContent = appliedCode;
+    } else {
+      if (discountRow) discountRow.style.display = "none";
+      if (couponInputRow) couponInputRow.style.display = "flex";
+      if (couponAppliedTag) couponAppliedTag.style.display = "none";
+    }
+
+    if (finalTotalEl) finalTotalEl.textContent = `₹${finalTotal.toLocaleString('en-IN')}`;
+  }
+
+  // Bind coupon actions
+  const applyBtn = document.getElementById("couponApplyBtn");
+  const couponInput = document.getElementById("couponInput");
+  const removeBtn = document.getElementById("removeCouponBtn");
+  const couponStatus = document.getElementById("couponStatus");
+
+  if (applyBtn && couponInput) {
+    applyBtn.onclick = () => {
+      const code = couponInput.value.trim().toUpperCase();
+      if (!code) return;
+      if (code === "KBA200") {
+        setAppliedCoupon("KBA200");
+        if (couponStatus) {
+          couponStatus.style.display = "block";
+          couponStatus.style.color = "#22c55e";
+          couponStatus.textContent = "✓ Coupon KBA200 applied: ₹200 off!";
+        }
+        showToast("Coupon KBA200 applied: ₹200 off!", "🏷️");
+        renderCartDrawer();
+      } else {
+        if (couponStatus) {
+          couponStatus.style.display = "block";
+          couponStatus.style.color = "#ef4444";
+          couponStatus.textContent = "Invalid coupon code. Try KBA200.";
+        }
+      }
+    };
+    couponInput.onkeyup = (e) => {
+      if (e.key === "Enter") applyBtn.click();
+    };
+  }
+
+  if (removeBtn) {
+    removeBtn.onclick = () => {
+      setAppliedCoupon(null);
+      if (couponStatus) {
+        couponStatus.style.display = "none";
+      }
+      showToast("Coupon removed", "✕");
+      renderCartDrawer();
+    };
   }
 
   container.querySelectorAll("[data-action]").forEach(btn => {
@@ -166,6 +267,70 @@ function openQuickView(prodData) {
   document.getElementById("qvTitle").textContent = prodData.name;
   document.getElementById("qvDesc").textContent = prodData.desc || "Bespoke Karol Bagh craftsmanship.";
   document.getElementById("qvPrice").textContent = prodData.price > 0 ? `₹${parseFloat(prodData.price).toLocaleString('en-IN')}` : "Price on Request";
+
+  // Stock & Bestseller badge & buttons state
+  const tagChip = document.getElementById("qvTagChip");
+  const addCartBtn = document.getElementById("qvAddCartBtn");
+  const buyNowBtn = document.getElementById("qvBuyNowBtn");
+
+  if (prodData.stock === 0 || prodData.stock === "0") {
+    if (tagChip) {
+      tagChip.textContent = "OUT OF STOCK";
+      tagChip.style.borderColor = "#ef4444";
+      tagChip.style.color = "#fca5a5";
+      tagChip.style.background = "rgba(239,68,68,0.18)";
+    }
+    if (addCartBtn) {
+      addCartBtn.disabled = true;
+      addCartBtn.textContent = "Currently Sold Out";
+      addCartBtn.style.opacity = "0.5";
+      addCartBtn.style.cursor = "not-allowed";
+    }
+    if (buyNowBtn) {
+      buyNowBtn.disabled = true;
+      buyNowBtn.textContent = "Sold Out";
+      buyNowBtn.style.opacity = "0.5";
+      buyNowBtn.style.cursor = "not-allowed";
+    }
+  } else if (prodData.bestseller === 1 || prodData.bestseller === "1") {
+    if (tagChip) {
+      tagChip.textContent = "★ BESTSELLER";
+      tagChip.style.borderColor = "var(--brass)";
+      tagChip.style.color = "var(--brass-light)";
+      tagChip.style.background = "rgba(197,160,89,0.22)";
+    }
+    if (addCartBtn) {
+      addCartBtn.disabled = false;
+      addCartBtn.textContent = "Add to Cart";
+      addCartBtn.style.opacity = "1";
+      addCartBtn.style.cursor = "pointer";
+    }
+    if (buyNowBtn) {
+      buyNowBtn.disabled = false;
+      buyNowBtn.textContent = "⚡ Buy Now";
+      buyNowBtn.style.opacity = "1";
+      buyNowBtn.style.cursor = "pointer";
+    }
+  } else {
+    if (tagChip) {
+      tagChip.textContent = "Bespoke Cut";
+      tagChip.style.borderColor = "var(--brass)";
+      tagChip.style.color = "var(--brass)";
+      tagChip.style.background = "transparent";
+    }
+    if (addCartBtn) {
+      addCartBtn.disabled = false;
+      addCartBtn.textContent = "Add to Cart";
+      addCartBtn.style.opacity = "1";
+      addCartBtn.style.cursor = "pointer";
+    }
+    if (buyNowBtn) {
+      buyNowBtn.disabled = false;
+      buyNowBtn.textContent = "⚡ Buy Now";
+      buyNowBtn.style.opacity = "1";
+      buyNowBtn.style.cursor = "pointer";
+    }
+  }
 
   // Multi-image gallery thumbnails (supports >3 images per product)
   const thumbsContainer = document.getElementById("qvThumbnails");
@@ -332,13 +497,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // ------------------------------------------------------------
   function readProductButton(btn){
     const selectEl = document.getElementById(btn.dataset.select);
+    const card = btn.closest(".card");
     return {
       id: parseInt(btn.dataset.id, 10),
       name: btn.dataset.name,
       category: btn.dataset.category,
       price: btn.dataset.price,
       image: btn.dataset.image,
-      size: selectEl ? selectEl.value : ""
+      size: selectEl ? selectEl.value : "",
+      stock: card ? (card.dataset.stock !== undefined ? card.dataset.stock : "1") : "1"
     };
   }
 
@@ -351,7 +518,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll(".buy-now-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      addToCart(readProductButton(btn));
+      const prod = readProductButton(btn);
+      if (prod.stock === "0" || prod.stock === 0) {
+        showToast(`"${prod.name}" is currently out of stock.`, "🚫");
+        return;
+      }
+      addToCart(prod);
       window.location.href = "/checkout";
     });
   });
@@ -374,7 +546,9 @@ document.addEventListener("DOMContentLoaded", () => {
         desc: btn.dataset.desc,
         image: btn.dataset.image,
         gallery: gallery,
-        sizes: btn.dataset.sizes
+        sizes: btn.dataset.sizes,
+        stock: btn.dataset.stock,
+        bestseller: btn.dataset.bestseller
       });
     });
   });
@@ -395,13 +569,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("qvAddCartBtn")?.addEventListener("click", () => {
     if (!currentQuickViewProduct) return;
+    if (currentQuickViewProduct.stock === 0 || currentQuickViewProduct.stock === "0") {
+      showToast(`"${currentQuickViewProduct.name}" is currently out of stock.`, "🚫");
+      return;
+    }
     addToCart({
       id: currentQuickViewProduct.id,
       name: currentQuickViewProduct.name,
       category: currentQuickViewProduct.category,
       price: currentQuickViewProduct.price,
       image: currentQuickViewProduct.image,
-      size: currentQuickViewProduct.selectedSize
+      size: currentQuickViewProduct.selectedSize,
+      stock: currentQuickViewProduct.stock
     });
     closeQuickView();
     openCartDrawer();
@@ -409,13 +588,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("qvBuyNowBtn")?.addEventListener("click", () => {
     if (!currentQuickViewProduct) return;
+    if (currentQuickViewProduct.stock === 0 || currentQuickViewProduct.stock === "0") {
+      showToast(`"${currentQuickViewProduct.name}" is currently out of stock.`, "🚫");
+      return;
+    }
     addToCart({
       id: currentQuickViewProduct.id,
       name: currentQuickViewProduct.name,
       category: currentQuickViewProduct.category,
       price: currentQuickViewProduct.price,
       image: currentQuickViewProduct.image,
-      size: currentQuickViewProduct.selectedSize
+      size: currentQuickViewProduct.selectedSize,
+      stock: currentQuickViewProduct.stock
     });
     closeQuickView();
     window.location.href = "/checkout";
@@ -730,3 +914,53 @@ function toggleWishlist(productId, btnEl) {
     body: JSON.stringify({ product_id: productId })
   }).catch(() => {});
 }
+
+// ======================================================================
+// SCROLL REVEAL — Premium entrance animations (IntersectionObserver)
+// ======================================================================
+(function initScrollReveal() {
+  if (!("IntersectionObserver" in window)) return;
+
+  // Mark all product cards as hidden initially
+  document.querySelectorAll(".card").forEach(card => {
+    card.classList.add("reveal-hidden");
+  });
+
+  // Reveal cards as they enter viewport
+  const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.remove("reveal-hidden");
+        entry.target.classList.add("reveal-visible");
+        cardObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
+
+  document.querySelectorAll(".card").forEach(card => cardObserver.observe(card));
+
+  // Animate section headings as they enter
+  const headObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("cat-animate");
+        headObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.2 });
+
+  document.querySelectorAll(".cat-head").forEach(el => headObserver.observe(el));
+
+  // Header shrink effect on scroll
+  const header = document.querySelector("header");
+  if (header) {
+    window.addEventListener("scroll", () => {
+      if (window.scrollY > 60) {
+        header.classList.add("scrolled");
+      } else {
+        header.classList.remove("scrolled");
+      }
+    }, { passive: true });
+  }
+})();
+

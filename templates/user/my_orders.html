@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Orders — {{ settings.brand_name }}</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon_32.png') }}">
+<link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='images/favicon.png') }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -16,6 +19,9 @@
   <div class="wrap">
     <a href="/" onclick="window.location.href='/'; return true;" class="logo" style="font-size:20px; cursor:pointer; position:relative; z-index:1002;">SIZZLING <em>by KBA</em></a>
     <div style="display:flex; gap:12px; align-items:center;">
+      {% if session.get('is_admin') %}
+      <a href="/admin" class="btn btn-brass" style="padding:8px 14px; font-size:12.5px;">🗄️ Database Portal</a>
+      {% endif %}
       <a href="/" onclick="window.location.href='/'; return true;" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; position:relative; z-index:1002;">🏠 Back to Home</a>
       <a href="/account/wishlist" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px;">♡ Wishlist</a>
       <a href="/account/logout" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px;">Logout</a>
@@ -81,6 +87,11 @@
             <div style="font-family:var(--serif); font-size:24px; font-weight:700; color:var(--brass-light);">
               ₹{{ "%.0f"|format(order.total) }}
             </div>
+            {% if order.coupon_code or (order.discount_amount and order.discount_amount > 0) %}
+            <div style="font-size:11px; color:#4ade80; font-weight:600; font-family:var(--mono);">
+              ✓ Coupon {{ order.coupon_code or 'KBA200' }} (-₹{{ "%.0f"|format(order.discount_amount or 200) }})
+            </div>
+            {% endif %}
             <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px; flex-wrap:wrap;">
               {% if is_paid %}
               <span class="order-status-badge" style="background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid #22c55e;">

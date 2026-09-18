@@ -218,7 +218,7 @@
 <script>
   (function() {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('verified') === '1' && urlParams.get('auto_wa') === '1') {
+    if (urlParams.get('verified') === '1' || urlParams.get('auto_wa') === '1') {
       const waBtn = document.getElementById('sendWaOrderBtn');
       if (waBtn) {
         setTimeout(function() {

@@ -9,9 +9,10 @@ import urllib.parse
 from datetime import datetime, timedelta
 from functools import wraps
 
+import csv
 from flask import (
     Flask, render_template, request, jsonify, redirect, url_for,
-    session, flash, send_from_directory, abort
+    session, flash, send_from_directory, abort, Response
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -123,16 +124,23 @@ def init_db():
         price REAL,
         image_path TEXT,
         gallery_images TEXT,
+        is_out_of_stock INTEGER DEFAULT 0,
+        is_bestseller INTEGER DEFAULT 0,
         active INTEGER DEFAULT 1,
         sort_order INTEGER DEFAULT 0,
         created_at TEXT DEFAULT (datetime('now'))
     )
     """)
 
-    try:
-        cur.execute("ALTER TABLE products ADD COLUMN gallery_images TEXT")
-    except Exception:
-        pass
+    for col, col_def in [
+        ("gallery_images", "TEXT"),
+        ("is_out_of_stock", "INTEGER DEFAULT 0"),
+        ("is_bestseller", "INTEGER DEFAULT 0"),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE products ADD COLUMN {col} {col_def}")
+        except Exception:
+            pass
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS enquiries(
@@ -173,6 +181,9 @@ def init_db():
         address TEXT,
         notes TEXT,
         total REAL,
+        subtotal REAL,
+        discount_amount REAL DEFAULT 0.0,
+        coupon_code TEXT,
         status TEXT DEFAULT 'awaiting_payment_confirmation',
         payment_status TEXT DEFAULT 'unpaid',
         payment_ref TEXT,
@@ -186,6 +197,9 @@ def init_db():
     # Auto-migrate columns for existing databases
     for col, col_def in [
         ("customer_id", "INTEGER"),
+        ("subtotal", "REAL"),
+        ("discount_amount", "REAL DEFAULT 0.0"),
+        ("coupon_code", "TEXT"),
         ("payment_status", "TEXT DEFAULT 'unpaid'"),
         ("payment_verified_at", "TEXT"),
         ("admin_notes", "TEXT"),
@@ -249,8 +263,8 @@ def init_db():
     defaults = {
         "whatsapp_number": "919811551935",
         "shop_phone": "919811551935",
-        "brand_name": "SIZZLING by KBA Pvt Ltd",
-        "owner_name": "Vinod Kumar Nathoo",
+        "brand_name": "SIZZLING by KBA",
+        "owner_name": "SIZZLING Bespoke Atelier",
         "address": "Gali No. 5, Dev Nagar, Karol Bagh, New Delhi",
         "hours": "Open daily &middot; 11:00 AM &ndash; 8:30 PM<br>Closed Sundays",
         "admin_password_hash": generate_password_hash(DEFAULT_ADMIN_PASSWORD),
@@ -286,12 +300,12 @@ def init_db():
 def seed_ties_bows(cur):
     import json
     ties = [
-        ("Silk Jacquard Paisley Necktie", "Woven mulberry silk with intricate tonal paisley pattern and pure wool interlining.", 1499, "tie_jacquard_paisley.jpg"),
-        ("Midnight Velvet Black Bow Tie", "Pre-tied structured black velvet bow tie with adjustable neckband and brass hardware.", 1299, "bowtie_black_velvet.jpg"),
-        ("Emerald Forest Silk Satin Tie", "Lustrous emerald green silk satin tie with handcrafted bar tack and hand-rolled tip.", 1599, "tie_emerald_satin.jpg"),
-        ("Satin Silk Tuxedo Bow Tie & Pocket Square Set", "Pure silk satin evening bow tie with matching hand-hemmed pocket square for black-tie galas.", 1899, "bowtie_tuxedo_set.jpg"),
-        ("Royal Navy Knit Silk Tie", "Textured square-blade knit tie crafted in deep royal navy silk for sophisticated smart-casual styling.", 1399, "tie_navy_knit.jpg"),
-        ("Champagne Gold Wedding Bow Tie", "Luxurious champagne gold brocade silk bow tie woven for weddings and groom celebrations.", 1499, "bowtie_gold_brocade.jpg"),
+        ("SIZZLING Silk Jacquard Paisley Necktie", "Woven mulberry silk with intricate tonal paisley pattern and pure wool interlining. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1499, "tie_jacquard_paisley.jpg"),
+        ("SIZZLING Midnight Velvet Black Bow Tie", "Pre-tied structured black velvet bow tie with adjustable neckband and brass hardware. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1299, "bowtie_black_velvet.jpg"),
+        ("SIZZLING Emerald Forest Silk Satin Tie", "Lustrous emerald green silk satin tie with handcrafted bar tack and hand-rolled tip. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1599, "tie_emerald_satin.jpg"),
+        ("SIZZLING Satin Silk Tuxedo Bow Tie & Pocket Square Set", "Pure silk satin evening bow tie with matching hand-hemmed pocket square for black-tie galas. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1899, "bowtie_tuxedo_set.jpg"),
+        ("SIZZLING Royal Navy Knit Silk Tie", "Textured square-blade knit tie crafted in deep royal navy silk for sophisticated smart-casual styling. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1399, "tie_navy_knit.jpg"),
+        ("SIZZLING Champagne Gold Wedding Bow Tie", "Luxurious champagne gold brocade silk bow tie woven for weddings and groom celebrations. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1499, "bowtie_gold_brocade.jpg"),
     ]
     for i, (name, desc, price, img_file) in enumerate(ties):
         prod_image = f"products/{img_file}"
@@ -306,60 +320,60 @@ def seed_products(cur):
     import json
     seed = {
         "suits": [
-            ("Midnight Two-Piece Suit", "Deep navy, notch lapel, a first-suit that also works for the tenth interview.", 8999, "suit_midnight_navy.jpg"),
-            ("Charcoal Windowpane Suit", "Subtle check, cut for the boardroom, built to travel well between meetings.", 9999, "suit_charcoal_windowpane.jpg"),
-            ("Ivory Tuxedo Suit", "Satin lapel, evening-only — for the dinner where the invite says black tie.", 12999, "suit_ivory_tuxedo.jpg"),
-            ("Royal Prince Check Suit", "Three-piece slate blue windowpane check suit with tailored waistcoat and matching trousers.", 10999, "suit_prince_check.jpg"),
-            ("Classic Wall Street Navy Suit", "Sharp dark navy worsted wool two-piece suit with striped silk tie and French cuffs.", 11999, "suit_black_tie.jpg"),
-            ("Mayfair Executive Navy Suit", "Sharp single-breasted two-piece suit in fine worsted wool with structured shoulders and silk-lined interior.", 9499, "suit_olive_tweed.jpg"),
+            ("SIZZLING Midnight Two-Piece Suit", "Deep navy, notch lapel, a first-suit that also works for the tenth interview. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 8999, "suit_midnight_navy.jpg"),
+            ("SIZZLING Charcoal Windowpane Suit", "Subtle check, cut for the boardroom, built to travel well between meetings. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 9999, "suit_charcoal_windowpane.jpg"),
+            ("SIZZLING Ivory Tuxedo Suit", "Satin lapel, evening-only — for the dinner where the invite says black tie. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 12999, "suit_ivory_tuxedo.jpg"),
+            ("SIZZLING Royal Prince Check Suit", "Three-piece slate blue windowpane check suit with tailored waistcoat and matching trousers. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 10999, "suit_prince_check.jpg"),
+            ("SIZZLING Classic Wall Street Navy Suit", "Sharp dark navy worsted wool two-piece suit with striped silk tie and French cuffs. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 11999, "suit_black_tie.jpg"),
+            ("SIZZLING Mayfair Executive Navy Suit", "Sharp single-breasted two-piece suit in fine worsted wool with structured shoulders and silk-lined interior. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 9499, "suit_olive_tweed.jpg"),
         ],
         "blazers": [
-            ("Bottle Green Velvet Blazer", "Textured velvet, single button — the piece that carries a festive evening.", 5499, "blazer_bottle_green.jpg"),
-            ("Navy Textured Blazer", "Everyday blazer, pairs cleanly with formal or semi-formal trousers.", 4999, "blazer_navy_textured.jpg"),
-            ("Rust Tweed Blazer", "Heavier weave for cooler months, worn open over a plain shirt.", 5999, "blazer_rust_tweed.jpg"),
-            ("Dove Grey Flannel Blazer", "Contemporary unstructured blazer in soft dove grey wool flannel with notch lapels.", 5799, "blazer_royal_wine.jpg"),
-            ("Herringbone Camel Wool Blazer", "Warm camel tone in classic herringbone weave with natural horn buttons.", 5299, "blazer_camel_herringbone.jpg"),
-            ("Cobalt Blue Tailored Blazer", "Vibrant cobalt blue tailored single-breasted blazer featuring notch lapels and silk pocket square.", 6499, "blazer_midnight_jacquard.jpg"),
+            ("SIZZLING Bottle Green Velvet Blazer", "Textured velvet, single button — the piece that carries a festive evening. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 5499, "blazer_bottle_green.jpg"),
+            ("SIZZLING Navy Textured Blazer", "Everyday blazer, pairs cleanly with formal or semi-formal trousers. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 4999, "blazer_navy_textured.jpg"),
+            ("SIZZLING Rust Tweed Blazer", "Heavier weave for cooler months, worn open over a plain shirt. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 5999, "blazer_rust_tweed.jpg"),
+            ("SIZZLING Dove Grey Flannel Blazer", "Contemporary unstructured blazer in soft dove grey wool flannel with notch lapels. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 5799, "blazer_royal_wine.jpg"),
+            ("SIZZLING Herringbone Camel Wool Blazer", "Warm camel tone in classic herringbone weave with natural horn buttons. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 5299, "blazer_camel_herringbone.jpg"),
+            ("SIZZLING Cobalt Blue Tailored Blazer", "Vibrant cobalt blue tailored single-breasted blazer featuring notch lapels and silk pocket square. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 6499, "blazer_midnight_jacquard.jpg"),
         ],
         "jackets": [
-            ("Quilted Bomber Jacket", "Structured quilting, zip front — smart enough to wear over a shirt.", 6499, "jacket_quilted_bomber.jpg"),
-            ("Wool Overcoat", "Full-length layer for Delhi winters, worn straight over a suit.", 8999, "jacket_wool_overcoat.jpg"),
-            ("Textured Field Jacket", "Four-pocket utility cut, sits between casual and smart-casual.", 5999, "jacket_textured_field.jpg"),
-            ("Cognac Leather Moto Jacket", "Supple cognac tan leather moto jacket with asymmetrical zip closure and snap lapels.", 6999, "jacket_suede_harrington.jpg"),
-            ("Double-Breasted Trench Overcoat", "Classic double-breasted trench overcoat with storm flap, horn buttons, and shoulder epaulets.", 9499, "jacket_trench_overcoat.jpg"),
-            ("Minimalist Leather Biker Jacket", "Supple full-grain calfskin moto leather jacket with asymmetric silver zips and tailored fit.", 7999, "jacket_leather_biker.jpg"),
+            ("SIZZLING Quilted Bomber Jacket", "Structured quilting, zip front — smart enough to wear over a shirt. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 6499, "jacket_quilted_bomber.jpg"),
+            ("SIZZLING Wool Overcoat", "Full-length layer for Delhi winters, worn straight over a suit. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 8999, "jacket_wool_overcoat.jpg"),
+            ("SIZZLING Textured Field Jacket", "Four-pocket utility cut, sits between casual and smart-casual. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 5999, "jacket_textured_field.jpg"),
+            ("SIZZLING Cognac Leather Moto Jacket", "Supple cognac tan leather moto jacket with asymmetrical zip closure and snap lapels. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 6999, "jacket_suede_harrington.jpg"),
+            ("SIZZLING Double-Breasted Trench Overcoat", "Classic double-breasted trench overcoat with storm flap, horn buttons, and shoulder epaulets. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 9499, "jacket_trench_overcoat.jpg"),
+            ("SIZZLING Minimalist Leather Biker Jacket", "Supple full-grain calfskin moto leather jacket with asymmetric silver zips and tailored fit. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 7999, "jacket_leather_biker.jpg"),
         ],
         "shirts": [
-            ("Crisp White Dress Shirt", "The one every formal wardrobe is built around. Spread collar and French cuffs.", 1299, "shirt_crisp_white.jpg"),
-            ("Sky Blue Formal Shirt", "Slightly softer than white, easy to wear with or without a tie.", 1199, "shirt_sky_blue.jpg"),
-            ("Fine Striped Business Shirt", "Subtle stripe with contrast white spread collar and double French cuffs.", 1399, "shirt_fine_striped.jpg"),
-            ("Royal Oxford Pink Shirt", "Pinpoint Oxford cotton in subtle blush rose with spread collar and tailored fit.", 1349, "shirt_royal_oxford_pink.jpg"),
-            ("Midnight Charcoal Formal Shirt", "Deep midnight charcoal poplin dress shirt with crisp spread collar and tailored silhouette.", 1499, "shirt_midnight_charcoal.jpg"),
-            ("French Blue Cutaway Shirt", "Pure Egyptian cotton in royal French blue with spread collar and tailored fit.", 1599, "shirt_french_cuff_blue.jpg"),
+            ("SIZZLING Crisp White Dress Shirt", "The one every formal wardrobe is built around. Spread collar and French cuffs. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1299, "shirt_crisp_white.jpg"),
+            ("SIZZLING Sky Blue Formal Shirt", "Slightly softer than white, easy to wear with or without a tie. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1199, "shirt_sky_blue.jpg"),
+            ("SIZZLING Fine Striped Business Shirt", "Subtle stripe with contrast white spread collar and double French cuffs. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1399, "shirt_fine_striped.jpg"),
+            ("SIZZLING Royal Oxford Pink Shirt", "Pinpoint Oxford cotton in subtle blush rose with spread collar and tailored fit. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1349, "shirt_royal_oxford_pink.jpg"),
+            ("SIZZLING Midnight Charcoal Formal Shirt", "Deep midnight charcoal poplin dress shirt with crisp spread collar and tailored silhouette. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1499, "shirt_midnight_charcoal.jpg"),
+            ("SIZZLING French Blue Cutaway Shirt", "Pure Egyptian cotton in royal French blue with spread collar and tailored fit. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1599, "shirt_french_cuff_blue.jpg"),
         ],
         "pants": [
-            ("Classic Charcoal Trouser", "Flat-front, straight leg — the trouser that goes under any jacket.", 1799, "pants_classic_charcoal.jpg"),
-            ("Slim-Fit Navy Trouser", "Tapered through the leg, worn on its own or with a blazer.", 1699, "pants_slim_navy.jpg"),
-            ("Pleated Grey Trouser", "Traditional pleat for a roomier fit, favoured for longer days.", 1899, "pants_pleated_grey.jpg"),
-            ("Tailored Khaki Chino Trouser", "Versatile tailored khaki trousers cut from breathable cotton-twill for modern smart-casual styling.", 1999, "pants_khaki_gurkha.jpg"),
-            ("Jet Black Tailored Dress Trouser", "Straight formal cut tailored in rich jet-black fabric, ideal for evening affairs and black-tie events.", 1899, "pants_jet_black_tux.jpg"),
-            ("Tailored Charcoal Wool Trouser", "Mid-rise tapered formal trouser in breathable wool blend with crisp crease and turn-up cuffs.", 1799, "pants_olive_wool.jpg"),
+            ("SIZZLING Classic Charcoal Trouser", "Flat-front, straight leg — the trouser that goes under any jacket. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1799, "pants_classic_charcoal.jpg"),
+            ("SIZZLING Slim-Fit Navy Trouser", "Tapered through the leg, worn on its own or with a blazer. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1699, "pants_slim_navy.jpg"),
+            ("SIZZLING Pleated Grey Trouser", "Traditional pleat for a roomier fit, favoured for longer days. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1899, "pants_pleated_grey.jpg"),
+            ("SIZZLING Tailored Khaki Chino Trouser", "Versatile tailored khaki trousers cut from breathable cotton-twill for modern smart-casual styling. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1999, "pants_khaki_gurkha.jpg"),
+            ("SIZZLING Jet Black Tailored Dress Trouser", "Straight formal cut tailored in rich jet-black fabric, ideal for evening affairs and black-tie events. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1899, "pants_jet_black_tux.jpg"),
+            ("SIZZLING Tailored Charcoal Wool Trouser", "Mid-rise tapered formal trouser in breathable wool blend with crisp crease and turn-up cuffs. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1799, "pants_olive_wool.jpg"),
         ],
         "sherwanis": [
-            ("Regal Charcoal Brocade Sherwani", "Intricate floral brocade long achkan with structured mandarin collar for festive evenings.", 14499, "sherwani_royal_gold.jpg"),
-            ("Ivory Silk Heritage Sherwani", "Hand-tailored ivory raw silk achkan with ornate silver buttons and royal brooch.", 13999, "sherwani_ivory_silk.jpg"),
-            ("Imperial Gold & Maroon Wedding Sherwani", "Intricate gold zardozi embroidery with rich maroon velvet stole and royal safa.", 17999, "sherwani_maroon_velvet.jpg"),
-            ("Noir Embroidered Designer Sherwani", "Sleek tonal jacquard raw silk achkan with velvet mandarin collar and handcrafted antique gold buttons.", 15999, "sherwani_pastel_peach.jpg"),
-            ("Royal Heritage Bandhgala Suit", "Tailored black royal bandhgala jacket with jeweled ruby brooch and silk pocket square.", 12999, "sherwani_emerald_embroidered.jpg"),
-            ("Royal Midnight & Gold Brocade Sherwani", "Lavish midnight blue and gold brocade achkan with royal blue velvet stole.", 16999, "sherwani_midnight_blue.jpg"),
+            ("SIZZLING Regal Charcoal Brocade Sherwani", "Intricate floral brocade long achkan with structured mandarin collar for festive evenings. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 14499, "sherwani_royal_gold.jpg"),
+            ("SIZZLING Ivory Silk Heritage Sherwani", "Hand-tailored ivory raw silk achkan with ornate silver buttons and royal brooch. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 13999, "sherwani_ivory_silk.jpg"),
+            ("SIZZLING Imperial Gold & Maroon Wedding Sherwani", "Intricate gold zardozi embroidery with rich maroon velvet stole and royal safa. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 17999, "sherwani_maroon_velvet.jpg"),
+            ("SIZZLING Noir Embroidered Designer Sherwani", "Sleek tonal jacquard raw silk achkan with velvet mandarin collar and handcrafted antique gold buttons. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 15999, "sherwani_pastel_peach.jpg"),
+            ("SIZZLING Royal Heritage Bandhgala Suit", "Tailored black royal bandhgala jacket with jeweled ruby brooch and silk pocket square. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 12999, "sherwani_emerald_embroidered.jpg"),
+            ("SIZZLING Royal Midnight & Gold Brocade Sherwani", "Lavish midnight blue and gold brocade achkan with royal blue velvet stole. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 16999, "sherwani_midnight_blue.jpg"),
         ],
         "ties_bows": [
-            ("Silk Jacquard Paisley Necktie", "Woven mulberry silk with intricate tonal paisley pattern and pure wool interlining.", 1499, "tie_jacquard_paisley.jpg"),
-            ("Midnight Velvet Black Bow Tie", "Pre-tied structured black velvet bow tie with adjustable neckband and brass hardware.", 1299, "bowtie_black_velvet.jpg"),
-            ("Emerald Forest Silk Satin Tie", "Lustrous emerald green silk satin tie with handcrafted bar tack and hand-rolled tip.", 1599, "tie_emerald_satin.jpg"),
-            ("Satin Silk Tuxedo Bow Tie & Pocket Square Set", "Pure silk satin evening bow tie with matching hand-hemmed pocket square for black-tie galas.", 1899, "bowtie_tuxedo_set.jpg"),
-            ("Royal Navy Knit Silk Tie", "Textured square-blade knit tie crafted in deep royal navy silk for sophisticated smart-casual styling.", 1399, "tie_navy_knit.jpg"),
-            ("Champagne Gold Wedding Bow Tie", "Luxurious champagne gold brocade silk bow tie woven for weddings and groom celebrations.", 1499, "bowtie_gold_brocade.jpg"),
+            ("SIZZLING Silk Jacquard Paisley Necktie", "Woven mulberry silk with intricate tonal paisley pattern and pure wool interlining. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1499, "tie_jacquard_paisley.jpg"),
+            ("SIZZLING Midnight Velvet Black Bow Tie", "Pre-tied structured black velvet bow tie with adjustable neckband and brass hardware. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1299, "bowtie_black_velvet.jpg"),
+            ("SIZZLING Emerald Forest Silk Satin Tie", "Lustrous emerald green silk satin tie with handcrafted bar tack and hand-rolled tip. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1599, "tie_emerald_satin.jpg"),
+            ("SIZZLING Satin Silk Tuxedo Bow Tie & Pocket Square Set", "Pure silk satin evening bow tie with matching hand-hemmed pocket square for black-tie galas. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1899, "bowtie_tuxedo_set.jpg"),
+            ("SIZZLING Royal Navy Knit Silk Tie", "Textured square-blade knit tie crafted in deep royal navy silk for sophisticated smart-casual styling. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1399, "tie_navy_knit.jpg"),
+            ("SIZZLING Champagne Gold Wedding Bow Tie", "Luxurious champagne gold brocade silk bow tie woven for weddings and groom celebrations. Handcrafted exclusively by master tailors at SIZZLING Atelier.", 1499, "bowtie_gold_brocade.jpg"),
         ],
     }
 
@@ -549,6 +563,29 @@ def checkout():
     )
 
 
+@app.route("/api/validate_coupon", methods=["POST"])
+def api_validate_coupon():
+    data = request.json or {}
+    code = (data.get("code") or "").strip().upper()
+    subtotal = float(data.get("subtotal") or 0.0)
+
+    if code == "KBA200":
+        discount = min(200.0, subtotal) if subtotal > 0 else 200.0
+        final_total = max(0.0, subtotal - discount)
+        return jsonify({
+            "valid": True,
+            "code": "KBA200",
+            "discount": discount,
+            "final_total": final_total,
+            "message": "Coupon KBA200 applied: ₹200 off your order!"
+        })
+
+    return jsonify({
+        "valid": False,
+        "error": "Invalid coupon code. Enter KBA200 for ₹200 off."
+    }), 400
+
+
 @app.route("/api/create_order", methods=["POST"])
 def api_create_order():
     data = request.json or {}
@@ -597,6 +634,9 @@ def api_create_order():
             ).fetchone()
 
         if product is not None and product["price"] is not None:
+            if product["is_out_of_stock"]:
+                conn.close()
+                return jsonify({"success": False, "error": f'"{product["name"]}" is currently out of stock.'}), 400
             p_id = product["id"]
             p_name = product["name"]
             p_cat = product["category"]
@@ -625,13 +665,23 @@ def api_create_order():
         conn.close()
         return jsonify({"success": False, "error": "None of the items in your cart could be ordered."}), 400
 
+    subtotal = float(total)
+    coupon_code = (data.get("coupon_code") or "").strip().upper()
+    discount_amount = 0.0
+
+    if coupon_code == "KBA200":
+        discount_amount = min(200.0, subtotal)
+        total = max(0.0, subtotal - discount_amount)
+    else:
+        coupon_code = None
+
     cust_id = session.get("customer_id")
     now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
     cur.execute("""
-        INSERT INTO orders(customer_name, phone, address, notes, total, status, payment_status, customer_id, created_at, updated_at)
-        VALUES (?,?,?,?,?, 'awaiting_payment_confirmation', 'unpaid', ?, ?, ?)
-    """, (name, phone, address, notes, total, cust_id, now_str, now_str))
+        INSERT INTO orders(customer_name, phone, address, notes, total, subtotal, discount_amount, coupon_code, status, payment_status, customer_id, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?, 'awaiting_payment_confirmation', 'unpaid', ?, ?, ?)
+    """, (name, phone, address, notes, total, subtotal, discount_amount, coupon_code, cust_id, now_str, now_str))
     order_id = cur.lastrowid
 
     for oi in order_items:
@@ -802,7 +852,7 @@ def api_razorpay_verify_payment(order_id):
     return jsonify({
         "success": True,
         "order_id": order_id,
-        "redirect": url_for("order_confirmation", order_id=order_id, verified=1)
+        "redirect": url_for("order_confirmation", order_id=order_id, verified=1, auto_wa=1)
     })
 
 
@@ -844,6 +894,26 @@ def api_submit_payment_ref(order_id):
     return jsonify({
         "success": True,
         "redirect": url_for("order_confirmation", order_id=order_id)
+    })
+
+
+@app.route("/api/order/<int:order_id>/status", methods=["GET"])
+def api_order_status(order_id):
+    """Live status polling endpoint — customer order tracking page polls this every 25s."""
+    conn = get_db()
+    order = conn.execute(
+        "SELECT status, payment_status, admin_notes, updated_at FROM orders WHERE id=?",
+        (order_id,)
+    ).fetchone()
+    conn.close()
+    if order is None:
+        return jsonify({"success": False, "error": "Order not found"}), 404
+    return jsonify({
+        "success": True,
+        "status": order["status"],
+        "payment_status": order["payment_status"],
+        "admin_notes": order["admin_notes"] or "",
+        "updated_at": order["updated_at"] or "",
     })
 
 
@@ -914,12 +984,15 @@ def order_confirmation(order_id):
 # =====================================================================
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
+    if session.get("is_admin"):
+        return redirect(url_for("admin_dashboard"))
     if request.method == "POST":
-        password = request.form.get("password", "")
+        password = request.form.get("password") or request.form.get("admin_password") or ""
         settings = get_settings()
         stored_hash = settings.get("admin_password_hash", "")
         if stored_hash and check_password_hash(stored_hash, password):
             session["is_admin"] = True
+            flash("Database portal unlocked successfully.", "success")
             next_url = request.args.get("next") or url_for("admin_dashboard")
             return redirect(next_url)
         flash("Incorrect password. Please try again.", "error")
@@ -929,11 +1002,12 @@ def admin_login():
 @app.route("/admin/logout")
 def admin_logout():
     session.pop("is_admin", None)
-    return redirect(url_for("admin_login"))
+    flash("You have been logged out of the admin database portal.", "info")
+    return redirect(url_for("customer_login"))
 
 
 # =====================================================================
-# ADMIN DASHBOARD
+# ADMIN DASHBOARD & DATABASE VIEWER
 # =====================================================================
 @app.route("/admin")
 @login_required
@@ -961,6 +1035,23 @@ def admin_dashboard():
     recent_orders = conn.execute(
         "SELECT * FROM orders ORDER BY id DESC LIMIT 5"
     ).fetchall()
+
+    # Count rows across all primary database tables for the Master Database Hub
+    db_tables_summary = {
+        "orders": order_count,
+        "products": product_count,
+        "enquiries": enquiry_count,
+        "order_clicks": click_count,
+        "customers": 0,
+        "order_items": 0,
+        "settings": 0,
+    }
+    for tbl in ["customers", "order_items", "settings"]:
+        try:
+            db_tables_summary[tbl] = conn.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+        except Exception:
+            pass
+
     conn.close()
     return render_template(
         "admin/dashboard.html",
@@ -973,6 +1064,79 @@ def admin_dashboard():
         recent_enquiries=recent_enquiries,
         recent_clicks=recent_clicks,
         recent_orders=recent_orders,
+        db_tables_summary=db_tables_summary,
+    )
+
+
+@app.route("/admin/database")
+@login_required
+def admin_database_viewer():
+    selected_table = request.args.get("table", "orders").strip().lower()
+    search_query = request.args.get("q", "").strip()
+    export_format = request.args.get("export", "").strip().lower()
+
+    allowed_tables = [
+        "orders", "order_items", "products", "customers", 
+        "enquiries", "order_clicks", "settings", "wishlist", "otp_codes"
+    ]
+    if selected_table not in allowed_tables:
+        selected_table = "orders"
+
+    conn = get_db()
+
+    # Get row counts for all tables to display in tab badges
+    table_counts = {}
+    for tbl in allowed_tables:
+        try:
+            cnt = conn.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+            table_counts[tbl] = cnt
+        except Exception:
+            table_counts[tbl] = 0
+
+    # Get column metadata for the selected table
+    columns_info = conn.execute(f"PRAGMA table_info({selected_table})").fetchall()
+    columns = [col["name"] for col in columns_info]
+
+    # Query table rows with optional search across columns
+    if search_query and columns:
+        clauses = []
+        params = []
+        for col in columns:
+            clauses.append(f"CAST({col} AS TEXT) LIKE ?")
+            params.append(f"%{search_query}%")
+        where_sql = " OR ".join(clauses)
+        sql = f"SELECT * FROM {selected_table} WHERE {where_sql} ORDER BY 1 DESC"
+        rows = conn.execute(sql, params).fetchall()
+    else:
+        sql = f"SELECT * FROM {selected_table} ORDER BY 1 DESC"
+        rows = conn.execute(sql).fetchall()
+
+    if export_format == "csv":
+        si = io.StringIO()
+        writer = csv.writer(si)
+        writer.writerow(columns)
+        for r in rows:
+            writer.writerow([r[c] for c in columns])
+        conn.close()
+        return Response(
+            si.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment;filename=database_{selected_table}.csv"}
+        )
+
+    dict_rows = [dict(r) for r in rows[:250]]
+    total_found = len(rows)
+    conn.close()
+
+    return render_template(
+        "admin/database_tables.html",
+        tables=allowed_tables,
+        current_table=selected_table,
+        table_counts=table_counts,
+        columns=columns,
+        rows=dict_rows,
+        total_found=total_found,
+        search_query=search_query,
     )
 
 
@@ -1028,6 +1192,8 @@ def _save_product(product_id):
     price_raw = request.form.get("price", "").strip()
     price = float(price_raw) if price_raw else None
     active = 1 if request.form.get("active") == "on" else 0
+    is_out_of_stock = 1 if request.form.get("is_out_of_stock") == "on" else 0
+    is_bestseller = 1 if request.form.get("is_bestseller") == "on" else 0
 
     if not name:
         flash("Product name is required.", "error")
@@ -1049,25 +1215,55 @@ def _save_product(product_id):
         if image_path is None:
             image_path = f"defaults/{category}.svg"
         conn.execute("""
-            INSERT INTO products(category, name, description, price, image_path, active)
-            VALUES (?,?,?,?,?,?)
-        """, (category, name, description, price, image_path, active))
+            INSERT INTO products(category, name, description, price, image_path, active, is_out_of_stock, is_bestseller)
+            VALUES (?,?,?,?,?,?,?,?)
+        """, (category, name, description, price, image_path, active, is_out_of_stock, is_bestseller))
         flash(f'"{name}" added.', "success")
     else:
         if image_path:
             conn.execute("""
                 UPDATE products SET category=?, name=?, description=?, price=?,
-                image_path=?, active=? WHERE id=?
-            """, (category, name, description, price, image_path, active, product_id))
+                image_path=?, active=?, is_out_of_stock=?, is_bestseller=? WHERE id=?
+            """, (category, name, description, price, image_path, active, is_out_of_stock, is_bestseller, product_id))
         else:
             conn.execute("""
                 UPDATE products SET category=?, name=?, description=?, price=?,
-                active=? WHERE id=?
-            """, (category, name, description, price, active, product_id))
+                active=?, is_out_of_stock=?, is_bestseller=? WHERE id=?
+            """, (category, name, description, price, active, is_out_of_stock, is_bestseller, product_id))
         flash(f'"{name}" updated.', "success")
     conn.commit()
     conn.close()
     return redirect(url_for("admin_products"))
+
+
+@app.route("/admin/products/<int:product_id>/toggle_stock", methods=["POST"])
+@login_required
+def admin_product_toggle_stock(product_id):
+    conn = get_db()
+    product = conn.execute("SELECT is_out_of_stock, name FROM products WHERE id=?", (product_id,)).fetchone()
+    if product:
+        new_val = 0 if product["is_out_of_stock"] else 1
+        conn.execute("UPDATE products SET is_out_of_stock=? WHERE id=?", (new_val, product_id))
+        conn.commit()
+        status_txt = "Out of Stock" if new_val else "In Stock"
+        flash(f'"{product["name"]}" marked as {status_txt}.', "success")
+    conn.close()
+    return redirect(request.referrer or url_for("admin_products"))
+
+
+@app.route("/admin/products/<int:product_id>/toggle_bestseller", methods=["POST"])
+@login_required
+def admin_product_toggle_bestseller(product_id):
+    conn = get_db()
+    product = conn.execute("SELECT is_bestseller, name FROM products WHERE id=?", (product_id,)).fetchone()
+    if product:
+        new_val = 0 if product["is_bestseller"] else 1
+        conn.execute("UPDATE products SET is_bestseller=? WHERE id=?", (new_val, product_id))
+        conn.commit()
+        status_txt = "Bestseller ★" if new_val else "Standard Catalog"
+        flash(f'"{product["name"]}" updated to {status_txt}.', "success")
+    conn.close()
+    return redirect(request.referrer or url_for("admin_products"))
 
 
 @app.route("/admin/products/<int:product_id>/delete", methods=["POST"])
@@ -1546,27 +1742,59 @@ def _login_or_register_customer(clean_phone, name=None):
     return cust_id
 
 
+@app.route("/login", methods=["GET", "POST"])
 @app.route("/account/login", methods=["GET", "POST"])
 def customer_login():
-    next_url = request.args.get("next") or request.form.get("next") or url_for("my_orders")
-    if session.get("customer_id"):
-        return redirect(next_url)
+    next_url = request.args.get("next") or request.form.get("next") or ""
+    active_tab = request.args.get("tab") or ("admin" if ("admin" in next_url) else "customer")
+
+    if session.get("is_admin"):
+        return redirect(next_url or url_for("admin_dashboard"))
+    if session.get("customer_id") and not next_url:
+        return redirect(url_for("my_orders"))
 
     if request.method == "POST":
-        raw_phone = request.form.get("phone", "")
-        name = request.form.get("name", "")
+        login_type = request.form.get("login_type", "").strip()
+        admin_pwd = (request.form.get("admin_password") or request.form.get("password") or "").strip()
+        raw_phone = request.form.get("phone", "").strip()
+        name = request.form.get("name", "").strip()
+
+        settings = get_settings()
+        stored_hash = settings.get("admin_password_hash", "")
+
+        # 1. Direct admin password submission (from Admin tab or unified input)
+        if admin_pwd or login_type == "admin":
+            if stored_hash and check_password_hash(stored_hash, admin_pwd):
+                session["is_admin"] = True
+                flash("Admin verified! Welcome to your SIZZLING Database Portal.", "success")
+                target = next_url if (next_url and not next_url.startswith("/login") and not next_url.startswith("/account/login")) else url_for("admin_dashboard")
+                return redirect(target)
+            else:
+                flash("Incorrect admin password. Please try again.", "error")
+                return render_template(
+                    "user/login.html", next_url=next_url, settings=settings, active_tab="admin"
+                )
+
+        # 2. Smart fallback: if user typed admin password into the single phone field
+        if raw_phone and stored_hash and check_password_hash(stored_hash, raw_phone):
+            session["is_admin"] = True
+            flash("Admin verified! Welcome to your SIZZLING Database Portal.", "success")
+            target = next_url if (next_url and not next_url.startswith("/login") and not next_url.startswith("/account/login")) else url_for("admin_dashboard")
+            return redirect(target)
+
+        # 3. Customer phone login
         clean_phone = _normalize_phone(raw_phone)
         if len(clean_phone) == 10:
             try:
                 _login_or_register_customer(clean_phone, name)
-                return redirect(next_url)
+                return redirect(next_url or url_for("my_orders"))
             except Exception as e:
                 flash("Login failed. Please try again.", "error")
         else:
-            flash("Please enter a valid 10-digit mobile number.", "error")
+            flash("Please enter a valid 10-digit mobile number, or use the Admin Database tab.", "error")
 
     return render_template(
-        "user/login.html", next_url=next_url, settings=get_settings()
+        "user/login.html", next_url=next_url, settings=get_settings(), active_tab=active_tab
     )
 
 
@@ -1574,8 +1802,23 @@ def customer_login():
 def api_direct_login():
     try:
         data = request.get_json(silent=True) or request.form or {}
-        raw_phone = data.get("phone") or ""
+        raw_phone = str(data.get("phone") or "").strip()
+        admin_pwd = str(data.get("admin_password") or data.get("password") or "").strip()
         name = data.get("name") or ""
+
+        # Check for admin authentication via API
+        settings = get_settings()
+        stored_hash = settings.get("admin_password_hash", "")
+        if (admin_pwd and stored_hash and check_password_hash(stored_hash, admin_pwd)) or \
+           (raw_phone and stored_hash and check_password_hash(stored_hash, raw_phone)):
+            session["is_admin"] = True
+            return jsonify({
+                "success": True,
+                "is_admin": True,
+                "redirect": url_for("admin_dashboard"),
+                "message": "Admin credentials verified. Redirecting to Database Portal..."
+            })
+
         clean_phone = _normalize_phone(raw_phone)
 
         if len(clean_phone) != 10:

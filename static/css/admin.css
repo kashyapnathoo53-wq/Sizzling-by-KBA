@@ -486,6 +486,73 @@ tr:last-child td {
   text-align: center;
 }
 
+/* ---------------- ORDER STATUS BADGES ---------------- */
+.badge-awaiting_payment_confirmation,
+.badge-pending_payment {
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.4);
+}
+.badge-payment_reported {
+  background: var(--amber-dim);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.badge-confirmed {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+.badge-tailoring {
+  background: var(--purple-dim);
+  color: #c084fc;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+.badge-trial_ready {
+  background: var(--cyan-dim);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+}
+.badge-dispatched {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.4);
+}
+.badge-delivered {
+  background: var(--emerald-dim);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.badge-cancelled,
+.badge-payment_rejected {
+  background: var(--red-dim);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* ---------------- OUT OF STOCK / BESTSELLER TOGGLE BUTTONS ---------------- */
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.toggle-btn:hover { border-color: var(--brass); color: var(--brass-light); }
+.toggle-btn.active-stock { background: var(--red-dim); color: #f87171; border-color: rgba(239,68,68,0.4); }
+.toggle-btn.active-best { background: rgba(197,160,89,0.15); color: var(--brass-light); border-color: rgba(197,160,89,0.4); }
+
 /* ---------------- RESPONSIVE ---------------- */
 @media(max-width: 768px) {
   .field-row { grid-template-columns: 1fr; }

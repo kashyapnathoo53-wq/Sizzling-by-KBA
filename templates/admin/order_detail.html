@@ -79,8 +79,18 @@
         {% endfor %}
       </tbody>
     </table>
-    <div style="text-align:right; font-weight:800; margin-top:20px; font-size:24px; color:var(--brass-light); font-family:var(--font-mono);">
-      Total: ₹{{ "%.0f"|format(order.total) }}
+    <div style="text-align:right; margin-top:20px; font-family:var(--font-mono);">
+      {% if order.coupon_code or (order.discount_amount and order.discount_amount > 0) %}
+      <div style="font-size:15px; color:#94a3b8; margin-bottom:6px;">
+        Subtotal: ₹{{ "%.0f"|format(order.subtotal or (order.total + order.discount_amount)) }}
+      </div>
+      <div style="font-size:15px; color:#22c55e; font-weight:700; margin-bottom:8px;">
+        Coupon Discount ({{ order.coupon_code or 'KBA200' }}): -₹{{ "%.0f"|format(order.discount_amount or 200) }}
+      </div>
+      {% endif %}
+      <div style="font-size:24px; font-weight:800; color:var(--brass-light);">
+        Total: ₹{{ "%.0f"|format(order.total) }}
+      </div>
     </div>
   </div>
 

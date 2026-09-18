@@ -48,6 +48,63 @@
     </div>
   </div>
 
+  <!-- MASTER DATABASE TABLES EXPLORER -->
+  <div class="panel" style="margin-bottom: 24px; background:#101522; border:1px solid #25334c;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+      <div>
+        <h3 style="margin:0; font-size:17px; color:#fff; display:flex; align-items:center; gap:8px;">
+          🗄️ Master Database Tables
+        </h3>
+        <p style="margin:4px 0 0; font-size:13px; color:var(--text-muted);">
+          Direct explorer for all tables in <code>sizzling.db</code>. Click any table to inspect raw rows, columns, and export data.
+        </p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <a href="{{ url_for('admin_database_viewer') }}" class="btn btn-outline" style="font-size:12.5px; padding:7px 14px; border-color:var(--brass); color:var(--brass-light);">
+          Open Full Tables Browser →
+        </a>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:12px;">
+      <a href="{{ url_for('admin_database_viewer', table='orders') }}" style="text-decoration:none; background:#161d2c; border:1px solid #2a374f; border-radius:8px; padding:12px 14px; transition:border 0.2s;" onmouseover="this.style.borderColor='#c5a059'" onmouseout="this.style.borderColor='#2a374f'">
+        <div style="font-size:12px; color:var(--brass-light); font-family:var(--font-mono); font-weight:600;">📋 orders</div>
+        <div style="font-size:22px; font-weight:700; color:#fff; margin-top:4px;">{{ db_tables_summary.get('orders', 0) }} <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">rows</span></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Customer orders &amp; status</div>
+      </a>
+      <a href="{{ url_for('admin_database_viewer', table='products') }}" style="text-decoration:none; background:#161d2c; border:1px solid #2a374f; border-radius:8px; padding:12px 14px; transition:border 0.2s;" onmouseover="this.style.borderColor='#c5a059'" onmouseout="this.style.borderColor='#2a374f'">
+        <div style="font-size:12px; color:var(--brass-light); font-family:var(--font-mono); font-weight:600;">👔 products</div>
+        <div style="font-size:22px; font-weight:700; color:#fff; margin-top:4px;">{{ db_tables_summary.get('products', 0) }} <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">rows</span></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Suits, blazers, shirts</div>
+      </a>
+      <a href="{{ url_for('admin_database_viewer', table='customers') }}" style="text-decoration:none; background:#161d2c; border:1px solid #2a374f; border-radius:8px; padding:12px 14px; transition:border 0.2s;" onmouseover="this.style.borderColor='#c5a059'" onmouseout="this.style.borderColor='#2a374f'">
+        <div style="font-size:12px; color:var(--brass-light); font-family:var(--font-mono); font-weight:600;">👥 customers</div>
+        <div style="font-size:22px; font-weight:700; color:#fff; margin-top:4px;">{{ db_tables_summary.get('customers', 0) }} <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">rows</span></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Verified customer accounts</div>
+      </a>
+      <a href="{{ url_for('admin_database_viewer', table='order_items') }}" style="text-decoration:none; background:#161d2c; border:1px solid #2a374f; border-radius:8px; padding:12px 14px; transition:border 0.2s;" onmouseover="this.style.borderColor='#c5a059'" onmouseout="this.style.borderColor='#2a374f'">
+        <div style="font-size:12px; color:var(--brass-light); font-family:var(--font-mono); font-weight:600;">🛍️ order_items</div>
+        <div style="font-size:22px; font-weight:700; color:#fff; margin-top:4px;">{{ db_tables_summary.get('order_items', 0) }} <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">rows</span></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Garment line items</div>
+      </a>
+      <a href="{{ url_for('admin_database_viewer', table='enquiries') }}" style="text-decoration:none; background:#161d2c; border:1px solid #2a374f; border-radius:8px; padding:12px 14px; transition:border 0.2s;" onmouseover="this.style.borderColor='#c5a059'" onmouseout="this.style.borderColor='#2a374f'">
+        <div style="font-size:12px; color:var(--brass-light); font-family:var(--font-mono); font-weight:600;">💬 enquiries</div>
+        <div style="font-size:22px; font-weight:700; color:#fff; margin-top:4px;">{{ db_tables_summary.get('enquiries', 0) }} <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">rows</span></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Direct customer queries</div>
+      </a>
+      <a href="{{ url_for('admin_database_viewer', table='order_clicks') }}" style="text-decoration:none; background:#161d2c; border:1px solid #2a374f; border-radius:8px; padding:12px 14px; transition:border 0.2s;" onmouseover="this.style.borderColor='#c5a059'" onmouseout="this.style.borderColor='#2a374f'">
+        <div style="font-size:12px; color:var(--brass-light); font-family:var(--font-mono); font-weight:600;">⚡ order_clicks</div>
+        <div style="font-size:22px; font-weight:700; color:#fff; margin-top:4px;">{{ db_tables_summary.get('order_clicks', 0) }} <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">rows</span></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">WhatsApp order clicks</div>
+      </a>
+      <a href="{{ url_for('admin_database_viewer', table='settings') }}" style="text-decoration:none; background:#161d2c; border:1px solid #2a374f; border-radius:8px; padding:12px 14px; transition:border 0.2s;" onmouseover="this.style.borderColor='#c5a059'" onmouseout="this.style.borderColor='#2a374f'">
+        <div style="font-size:12px; color:var(--brass-light); font-family:var(--font-mono); font-weight:600;">⚙️ settings</div>
+        <div style="font-size:22px; font-weight:700; color:#fff; margin-top:4px;">{{ db_tables_summary.get('settings', 0) }} <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">rows</span></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Atelier configuration</div>
+      </a>
+    </div>
+  </div>
+
   <div class="panel">
     <h3>📋 Recent Orders in Database</h3>
     {% if recent_orders %}

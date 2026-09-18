@@ -163,8 +163,55 @@
       <a href="/account/orders" class="btn btn-outline">← Back to My Orders</a>
     </div>
 
+    <!-- Live status update indicator -->
+    <div id="liveStatusBar" style="margin-top:22px; text-align:center; font-family:var(--mono); font-size:11.5px; color:#475569; display:flex; align-items:center; justify-content:center; gap:8px;">
+      <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#22c55e; animation:livePulse 2s ease-in-out infinite;"></span>
+      <span id="liveStatusText">Live status tracking active</span>
+    </div>
+    <style>
+      @keyframes livePulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.85); }
+      }
+    </style>
+
   </div>
 </div>
+
+<script>
+// Live order status polling — auto-refresh if status changes
+(function() {
+  var ORDER_ID = {{ order.id }};
+  var CURRENT_STATUS = "{{ order.status }}";
+  var CURRENT_PAY_STATUS = "{{ order.payment_status }}";
+  var liveText = document.getElementById("liveStatusText");
+
+  function checkStatus() {
+    fetch("/api/order/" + ORDER_ID + "/status")
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data || !data.success) return;
+        var newStatus = data.status;
+        var newPayStatus = data.payment_status;
+        if (newStatus !== CURRENT_STATUS || newPayStatus !== CURRENT_PAY_STATUS) {
+          if (liveText) liveText.textContent = "Status updated! Refreshing...";
+          setTimeout(function() { location.reload(); }, 1200);
+        } else {
+          if (liveText) {
+            var now = new Date().toLocaleTimeString();
+            liveText.textContent = "Last checked: " + now;
+          }
+        }
+      })
+      .catch(function() {
+        if (liveText) liveText.textContent = "Live tracking paused — check connection";
+      });
+  }
+
+  // Poll every 25 seconds
+  setInterval(checkStatus, 25000);
+})();
+</script>
 
 </body>
 </html>

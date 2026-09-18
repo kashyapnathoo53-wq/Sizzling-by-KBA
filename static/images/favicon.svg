@@ -1,16 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" rx="12" fill="#14171c"/>
-  <!-- Scissors body -->
-  <circle cx="18" cy="28" r="7" fill="none" stroke="#b08d57" stroke-width="2.5"/>
-  <circle cx="18" cy="28" r="2.5" fill="#b08d57"/>
-  <circle cx="18" cy="44" r="7" fill="none" stroke="#b08d57" stroke-width="2.5"/>
-  <circle cx="18" cy="44" r="2.5" fill="#b08d57"/>
-  <!-- Blade 1 -->
-  <line x1="22" y1="24" x2="50" y2="16" stroke="#b08d57" stroke-width="3" stroke-linecap="round"/>
-  <!-- Blade 2 -->
-  <line x1="22" y1="48" x2="50" y2="48" stroke="#b08d57" stroke-width="3" stroke-linecap="round"/>
-  <!-- Pivot -->
-  <circle cx="30" cy="36" r="2" fill="#d9bd8b"/>
-  <!-- Flame spark -->
-  <path d="M50 15 Q53 10 51 6 Q55 9 54 14 Q57 11 56 7 Q60 12 57 17 Q55 22 50 20 Q46 18 50 15Z" fill="#d9bd8b" opacity="0.9"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff0b8"/>
+      <stop offset="35%" stop-color="#dfc691"/>
+      <stop offset="70%" stop-color="#c5a059"/>
+      <stop offset="100%" stop-color="#8a6727"/>
+    </linearGradient>
+    <linearGradient id="goldShine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#dfc691"/>
+      <stop offset="50%" stop-color="#fff8d6"/>
+      <stop offset="100%" stop-color="#b89347"/>
+    </linearGradient>
+    <radialGradient id="bgGlow" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#182030"/>
+      <stop offset="70%" stop-color="#0b0e14"/>
+      <stop offset="100%" stop-color="#06080c"/>
+    </radialGradient>
+    <filter id="goldDrop" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+
+  <!-- Background tile with subtle gold rim -->
+  <rect width="128" height="128" rx="28" fill="url(#bgGlow)"/>
+  <rect width="126" height="126" x="1" y="1" rx="27" fill="none" stroke="url(#goldGrad)" stroke-width="1.5" stroke-opacity="0.5"/>
+
+  <!-- Atelier S Monogram with Needle & Scissors motif -->
+  <g filter="url(#goldDrop)">
+    <!-- Bespoke Needle behind S -->
+    <path d="M64 16 L65.5 17 L65.5 106 L64 112 L62.5 106 L62.5 17 Z" fill="url(#goldGrad)"/>
+    <ellipse cx="64" cy="24" rx="1.2" ry="5" fill="#0b0e14"/>
+
+    <!-- Flowing golden thread -->
+    <path d="M64 24 Q78 20 82 28 Q86 36 78 40 Q68 44 64 36" fill="none" stroke="url(#goldShine)" stroke-width="1.8" stroke-linecap="round" opacity="0.95"/>
+
+    <!-- Imperial Serif S Monogram -->
+    <path d="M78 35 C78 30 73 26 64 26 C53 26 46 32 46 40 C46 56 78 50 78 68 C78 81 68 88 56 88 C44 88 38 81 37 73 L46 72 C47 77 50 81 57 81 C64 81 69 77 69 70 C69 54 37 59 37 40 C37 28 47 20 63 20 C76 20 86 27 87 37 Z" 
+          fill="url(#goldGrad)" stroke="url(#goldShine)" stroke-width="0.8"/>
+
+    <!-- Master Tailor Crossed Shears (Scissors) at base -->
+    <g transform="translate(64, 86)">
+      <!-- Left blade -->
+      <line x1="-16" y1="-18" x2="16" y2="18" stroke="url(#goldGrad)" stroke-width="2.6" stroke-linecap="round"/>
+      <!-- Right blade -->
+      <line x1="16" y1="-18" x2="-16" y2="18" stroke="url(#goldGrad)" stroke-width="2.6" stroke-linecap="round"/>
+      <!-- Pivot screw -->
+      <circle cx="0" cy="0" r="2.2" fill="url(#goldShine)" stroke="#090d14" stroke-width="0.8"/>
+      <!-- Left finger loop -->
+      <circle cx="-16" cy="18" r="6" fill="none" stroke="url(#goldGrad)" stroke-width="2.2"/>
+      <!-- Right finger loop -->
+      <circle cx="16" cy="18" r="6" fill="none" stroke="url(#goldGrad)" stroke-width="2.2"/>
+    </g>
+  </g>
 </svg>

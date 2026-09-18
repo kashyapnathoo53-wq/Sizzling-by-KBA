@@ -6,10 +6,11 @@
   <nav class="admin-nav">
     <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">📊 Dashboard</a>
     <a href="{{ url_for('admin_orders') }}" class="{% if request.endpoint in ['admin_orders', 'admin_order_detail'] %}active{% endif %}">📋 Orders Database</a>
+    <a href="{{ url_for('admin_database_viewer') }}" class="{% if request.endpoint == 'admin_database_viewer' %}active{% endif %}">🗄️ Database Tables</a>
     <a href="{{ url_for('admin_products') }}" class="{% if request.endpoint in ['admin_products', 'admin_product_new', 'admin_product_edit'] %}active{% endif %}">👔 Catalog</a>
     <a href="{{ url_for('admin_enquiries') }}" class="{% if request.endpoint == 'admin_enquiries' %}active{% endif %}">💬 Enquiries</a>
     <a href="{{ url_for('admin_settings') }}" class="{% if request.endpoint == 'admin_settings' %}active{% endif %}">⚙️ Settings</a>
-    <a href="/" onclick="window.location.href='/'; return true;" style="color:var(--brass-light); font-weight:600; cursor:pointer;">🏠 Back to Home</a>
+    <a href="/" onclick="window.location.href='/'; return true;" style="color:var(--brass-light); font-weight:600; cursor:pointer; background:rgba(197,160,89,0.1); border:1px solid rgba(197,160,89,0.35); padding:4px 10px; border-radius:4px;">🏠 Website Home</a>
     <a class="logout" href="{{ url_for('admin_logout') }}">Log Out</a>
   </nav>
 </div>

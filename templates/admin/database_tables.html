@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Database Tables Browser — SIZZLING Admin</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<style>
+  :root {
+    --gold: #c5a059;
+    --gold-light: #dfc691;
+    --card-bg: #101520;
+    --border-color: #1e2638;
+  }
+  .admin-wrap { max-width: 1440px; margin: 0 auto; padding: 28px 24px 70px; }
+  
+  .db-table-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 16px;
+  }
+  .db-table-tab {
+    background: #131824;
+    border: 1px solid #232d40;
+    color: #cbd5e1;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .db-table-tab:hover {
+    background: #1a2233;
+    color: #fff;
+    border-color: var(--gold);
+    text-decoration: none;
+  }
+  .db-table-tab.active {
+    background: rgba(197, 160, 89, 0.16);
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+  .db-table-tab .count-badge {
+    background: #090c13;
+    padding: 2px 7px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: #94a3b8;
+    border: 1px solid #202b3d;
+  }
+  .db-table-tab.active .count-badge {
+    background: var(--gold);
+    color: #0b0e14;
+    font-weight: 700;
+  }
+
+  .table-toolbar {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .search-form {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    max-width: 480px;
+  }
+  .search-input {
+    background: #090c14;
+    border: 1px solid #28354c;
+    color: #f1f5f9;
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    flex: 1;
+  }
+  .search-input:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+  .data-table-wrap {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow-x: auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .raw-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    text-align: left;
+    min-width: 800px;
+  }
+  .raw-table th {
+    background: #141b29;
+    color: var(--gold-light);
+    font-weight: 600;
+    padding: 12px 14px;
+    border-bottom: 2px solid #25334c;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .raw-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid #1a2233;
+    color: #e2e8f0;
+    vertical-align: top;
+    max-width: 320px;
+    word-break: break-word;
+  }
+  .raw-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+  .cell-mono {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: #93c5fd;
+  }
+</style>
+</head>
+<body>
+
+{% include "admin/_header.html" %}
+
+<div class="admin-wrap">
+  <div class="actions-row">
+    <div>
+      <div class="admin-title">🗄️ Database Tables Browser</div>
+      <div class="admin-sub" style="margin-bottom:0;">
+        Live SQLite database explorer for <code>sizzling.db</code>. Directly view tables, inspect raw rows, and download backups.
+      </div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="{{ url_for('admin_orders') }}" class="btn btn-outline">📋 Master Orders Database</a>
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">📊 Admin Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Table Tabs -->
+  <div class="db-table-tabs">
+    {% for tbl in tables %}
+    <a href="{{ url_for('admin_database_viewer', table=tbl) }}" class="db-table-tab {% if tbl == current_table %}active{% endif %}">
+      <span>{{ tbl }}</span>
+      <span class="count-badge">{{ table_counts.get(tbl, 0) }}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Table Toolbar -->
+  <div class="table-toolbar">
+    <div>
+      <div style="font-size:16px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+        Table: <code style="color:var(--gold-light); font-size:17px;">{{ current_table }}</code>
+        <span style="font-size:12px; font-weight:normal; color:#94a3b8;">({{ total_found }} records {% if search_query %}matching search{% endif %})</span>
+      </div>
+      <div style="font-size:12px; color:#64748b; margin-top:2px;">
+        Columns: {{ columns|join(', ') }}
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <form method="GET" action="{{ url_for('admin_database_viewer') }}" class="search-form">
+        <input type="hidden" name="table" value="{{ current_table }}">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search any column in {{ current_table }}..." class="search-input">
+        <button type="submit" class="btn btn-primary" style="padding:8px 14px; font-size:12.5px;">Search</button>
+        {% if search_query %}
+        <a href="{{ url_for('admin_database_viewer', table=current_table) }}" class="btn btn-outline" style="padding:8px 10px; font-size:12px;">Clear</a>
+        {% endif %}
+      </form>
+
+      <a href="{{ url_for('admin_database_viewer', table=current_table, export='csv') }}" class="btn btn-outline" style="padding:8px 14px; font-size:12.5px; display:inline-flex; align-items:center; gap:6px; border-color:var(--gold); color:var(--gold-light);">
+        📥 Export CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="data-table-wrap">
+    {% if rows %}
+    <table class="raw-table">
+      <thead>
+        <tr>
+          {% for col in columns %}
+          <th>{{ col }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          {% for col in columns %}
+          <td>
+            {% set val = r[col] %}
+            {% if val is none %}
+              <span style="color:#475569; font-style:italic;">NULL</span>
+            {% elif col in ['id', 'order_id', 'product_id', 'customer_id'] %}
+              <span class="cell-mono">#{{ val }}</span>
+            {% elif col in ['created_at', 'updated_at', 'payment_verified_at'] %}
+              <span class="cell-mono">{{ val }}</span>
+            {% elif col in ['price', 'total', 'subtotal', 'line_total', 'discount_amount'] %}
+              <span style="font-family:var(--font-mono); font-weight:600; color:#86efac;">₹{{ "%.0f"|format(val|float) }}</span>
+            {% elif col in ['status', 'payment_status'] %}
+              <span style="font-weight:600; text-transform:uppercase; font-size:11px; padding:2px 6px; border-radius:3px; background:rgba(255,255,255,0.06);">
+                {{ val }}
+              </span>
+            {% elif col == 'admin_password_hash' %}
+              <span style="color:#94a3b8; font-family:var(--font-mono); font-size:11px;">[Protected Hash]</span>
+            {% else %}
+              {{ val }}
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="padding:48px 24px; text-align:center; color:#94a3b8;">
+      <div style="font-size:36px; margin-bottom:10px;">📭</div>
+      <div style="font-size:16px; font-weight:600; color:#fff;">No records found in table '{{ current_table }}'</div>
+      <p style="font-size:13px; color:#64748b; margin-top:4px;">
+        {% if search_query %}No rows matched your search term "{{ search_query }}". Try clearing the filter.{% else %}This database table currently has 0 rows.{% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="margin-top:20px; font-size:12px; color:#64748b; display:flex; justify-content:space-between; align-items:center;">
+    <span>Showing up to 250 rows &middot; Database location: <code>sizzling.db</code></span>
+    <a href="{{ url_for('admin_dashboard') }}" style="color:var(--gold-light); text-decoration:none;">← Return to Admin Dashboard</a>
+  </div>
+</div>
+
+</body>
+</html>
