@@ -13,20 +13,28 @@
 </head>
 <body>
 
-<div class="simple-header">
+<div class="simple-header" style="position:relative; z-index:1001;">
   <div class="wrap">
-    <a href="/" class="logo" style="font-size:20px;">SIZZLING <em>by KBA</em></a>
-    <a href="/" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px; display:inline-flex; align-items:center; gap:6px;">🏠 Back to Home</a>
+    <a href="/" onclick="window.location.href='/'; return true;" class="logo" style="font-size:20px; cursor:pointer; position:relative; z-index:1002;">SIZZLING <em>by KBA</em></a>
+    <a href="/" onclick="window.location.href='/'; return true;" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; position:relative; z-index:1002;">🏠 Back to Home</a>
   </div>
 </div>
 
 <div class="simple-page">
   <div class="wrap" style="max-width:480px;">
+    {% if 'checkout' in next_url %}
+    <div style="text-align:center; margin-bottom:32px;">
+      <div style="font-size:48px; margin-bottom:12px;">⚡</div>
+      <h1 style="font-size:28px; margin-bottom:8px;">Log In to Auto-Fill</h1>
+      <p class="sub" style="margin-bottom:0;">Enter your mobile number to automatically load your name, delivery address, and past details into checkout.</p>
+    </div>
+    {% else %}
     <div style="text-align:center; margin-bottom:32px;">
       <div style="font-size:48px; margin-bottom:12px;">👔</div>
       <h1 style="font-size:28px; margin-bottom:8px;">Track Your Orders</h1>
       <p class="sub" style="margin-bottom:0;">Enter your mobile number to view your past orders, real-time tailoring status, and saved wishlist.</p>
     </div>
+    {% endif %}
 
     <div class="form-card">
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -42,7 +50,7 @@
           <label for="loginPhone">Your Mobile Number</label>
           <input type="tel" id="loginPhone" name="phone" placeholder="10-digit number (e.g. 8595511923)"
                  maxlength="14" inputmode="numeric" required autocomplete="tel" autofocus>
-          <small style="color:#777; font-size:12px; margin-top:4px; display:block;">Enter the number you used while placing your order.</small>
+          <small style="color:#777; font-size:12px; margin-top:4px; display:block;">Enter the number you use for tailor orders.</small>
         </div>
 
         <div class="field" style="margin-bottom:20px;">
@@ -51,7 +59,11 @@
         </div>
 
         <button type="submit" class="btn btn-brass" id="loginSubmitBtn" style="width:100%; padding:14px; font-size:14px; font-weight:700;">
-          View My Orders &amp; Wishlist →
+          {% if 'checkout' in next_url %}
+            Log In &amp; Return to Checkout →
+          {% else %}
+            View My Orders &amp; Wishlist →
+          {% endif %}
         </button>
 
         <div id="loginStatus" class="form-status" style="margin-top:14px; text-align:center;"></div>
@@ -66,6 +78,20 @@
 
 <script>
   const nextUrl = new URLSearchParams(window.location.search).get("next") || "{{ next_url or '/account/orders' }}";
+
+  // Auto-populate from localStorage if already saved on this browser
+  try {
+    const raw = localStorage.getItem("sizzling_customer_info");
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (saved.phone && !document.getElementById("loginPhone").value) {
+        document.getElementById("loginPhone").value = saved.phone;
+      }
+      if (saved.name && !document.getElementById("loginName").value) {
+        document.getElementById("loginName").value = saved.name;
+      }
+    }
+  } catch (err) {}
 
   document.getElementById("directLoginForm").addEventListener("submit", function(e) {
     const rawPhone = document.getElementById("loginPhone").value.trim();
@@ -93,7 +119,7 @@
     // Prevent default to try fast AJAX, with immediate native form fallback on any network error
     e.preventDefault();
     btn.disabled = true;
-    btn.textContent = "Loading orders...";
+    btn.textContent = nextUrl.includes("checkout") ? "Loading checkout details..." : "Loading orders...";
     statusEl.textContent = "";
 
     fetch(`/api/account/direct_login?next=${encodeURIComponent(nextUrl)}`, {
@@ -111,14 +137,27 @@
       } catch (err) {}
 
       if (r.ok && res && res.success) {
-        statusEl.textContent = "✓ Verified! Loading your orders...";
+        statusEl.textContent = "✓ Verified! Loading details...";
         statusEl.className = "form-status success";
+
+        // Save customer details into localStorage for immediate client-side auto-fill
+        try {
+          const cust = res.customer || {};
+          const current = JSON.parse(localStorage.getItem("sizzling_customer_info") || "{}");
+          const merged = {
+            name: cust.name || name || current.name || "",
+            phone: cust.phone || digits || current.phone || "",
+            address: cust.address || current.address || ""
+          };
+          localStorage.setItem("sizzling_customer_info", JSON.stringify(merged));
+        } catch (e) {}
+
         window.location.href = res.redirect || nextUrl;
       } else if (res && res.error) {
         statusEl.textContent = res.error;
         statusEl.className = "form-status error";
         btn.disabled = false;
-        btn.textContent = "View My Orders & Wishlist →";
+        btn.textContent = nextUrl.includes("checkout") ? "Log In & Return to Checkout →" : "View My Orders & Wishlist →";
       } else {
         // Fallback: submit standard form natively
         document.getElementById("directLoginForm").submit();

@@ -510,12 +510,32 @@ def checkout():
         if cust_id:
             customer = conn.execute("SELECT * FROM customers WHERE id=?", (cust_id,)).fetchone()
         if not customer and cust_phone:
-            customer = conn.execute("SELECT * FROM customers WHERE phone=?", (cust_phone,)).fetchone()
+            clean_p = _normalize_phone(cust_phone)
+            customer = conn.execute("SELECT * FROM customers WHERE phone=? OR phone=? OR phone=?", (clean_p, f"91{clean_p}", f"+91{clean_p}")).fetchone()
 
         if customer:
+            clean_p = _normalize_phone(customer["phone"])
+            c_name = (customer["name"] or "").strip()
+            if not c_name or c_name == "Customer":
+                past_order_name = conn.execute(
+                    """SELECT customer_name FROM orders 
+                       WHERE (customer_id=? OR phone=? OR phone=? OR phone=?) 
+                         AND customer_name IS NOT NULL AND customer_name != '' AND customer_name != 'Customer' 
+                       ORDER BY id DESC LIMIT 1""",
+                    (customer["id"], clean_p, f"91{clean_p}", f"+91{clean_p}")
+                ).fetchone()
+                if past_order_name and past_order_name["customer_name"]:
+                    c_name = past_order_name["customer_name"].strip()
+                    conn.execute("UPDATE customers SET name=? WHERE id=?", (c_name, customer["id"]))
+                    conn.commit()
+                    customer = conn.execute("SELECT * FROM customers WHERE id=?", (customer["id"],)).fetchone()
+
             last_order = conn.execute(
-                "SELECT address FROM orders WHERE (customer_id=? OR phone=?) AND address IS NOT NULL AND address != '' ORDER BY id DESC LIMIT 1",
-                (customer["id"], customer["phone"])
+                """SELECT address FROM orders 
+                   WHERE (customer_id=? OR phone=? OR phone=? OR phone=?) 
+                     AND address IS NOT NULL AND address != '' 
+                   ORDER BY id DESC LIMIT 1""",
+                (customer["id"], clean_p, f"91{clean_p}", f"+91{clean_p}")
             ).fetchone()
             if last_order and last_order["address"]:
                 last_address = last_order["address"]
@@ -622,11 +642,14 @@ def api_create_order():
               oi["size"], oi["price"], oi["qty"], oi["line_total"]))
 
     # Update customer name if provided and previously empty or default
-    if cust_id and name and name != "Customer":
+    clean_p = _normalize_phone(phone)
+    if name and name != "Customer":
         try:
-            cur.execute("UPDATE customers SET name=? WHERE id=? AND (name IS NULL OR name='Customer')", (name, cust_id))
+            cur.execute("UPDATE customers SET name=? WHERE (id=? OR phone=?) AND (name IS NULL OR name='' OR name='Customer')", (name, cust_id or 0, clean_p))
         except Exception:
             pass
+    if not cust_id and clean_p:
+        session["customer_phone"] = clean_p
 
     conn.commit()
     conn.close()
@@ -1465,18 +1488,34 @@ def _login_or_register_customer(clean_phone, name=None):
     """)
     conn.commit()
 
+    # Look up past orders for this phone number to infer customer name or address
+    past_order = conn.execute(
+        """SELECT customer_name, address FROM orders 
+           WHERE (phone=? OR phone=? OR phone=?) 
+             AND customer_name IS NOT NULL AND customer_name != '' AND customer_name != 'Customer'
+           ORDER BY id DESC LIMIT 1""",
+        (clean_phone, f"91{clean_phone}", f"+91{clean_phone}")
+    ).fetchone()
+
+    inferred_name = (past_order["customer_name"] if past_order and past_order["customer_name"] else "").strip()
+
+    final_name = (name or "").strip()
+    if not final_name and inferred_name:
+        final_name = inferred_name
+
     existing = conn.execute(
-        "SELECT * FROM customers WHERE phone=?", (clean_phone,)
+        "SELECT * FROM customers WHERE phone=? OR phone=? OR phone=?", 
+        (clean_phone, f"91{clean_phone}", f"+91{clean_phone}")
     ).fetchone()
 
     if existing:
         cust_id = existing["id"]
-        if name and name.strip():
-            conn.execute("UPDATE customers SET name=? WHERE id=?", (name.strip(), cust_id))
+        if final_name and (existing["name"] == "Customer" or not existing["name"] or name):
+            conn.execute("UPDATE customers SET name=? WHERE id=?", (final_name, cust_id))
     else:
         conn.execute(
             "INSERT INTO customers(name, phone) VALUES (?,?)",
-            (name or "Customer", clean_phone),
+            (final_name or "Customer", clean_phone),
         )
         cust_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
@@ -1532,10 +1571,33 @@ def api_direct_login():
         if len(clean_phone) != 10:
             return jsonify({"success": False, "error": "Please enter a valid 10-digit mobile number."}), 400
 
-        _login_or_register_customer(clean_phone, name)
+        cust_id = _login_or_register_customer(clean_phone, name)
+
+        # Retrieve saved customer info and last address
+        conn = get_db()
+        cust = conn.execute("SELECT * FROM customers WHERE id=?", (cust_id,)).fetchone()
+        last_order = conn.execute(
+            """SELECT address FROM orders 
+               WHERE (customer_id=? OR phone=? OR phone=? OR phone=?) 
+                 AND address IS NOT NULL AND address != '' 
+               ORDER BY id DESC LIMIT 1""",
+            (cust_id, clean_phone, f"91{clean_phone}", f"+91{clean_phone}")
+        ).fetchone()
+        conn.close()
+
+        cust_name = cust["name"] if (cust and cust["name"] and cust["name"] != "Customer") else (name or "")
+        last_addr = last_order["address"] if (last_order and last_order["address"]) else ""
 
         next_url = request.args.get("next") or request.form.get("next") or url_for("my_orders")
-        return jsonify({"success": True, "redirect": next_url})
+        return jsonify({
+            "success": True, 
+            "redirect": next_url,
+            "customer": {
+                "name": cust_name,
+                "phone": clean_phone,
+                "address": last_addr
+            }
+        })
     except Exception as e:
         import traceback
         traceback.print_exc()

@@ -13,10 +13,10 @@
 </head>
 <body>
 
-<div class="simple-header">
+<div class="simple-header" style="position:relative; z-index:1001;">
   <div class="wrap">
-    <a href="/" class="logo" style="font-size:20px;">SIZZLING <em>by KBA</em></a>
-    <a href="/" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px; display:inline-flex; align-items:center; gap:6px;">🏠 Back to Home</a>
+    <a href="/" onclick="window.location.href='/'; return true;" class="logo" style="font-size:20px; cursor:pointer; position:relative; z-index:1002;">SIZZLING <em>by KBA</em></a>
+    <a href="/" onclick="window.location.href='/'; return true;" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; position:relative; z-index:1002;">🏠 Back to Home</a>
   </div>
 </div>
 
@@ -26,14 +26,14 @@
     <p class="sub">Review your items, provide delivery details, and complete payment verification on the next step.</p>
 
     {% if customer %}
-    <!-- Logged in: Do not ask for phone number! -->
+    <!-- Logged in: Customer details auto-filled -->
     <div class="logged-in-user-bar" style="background:#131824; border:1px solid rgba(197,160,89,0.4); border-radius:8px; padding:14px 18px; margin-bottom:22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
       <div style="display:flex; align-items:center; gap:12px;">
         <span style="font-size:24px;">👔</span>
         <div>
-          <div style="font-size:11px; font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em; color:var(--brass); font-weight:600;">Verified Customer &middot; No Phone Required</div>
+          <div style="font-size:11px; font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em; color:var(--brass); font-weight:600;">✓ Verified Customer &middot; Details Auto-Filled</div>
           <div style="font-size:15px; font-weight:600; color:#fff;">
-            {{ customer.name or 'Customer' }} <span style="opacity:0.6; font-weight:normal;">&middot;</span> <span style="font-family:var(--mono); color:#dfc691;">+91 {{ customer.phone }}</span>
+            {{ customer.name if customer.name and customer.name != 'Customer' else 'Valued Client' }} <span style="opacity:0.6; font-weight:normal;">&middot;</span> <span style="font-family:var(--mono); color:#dfc691;">+91 {{ customer.phone }}</span>
           </div>
         </div>
       </div>
@@ -54,23 +54,41 @@
       <form id="checkoutForm">
         <div class="form-grid">
           <div class="field">
-            <label for="cname">Full Name</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="cname" style="margin-bottom:0;">Full Name</label>
+              {% if customer and customer.name and customer.name != 'Customer' %}
+                <span style="color:#22c55e; font-size:11.5px; font-weight:600;">✓ Auto-filled</span>
+              {% endif %}
+            </div>
             <input type="text" id="cname" required value="{{ customer.name if customer and customer.name != 'Customer' else '' }}" placeholder="e.g. Kashyap Nathoo">
           </div>
 
-          {% if customer %}
-            <!-- User is logged in: phone number is automatically used, NOT requested from user -->
-            <input type="hidden" id="cphone" value="{{ customer.phone }}">
-          {% else %}
-            <div class="field">
-              <label for="cphone">Phone Number</label>
+          <div class="field">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="cphone" style="margin-bottom:0;">Phone Number</label>
+              {% if customer %}
+                <span style="color:#22c55e; font-size:11.5px; font-weight:600;">✓ Auto-filled</span>
+              {% endif %}
+            </div>
+            {% if customer %}
+              <div style="position:relative;">
+                <input type="tel" id="cphone" required maxlength="14" value="{{ customer.phone }}" readonly style="background:#131824; border-color:rgba(197,160,89,0.4); color:#dfc691; font-weight:600; cursor:default; padding-right:36px;">
+                <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#22c55e; font-size:16px;">✓</span>
+              </div>
+              <small style="color:#22c55e; font-size:11.5px; margin-top:4px; display:block;">Verified number linked to your account.</small>
+            {% else %}
               <input type="tel" id="cphone" required maxlength="14" placeholder="10-digit mobile number">
               <small style="color:#777; font-size:11.5px; margin-top:4px; display:block;">Used for tailoring status & order tracking.</small>
-            </div>
-          {% endif %}
+            {% endif %}
+          </div>
 
           <div class="field full">
-            <label for="caddress">Delivery / Fitting Address</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="caddress" style="margin-bottom:0;">Delivery / Fitting Address</label>
+              {% if last_address %}
+                <span style="color:#22c55e; font-size:11.5px; font-weight:600;">✓ Auto-filled from previous order</span>
+              {% endif %}
+            </div>
             <textarea id="caddress" rows="2" required placeholder="Full delivery address, or write 'Pickup / Trial from Karol Bagh shop'">{{ last_address or '' }}</textarea>
           </div>
 

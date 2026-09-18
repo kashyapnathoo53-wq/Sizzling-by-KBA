@@ -688,11 +688,19 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 /* ============================================================
    SIMPLE PAGE HEADER (checkout / payment / confirmation)
    ============================================================ */
+.is-hidden {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
 .simple-header{
   background:var(--ink);
   color:var(--text-light);
   padding:20px 0;
   border-bottom:1px solid var(--ink-line);
+  position: relative;
+  z-index: 1000;
 }
 .simple-header .wrap{ display:flex; justify-content:space-between; align-items:center; }
 .simple-page{ padding:60px 0 90px; background:var(--paper); min-height:60vh; }

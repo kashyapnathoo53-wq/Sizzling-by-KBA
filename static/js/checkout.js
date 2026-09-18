@@ -20,7 +20,7 @@ function renderSummary(){
   if (cart.length === 0) {
     container.innerHTML = `
       <p style="text-align:center; padding:20px 0;">
-        Your cart is empty. <a href="/">Go back and add something you like →</a>
+        Your cart is empty. <a href="/" onclick="window.location.href='/'; return true;" style="color:var(--brass); text-decoration:underline;">Go back and add something you like →</a>
       </p>`;
     document.getElementById("checkoutSubmitBtn").disabled = true;
     return;
@@ -43,6 +43,44 @@ function renderSummary(){
 
 renderSummary();
 
+// Client-side auto-fill from saved local storage if fields are empty
+(function initAutoFill() {
+  try {
+    const raw = localStorage.getItem("sizzling_customer_info");
+    if (raw) {
+      const saved = JSON.parse(raw);
+      const nameInput = document.getElementById("cname");
+      const phoneInput = document.getElementById("cphone");
+      const addressInput = document.getElementById("caddress");
+
+      if (nameInput && !nameInput.value.trim() && saved.name) {
+        nameInput.value = saved.name;
+      }
+      if (phoneInput && !phoneInput.value.trim() && saved.phone) {
+        phoneInput.value = saved.phone;
+      }
+      if (addressInput && !addressInput.value.trim() && saved.address) {
+        addressInput.value = saved.address;
+      }
+    }
+  } catch (err) {}
+
+  function saveDetails() {
+    try {
+      const name = document.getElementById("cname")?.value.trim() || "";
+      const phone = document.getElementById("cphone")?.value.trim() || "";
+      const address = document.getElementById("caddress")?.value.trim() || "";
+      if (name || phone || address) {
+        localStorage.setItem("sizzling_customer_info", JSON.stringify({ name, phone, address }));
+      }
+    } catch (e) {}
+  }
+
+  document.getElementById("cname")?.addEventListener("input", saveDetails);
+  document.getElementById("cphone")?.addEventListener("input", saveDetails);
+  document.getElementById("caddress")?.addEventListener("input", saveDetails);
+})();
+
 document.getElementById("checkoutForm").addEventListener("submit", (e) => {
   e.preventDefault();
 
@@ -62,44 +100,49 @@ document.getElementById("checkoutForm").addEventListener("submit", (e) => {
     return;
   }
 
-    btn.disabled = true;
-    btn.textContent = "Setting up payment...";
+  // Save for future auto-fill
+  try {
+    localStorage.setItem("sizzling_customer_info", JSON.stringify({ name, phone, address }));
+  } catch (e) {}
 
-    fetch("/api/create_order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: cart.map(item => ({
-          product_id: item.id,
-          name: item.name,
-          price: item.price,
-          size: item.size,
-          qty: item.qty
-        })),
-        customer: { name, phone, address, notes }
-      })
-    })
-    .then(r => r.json())
-    .then(res => {
-      if (!res.success) {
-        statusEl.textContent = res.error || "Something went wrong. Please try again.";
-        statusEl.className = "form-status error";
-        btn.disabled = false;
-        btn.textContent = "Continue to Payment & Verification →";
-        return;
-      }
-      // Clear cart immediately so consecutive orders can be placed without old cart collision
-      try {
-        localStorage.removeItem(CART_KEY);
-        window.dispatchEvent(new Event("cartUpdated"));
-      } catch (e) {}
+  btn.disabled = true;
+  btn.textContent = "Setting up payment...";
 
-      window.location.href = res.pay_url;
+  fetch("/api/create_order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      items: cart.map(item => ({
+        product_id: item.id,
+        name: item.name,
+        price: item.price,
+        size: item.size,
+        qty: item.qty
+      })),
+      customer: { name, phone, address, notes }
     })
-    .catch(() => {
-      statusEl.textContent = "Could not reach the server. Please check your connection and try again.";
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (!res.success) {
+      statusEl.textContent = res.error || "Something went wrong. Please try again.";
       statusEl.className = "form-status error";
       btn.disabled = false;
       btn.textContent = "Continue to Payment & Verification →";
-    });
+      return;
+    }
+    // Clear cart immediately so consecutive orders can be placed without old cart collision
+    try {
+      localStorage.removeItem(CART_KEY);
+      window.dispatchEvent(new Event("cartUpdated"));
+    } catch (e) {}
+
+    window.location.href = res.pay_url;
+  })
+  .catch(() => {
+    statusEl.textContent = "Could not reach the server. Please check your connection and try again.";
+    statusEl.className = "form-status error";
+    btn.disabled = false;
+    btn.textContent = "Continue to Payment & Verification →";
   });
+});

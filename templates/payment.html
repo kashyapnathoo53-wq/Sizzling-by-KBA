@@ -11,7 +11,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
-  .is-hidden { display: none !important; }
+  .is-hidden, .rzp-modal-backdrop.is-hidden {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
   
   /* Razorpay Custom Modal Styles */
   .rzp-modal-backdrop {
@@ -161,12 +165,12 @@
 </head>
 <body>
 
-<div class="simple-header">
+<div class="simple-header" style="position:relative; z-index:1001;">
   <div class="wrap">
-    <a href="/" class="logo" style="font-size:20px;">SIZZLING <em>by KBA</em></a>
+    <a href="/" onclick="window.location.href='/'; return true;" class="logo" style="font-size:20px; cursor:pointer; position:relative; z-index:1002;">SIZZLING <em>by KBA</em></a>
     <div style="display:flex; gap:10px; align-items:center;">
       <span class="tag" style="color:var(--brass); font-family:var(--mono);">Order #{{ order.id }}</span>
-      <a href="/" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px; display:inline-flex; align-items:center; gap:6px;">🏠 Back to Home</a>
+      <a href="/" onclick="window.location.href='/'; return true;" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; position:relative; z-index:1002;">🏠 Back to Home</a>
     </div>
   </div>
 </div>
@@ -289,7 +293,7 @@
 <!-- ==================================================================== -->
 <!-- SIZZLING RAZORPAY VERIFIED CHECKOUT MODAL -->
 <!-- ==================================================================== -->
-<div id="rzpGatewayModal" class="rzp-modal-backdrop is-hidden">
+<div id="rzpGatewayModal" class="rzp-modal-backdrop is-hidden" style="display:none;">
   <div class="rzp-modal-card">
     <div class="rzp-modal-header">
       <div class="rzp-brand-badge">
@@ -387,7 +391,7 @@
 <!-- ==================================================================== -->
 <!-- CONFIGURE RAZORPAY KEYS MODAL (FOR STORE ADMIN) -->
 <!-- ==================================================================== -->
-<div id="rzpKeysModal" class="rzp-modal-backdrop is-hidden">
+<div id="rzpKeysModal" class="rzp-modal-backdrop is-hidden" style="display:none;">
   <div class="rzp-modal-card" style="max-width:440px;">
     <div class="rzp-modal-header">
       <div class="rzp-brand-badge">
@@ -515,12 +519,18 @@
     // Modal Control Functions
     window.openRzpModal = function() {
       const m = document.getElementById("rzpGatewayModal");
-      if (m) m.classList.remove("is-hidden");
+      if (m) {
+        m.classList.remove("is-hidden");
+        m.style.display = "flex";
+      }
     };
 
     window.closeRzpModal = function() {
       const m = document.getElementById("rzpGatewayModal");
-      if (m) m.classList.add("is-hidden");
+      if (m) {
+        m.classList.add("is-hidden");
+        m.style.display = "none";
+      }
     };
 
     window.switchRzpTab = function(tabName) {
@@ -595,12 +605,18 @@
     // Key configuration modal
     window.openKeyConfigModal = function() {
       const km = document.getElementById("rzpKeysModal");
-      if (km) km.classList.remove("is-hidden");
+      if (km) {
+        km.classList.remove("is-hidden");
+        km.style.display = "flex";
+      }
     };
 
     window.closeKeyConfigModal = function() {
       const km = document.getElementById("rzpKeysModal");
-      if (km) km.classList.add("is-hidden");
+      if (km) {
+        km.classList.add("is-hidden");
+        km.style.display = "none";
+      }
     };
 
     window.saveRazorpayKeys = function() {
