@@ -783,6 +783,19 @@ def api_razorpay_verify_payment(order_id):
     })
 
 
+@app.route("/api/admin/save_razorpay_keys", methods=["POST"])
+def api_save_razorpay_keys():
+    data = request.json or {}
+    key_id = (data.get("key_id") or "").strip()
+    key_secret = (data.get("key_secret") or "").strip()
+    if not key_id:
+        return jsonify({"success": False, "error": "Razorpay Key ID is required."}), 400
+    set_setting("razorpay_key_id", key_id)
+    set_setting("razorpay_key_secret", key_secret)
+    set_setting("razorpay_enabled", "1")
+    return jsonify({"success": True, "message": "Razorpay API keys saved successfully!"})
+
+
 @app.route("/api/order/<int:order_id>/submit_payment_ref", methods=["POST"])
 def api_submit_payment_ref(order_id):
     data = request.json or {}
@@ -1716,19 +1729,27 @@ def api_wishlist_ids():
 
 
 @app.route("/account/wishlist")
-@customer_login_required
 def my_wishlist():
-    cust_id = session["customer_id"]
+    cust_id = session.get("customer_id")
     conn = get_db()
-    rows = conn.execute(
-        """SELECT p.* FROM wishlist w JOIN products p ON w.product_id=p.id
-           WHERE w.customer_id=? AND p.active=1 ORDER BY w.id DESC""",
-        (cust_id,),
+    all_products = conn.execute(
+        "SELECT id, category, name, description, price, image_path FROM products WHERE active=1 ORDER BY sort_order, id"
     ).fetchall()
+
+    db_products = []
+    if cust_id:
+        db_products = conn.execute(
+            """SELECT p.* FROM wishlist w JOIN products p ON w.product_id=p.id
+               WHERE w.customer_id=? AND p.active=1 ORDER BY w.id DESC""",
+            (cust_id,),
+        ).fetchall()
     conn.close()
+
+    import json
     return render_template(
         "user/wishlist.html",
-        products=[dict(r) for r in rows],
+        db_products=[dict(r) for r in db_products],
+        all_products_json=json.dumps([dict(r) for r in all_products]),
         settings=get_settings(),
     )
 
