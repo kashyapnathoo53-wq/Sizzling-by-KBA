@@ -69,6 +69,19 @@
         </div>
       </div>
 
+      <div class="field-row" style="background:#101726; padding:16px; border-radius:8px; border:1px solid #283750; margin-bottom:16px;">
+        <div class="field">
+          <label for="razorpay_key_id" style="color:#60a5fa;">⚡ Razorpay Key ID</label>
+          <input type="text" id="razorpay_key_id" name="razorpay_key_id" value="{{ settings.razorpay_key_id or '' }}" placeholder="rzp_live_... or rzp_test_...">
+          <div class="help-text">From Razorpay Dashboard &gt; Settings &gt; API Keys.</div>
+        </div>
+        <div class="field">
+          <label for="razorpay_key_secret" style="color:#60a5fa;">🔒 Razorpay Key Secret</label>
+          <input type="password" id="razorpay_key_secret" name="razorpay_key_secret" value="{{ settings.razorpay_key_secret or '' }}" placeholder="Enter secret key">
+          <div class="help-text">Used securely for HMAC-SHA256 signature verification.</div>
+        </div>
+      </div>
+
       <div class="field">
         <label for="fast2sms_api_key">Fast2SMS API Key (for real mobile OTP SMS)</label>
         <input type="text" id="fast2sms_api_key" name="fast2sms_api_key" value="{{ settings.fast2sms_api_key or '' }}" placeholder="Paste Fast2SMS dev/bulk API key here">

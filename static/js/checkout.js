@@ -69,7 +69,13 @@ document.getElementById("checkoutForm").addEventListener("submit", (e) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        items: cart.map(item => ({ product_id: item.id, size: item.size, qty: item.qty })),
+        items: cart.map(item => ({
+          product_id: item.id,
+          name: item.name,
+          price: item.price,
+          size: item.size,
+          qty: item.qty
+        })),
         customer: { name, phone, address, notes }
       })
     })
@@ -79,16 +85,21 @@ document.getElementById("checkoutForm").addEventListener("submit", (e) => {
         statusEl.textContent = res.error || "Something went wrong. Please try again.";
         statusEl.className = "form-status error";
         btn.disabled = false;
-        btn.textContent = "Continue to UPI Payment & Verification →";
+        btn.textContent = "Continue to Payment & Verification →";
         return;
       }
-      // Order created in awaiting_payment state; cart is kept until payment confirmation is submitted on next screen
+      // Clear cart immediately so consecutive orders can be placed without old cart collision
+      try {
+        localStorage.removeItem(CART_KEY);
+        window.dispatchEvent(new Event("cartUpdated"));
+      } catch (e) {}
+
       window.location.href = res.pay_url;
     })
     .catch(() => {
       statusEl.textContent = "Could not reach the server. Please check your connection and try again.";
       statusEl.className = "form-status error";
       btn.disabled = false;
-      btn.textContent = "Continue to UPI Payment & Verification →";
+      btn.textContent = "Continue to Payment & Verification →";
     });
   });

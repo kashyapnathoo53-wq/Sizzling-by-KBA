@@ -68,6 +68,7 @@ CATEGORIES = [
     ("shirts", "Formal Shirts", "upper"),
     ("pants", "Formal Pants", "lower"),
     ("sherwanis", "Wedding Sherwanis", "upper"),
+    ("ties_bows", "Ties & Bow Ties", "accessory"),
 ]
 CATEGORY_KEYS = [c[0] for c in CATEGORIES]
 CATEGORY_LABELS = {c[0]: c[1] for c in CATEGORIES}
@@ -75,6 +76,7 @@ CATEGORY_SIZE_TYPE = {c[0]: c[2] for c in CATEGORIES}
 
 UPPER_SIZES = [36, 38, 40, 42, 44]
 LOWER_SIZES = [30, 32, 34, 36, 38]
+ACCESSORY_SIZES = ["Standard", "Slim", "Free Size"]
 
 DEFAULT_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "sizzling@2026")
 QR_DIR = QR_DIR_TMP if _ON_VERCEL else os.path.join(BASE_DIR, "static", "images", "qr")
@@ -254,6 +256,9 @@ def init_db():
         "admin_password_hash": generate_password_hash(DEFAULT_ADMIN_PASSWORD),
         "upi_id": "8595511923@ptaxis",
         "upi_payee_name": "SIZZLING by KBA",
+        "razorpay_key_id": os.environ.get("RAZORPAY_KEY_ID", "rzp_test_1DP5mmOlF5G5ag"),
+        "razorpay_key_secret": os.environ.get("RAZORPAY_KEY_SECRET", ""),
+        "razorpay_enabled": "1",
     }
     for key, value in defaults.items():
         cur.execute(
@@ -269,7 +274,32 @@ def init_db():
         seed_products(cur)
         conn.commit()
 
+    # Ensure ties & bows are seeded even if other products already existed
+    count_ties = cur.execute("SELECT COUNT(*) FROM products WHERE category='ties_bows'").fetchone()[0]
+    if count_ties == 0:
+        seed_ties_bows(cur)
+        conn.commit()
+
     conn.close()
+
+
+def seed_ties_bows(cur):
+    import json
+    ties = [
+        ("Silk Jacquard Paisley Necktie", "Woven mulberry silk with intricate tonal paisley pattern and pure wool interlining.", 1499, "tie_jacquard_paisley.jpg"),
+        ("Midnight Velvet Black Bow Tie", "Pre-tied structured black velvet bow tie with adjustable neckband and brass hardware.", 1299, "bowtie_black_velvet.jpg"),
+        ("Emerald Forest Silk Satin Tie", "Lustrous emerald green silk satin tie with handcrafted bar tack and hand-rolled tip.", 1599, "tie_emerald_satin.jpg"),
+        ("Satin Silk Tuxedo Bow Tie & Pocket Square Set", "Pure silk satin evening bow tie with matching hand-hemmed pocket square for black-tie galas.", 1899, "bowtie_tuxedo_set.jpg"),
+        ("Royal Navy Knit Silk Tie", "Textured square-blade knit tie crafted in deep royal navy silk for sophisticated smart-casual styling.", 1399, "tie_navy_knit.jpg"),
+        ("Champagne Gold Wedding Bow Tie", "Luxurious champagne gold brocade silk bow tie woven for weddings and groom celebrations.", 1499, "bowtie_gold_brocade.jpg"),
+    ]
+    for i, (name, desc, price, img_file) in enumerate(ties):
+        prod_image = f"products/{img_file}"
+        gallery = json.dumps([prod_image, f"products/{img_file}"])
+        cur.execute("""
+            INSERT INTO products(category, name, description, price, image_path, gallery_images, sort_order)
+            VALUES (?,?,?,?,?,?,?)
+        """, ("ties_bows", name, desc, price, prod_image, gallery, i))
 
 
 def seed_products(cur):
@@ -322,6 +352,14 @@ def seed_products(cur):
             ("Noir Embroidered Designer Sherwani", "Sleek tonal jacquard raw silk achkan with velvet mandarin collar and handcrafted antique gold buttons.", 15999, "sherwani_pastel_peach.jpg"),
             ("Royal Heritage Bandhgala Suit", "Tailored black royal bandhgala jacket with jeweled ruby brooch and silk pocket square.", 12999, "sherwani_emerald_embroidered.jpg"),
             ("Royal Midnight & Gold Brocade Sherwani", "Lavish midnight blue and gold brocade achkan with royal blue velvet stole.", 16999, "sherwani_midnight_blue.jpg"),
+        ],
+        "ties_bows": [
+            ("Silk Jacquard Paisley Necktie", "Woven mulberry silk with intricate tonal paisley pattern and pure wool interlining.", 1499, "tie_jacquard_paisley.jpg"),
+            ("Midnight Velvet Black Bow Tie", "Pre-tied structured black velvet bow tie with adjustable neckband and brass hardware.", 1299, "bowtie_black_velvet.jpg"),
+            ("Emerald Forest Silk Satin Tie", "Lustrous emerald green silk satin tie with handcrafted bar tack and hand-rolled tip.", 1599, "tie_emerald_satin.jpg"),
+            ("Satin Silk Tuxedo Bow Tie & Pocket Square Set", "Pure silk satin evening bow tie with matching hand-hemmed pocket square for black-tie galas.", 1899, "bowtie_tuxedo_set.jpg"),
+            ("Royal Navy Knit Silk Tie", "Textured square-blade knit tie crafted in deep royal navy silk for sophisticated smart-casual styling.", 1399, "tie_navy_knit.jpg"),
+            ("Champagne Gold Wedding Bow Tie", "Luxurious champagne gold brocade silk bow tie woven for weddings and groom celebrations.", 1499, "bowtie_gold_brocade.jpg"),
         ],
     }
 
@@ -394,7 +432,10 @@ def login_required(view):
 
 
 def sizes_for(category):
-    return UPPER_SIZES if CATEGORY_SIZE_TYPE.get(category, "upper") == "upper" else LOWER_SIZES
+    st = CATEGORY_SIZE_TYPE.get(category, "upper")
+    if st == "accessory":
+        return ACCESSORY_SIZES
+    return UPPER_SIZES if st == "upper" else LOWER_SIZES
 
 
 # =====================================================================
@@ -420,6 +461,7 @@ def home():
         products_by_cat=products_by_cat,
         upper_sizes=UPPER_SIZES,
         lower_sizes=LOWER_SIZES,
+        accessory_sizes=ACCESSORY_SIZES,
         category_size_type=CATEGORY_SIZE_TYPE,
         settings=settings,
     )
@@ -516,23 +558,45 @@ def api_create_order():
 
     for item in items:
         product_id = item.get("product_id")
-        size = str(item.get("size", ""))
+        item_name = (item.get("name") or "").strip()
+        size = str(item.get("size") or "Standard")
         qty = max(1, int(item.get("qty", 1)))
+        client_price = float(item.get("price", 0) or 0)
 
-        product = cur.execute(
-            "SELECT * FROM products WHERE id=? AND active=1", (product_id,)
-        ).fetchone()
-        if product is None or product["price"] is None:
-            continue  # skip items with no fixed price or that no longer exist
+        product = None
+        if product_id:
+            try:
+                product = cur.execute(
+                    "SELECT * FROM products WHERE id=? AND active=1", (int(product_id),)
+                ).fetchone()
+            except Exception:
+                pass
+        if product is None and item_name:
+            product = cur.execute(
+                "SELECT * FROM products WHERE name=? AND active=1", (item_name,)
+            ).fetchone()
 
-        line_total = product["price"] * qty
+        if product is not None and product["price"] is not None:
+            p_id = product["id"]
+            p_name = product["name"]
+            p_cat = product["category"]
+            p_price = float(product["price"])
+        elif item_name and client_price > 0:
+            p_id = int(product_id) if product_id and str(product_id).isdigit() else None
+            p_name = item_name
+            p_cat = item.get("category", "bespoke")
+            p_price = client_price
+        else:
+            continue
+
+        line_total = p_price * qty
         total += line_total
         order_items.append({
-            "product_id": product["id"],
-            "product_name": product["name"],
-            "category": product["category"],
+            "product_id": p_id,
+            "product_name": p_name,
+            "category": p_cat,
             "size": size,
-            "price": product["price"],
+            "price": p_price,
             "qty": qty,
             "line_total": line_total,
         })
@@ -611,10 +675,112 @@ def order_pay(order_id):
     settings = get_settings()
     upi_uri, qr_data_uri = _generate_upi_qr(order_id, order["total"])
 
+    rzp_key_id = (settings.get("razorpay_key_id") or os.environ.get("RAZORPAY_KEY_ID") or "rzp_test_1DP5mmOlF5G5ag").strip()
+    rzp_enabled = settings.get("razorpay_enabled", "1") == "1"
+
     return render_template(
         "payment.html", order=order, items=items, settings=settings,
-        upi_uri=upi_uri, qr_data_uri=qr_data_uri
+        upi_uri=upi_uri, qr_data_uri=qr_data_uri,
+        razorpay_key_id=rzp_key_id, razorpay_enabled=rzp_enabled,
     )
+
+
+@app.route("/api/order/<int:order_id>/razorpay/create_order", methods=["POST"])
+def api_razorpay_create_order(order_id):
+    conn = get_db()
+    order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+    conn.close()
+    if not order:
+        return jsonify({"success": False, "error": "Order not found."}), 404
+
+    settings = get_settings()
+    key_id = (settings.get("razorpay_key_id") or os.environ.get("RAZORPAY_KEY_ID") or "rzp_test_1DP5mmOlF5G5ag").strip()
+    key_secret = (settings.get("razorpay_key_secret") or os.environ.get("RAZORPAY_KEY_SECRET") or "").strip()
+
+    if not key_id:
+        return jsonify({"success": False, "error": "Razorpay Key ID is not configured. Please set it in Admin Settings."}), 400
+
+    amount_paise = int(round(float(order["total"]) * 100))
+    rzp_order_id = None
+
+    if key_secret:
+        try:
+            import razorpay
+            client = razorpay.Client(auth=(key_id, key_secret))
+            client.set_app_details({"title": "SIZZLING by KBA", "version": "1.0.0"})
+            rzp_res = client.order.create({
+                "amount": amount_paise,
+                "currency": "INR",
+                "receipt": f"order_{order_id}",
+                "notes": {
+                    "order_id": str(order_id),
+                    "customer_name": str(order["customer_name"] or "")[:40],
+                    "phone": str(order["phone"] or "")[:15]
+                }
+            })
+            rzp_order_id = rzp_res.get("id")
+        except Exception as e:
+            print(f"[Razorpay Notice] Order creation on server returned: {e}")
+
+    return jsonify({
+        "success": True,
+        "key_id": key_id,
+        "razorpay_order_id": rzp_order_id,
+        "amount": amount_paise,
+        "currency": "INR",
+        "order_id": order_id,
+        "customer_name": order["customer_name"],
+        "customer_phone": order["phone"],
+    })
+
+
+@app.route("/api/order/<int:order_id>/razorpay/verify_payment", methods=["POST"])
+def api_razorpay_verify_payment(order_id):
+    data = request.json or {}
+    payment_id = (data.get("razorpay_payment_id") or "").strip()
+    rzp_order_id = (data.get("razorpay_order_id") or "").strip()
+    signature = (data.get("razorpay_signature") or "").strip()
+
+    if not payment_id:
+        return jsonify({"success": False, "error": "Missing payment reference ID."}), 400
+
+    conn = get_db()
+    order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+    if not order:
+        conn.close()
+        return jsonify({"success": False, "error": "Order not found."}), 404
+
+    settings = get_settings()
+    key_secret = (settings.get("razorpay_key_secret") or os.environ.get("RAZORPAY_KEY_SECRET") or "").strip()
+
+    # Signature verification if secret and signature provided
+    if key_secret and rzp_order_id and signature:
+        import hmac
+        import hashlib
+        msg = f"{rzp_order_id}|{payment_id}".encode("utf-8")
+        expected_sig = hmac.new(key_secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected_sig, signature):
+            conn.close()
+            return jsonify({"success": False, "error": "Razorpay payment signature verification failed."}), 400
+
+    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute("""
+        UPDATE orders
+        SET status = 'confirmed',
+            payment_status = 'payment_verified',
+            payment_ref = ?,
+            payment_verified_at = ?,
+            updated_at = ?
+        WHERE id = ?
+    """, (payment_id, now_str, now_str, order_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "success": True,
+        "order_id": order_id,
+        "redirect": url_for("order_confirmation", order_id=order_id, verified=1)
+    })
 
 
 @app.route("/api/order/<int:order_id>/submit_payment_ref", methods=["POST"])
@@ -652,12 +818,58 @@ def order_confirmation(order_id):
     if order is None:
         conn.close()
         abort(404)
+
+    # Check payment state: only confirm if payment is verified or submitted!
+    is_paid = (order["payment_status"] == "payment_verified") or (
+        order["status"] in ["confirmed", "tailoring", "trial_ready", "dispatched", "delivered"]
+    )
+    is_submitted = (order["payment_status"] == "payment_submitted") or bool(order["payment_ref"])
+
+    # If unpaid and still awaiting confirmation, redirect back to payment page
+    if not is_paid and not is_submitted and order["status"] in ("awaiting_payment_confirmation", "pending_payment"):
+        conn.close()
+        flash("Please complete your payment to confirm your order.", "warning")
+        return redirect(url_for("order_pay", order_id=order_id))
+
     items = conn.execute(
         "SELECT * FROM order_items WHERE order_id=?", (order_id,)
     ).fetchall()
     conn.close()
+
+    # Format full order specifications for Atelier WhatsApp dispatch on 9811551935
+    item_lines = []
+    for it in items:
+        item_lines.append(f"• {it['product_name']} (Size: {it['size']}) x {it['qty']} = Rs. {int(it['line_total']):,}")
+    items_summary = "\n".join(item_lines)
+
+    notes_line = f"\nNotes: {order['notes']}" if order['notes'] else ""
+    pay_ref = order['payment_ref'] or 'Verified'
+
+    whatsapp_message = (
+        f"🧵 *NEW CONFIRMED ORDER — SIZZLING BY KBA*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📋 *Order ID:* #{order['id']}\n"
+        f"📅 *Date:* {order['created_at']}\n"
+        f"💳 *Payment:* VERIFIED (Ref: {pay_ref})\n"
+        f"💰 *Total Amount:* Rs. {int(order['total']):,}\n\n"
+        f"👤 *CUSTOMER DETAILS:*\n"
+        f"• *Name:* {order['customer_name']}\n"
+        f"• *Phone:* {order['phone']}\n"
+        f"📍 *DELIVERY ADDRESS:*\n"
+        f"{order['address']}{notes_line}\n\n"
+        f"🛍️ *ORDER ITEMS:*\n"
+        f"{items_summary}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"✨ Payment verified & order confirmed. Ready for atelier tailoring!"
+    )
+
     return render_template(
-        "order_confirmation.html", order=order, items=items, settings=get_settings()
+        "order_confirmation.html",
+        order=order,
+        items=items,
+        settings=get_settings(),
+        whatsapp_message=whatsapp_message,
+        is_paid=is_paid,
     )
 
 
@@ -1149,7 +1361,8 @@ def admin_enquiries():
 def admin_settings():
     if request.method == "POST":
         for key in ["whatsapp_number", "shop_phone", "brand_name", "owner_name",
-                    "address", "hours", "upi_id", "upi_payee_name", "fast2sms_api_key"]:
+                    "address", "hours", "upi_id", "upi_payee_name", "fast2sms_api_key",
+                    "razorpay_key_id", "razorpay_key_secret"]:
             value = request.form.get(key, "").strip()
             set_setting(key, value)
 

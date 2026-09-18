@@ -161,12 +161,13 @@
       <a class="cat-pill" href="#shirts" data-cat="shirts">Formal Shirts</a>
       <a class="cat-pill" href="#pants" data-cat="pants">Formal Pants</a>
       <a class="cat-pill groom" href="#sherwanis" data-cat="sherwanis">Wedding Sherwanis</a>
+      <a class="cat-pill" href="#ties_bows" data-cat="ties_bows">Ties &amp; Bow Ties</a>
     </div>
     
     <div class="cat-nav-actions">
       <div class="catalog-search-wrap">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="catalogSearch" placeholder="Search suits, fabric, sherwanis..." aria-label="Search garments">
+        <input type="text" id="catalogSearch" placeholder="Search suits, fabric, sherwanis, ties..." aria-label="Search garments">
         <button id="searchClearBtn" class="search-clear-btn" aria-label="Clear search" style="display:none;">&times;</button>
       </div>
       <button class="size-guide-pill-btn" id="openSizeGuideBtn">📏 Sizing Chart</button>
@@ -185,7 +186,8 @@
   'jackets': 'Winter Tailoring',
   'shirts': '100% Fine Cotton',
   'pants': 'Tailored Crease',
-  'sherwanis': 'Groom Handcrafted'
+  'sherwanis': 'Groom Handcrafted',
+  'ties_bows': 'Pure Silk & Velvet'
 } %}
 
 {% macro product_card(p, size_list) %}
@@ -223,7 +225,7 @@
     <div class="size-select-row">
       <div class="size-label-wrap">
         <label for="size-{{ p.id }}">Size</label>
-        <button class="card-size-guide-link" data-type="{{ 'lower' if p.category == 'pants' else 'upper' }}">Guide</button>
+        <button class="card-size-guide-link" data-type="{{ 'accessory' if p.category == 'ties_bows' else ('lower' if p.category == 'pants' else 'upper') }}">Guide</button>
       </div>
       <select id="size-{{ p.id }}">
         {% for s in size_list %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
@@ -256,34 +258,35 @@
 </div>
 {% endmacro %}
 
-{% set cat_classes = {'suits':'', 'blazers':'dark', 'jackets':'', 'shirts':'dark', 'pants':'', 'sherwanis':'groom'} %}
-{% set cat_codes = {'suits':'SZ-01', 'blazers':'SZ-02', 'jackets':'SZ-03', 'shirts':'SZ-04', 'pants':'SZ-05', 'sherwanis':'For the Groom'} %}
+{% set cat_classes = {'suits':'', 'blazers':'dark', 'jackets':'', 'shirts':'dark', 'pants':'', 'sherwanis':'groom', 'ties_bows':'dark'} %}
+{% set cat_codes = {'suits':'SZ-01', 'blazers':'SZ-02', 'jackets':'SZ-03', 'shirts':'SZ-04', 'pants':'SZ-05', 'sherwanis':'For the Groom', 'ties_bows':'SZ-06'} %}
 {% set cat_copy = {
   'suits':"Two-piece and three-piece suits cut for the boardroom, built for the whole day — from morning meetings to evening dinners.",
   'blazers':"Single-breasted blazers that move easily between a formal desk and a festive evening — the one piece that upgrades everything under it.",
   'jackets':"Structured outerwear for the months Delhi actually needs it — built to layer cleanly over a shirt without losing shape.",
   'shirts':"The everyday layer, done properly — clean collars and a fit that holds up under a jacket or on its own.",
   'pants':"Trousers built to be worn on their own, under a blazer, or as part of a full suit — sized 30 to 38.",
-  'sherwanis':"One outfit, one day, no room for compromise. Hand-finished sherwanis for the groom, sized and altered before the baraat — not the week after."
+  'sherwanis':"One outfit, one day, no room for compromise. Hand-finished sherwanis for the groom, sized and altered before the baraat — not the week after.",
+  'ties_bows':"Handcrafted mulberry silk neckties, tailored velvet bow ties, and black-tie accessories woven to crown bespoke suits and formal eveningwear."
 } %}
-{% set cat_heading = {'suits':'Suits','blazers':'Blazers','jackets':'Jackets','shirts':'Formal Shirts','pants':'Formal Pants','sherwanis':'Wedding Sherwanis'} %}
+{% set cat_heading = {'suits':'Suits','blazers':'Blazers','jackets':'Jackets','shirts':'Formal Shirts','pants':'Formal Pants','sherwanis':'Wedding Sherwanis','ties_bows':'Ties & Bow Ties'} %}
 
 {% for key, label, size_type in categories %}
-<section class="category {{ cat_classes[key] }}" id="{{ key }}" data-section-cat="{{ key }}">
+<section class="category {{ cat_classes.get(key, '') }}" id="{{ key }}" data-section-cat="{{ key }}">
   <div class="wrap">
     <div class="cat-head">
       <div>
-        <span class="eyebrow">{% if key == 'sherwanis' %}For the Groom{% else %}Style Code {{ cat_codes[key] }}{% endif %}</span>
-        <h2>{{ cat_heading[key] }}</h2>
+        <span class="eyebrow">{% if key == 'sherwanis' %}For the Groom{% else %}Style Code {{ cat_codes.get(key, 'SZ') }}{% endif %}</span>
+        <h2>{{ cat_heading.get(key, label) }}</h2>
       </div>
-      <p>{{ cat_copy[key] }}</p>
+      <p>{{ cat_copy.get(key, '') }}</p>
     </div>
 
     <div class="grid">
-      {% set items = products_by_cat[key] %}
+      {% set items = products_by_cat.get(key, []) %}
       {% if items %}
         {% for p in items %}
-          {{ product_card(p, upper_sizes if category_size_type[key] == 'upper' else lower_sizes) }}
+          {{ product_card(p, accessory_sizes if category_size_type[key] == 'accessory' else (upper_sizes if category_size_type[key] == 'upper' else lower_sizes)) }}
         {% endfor %}
       {% else %}
         <p class="empty-msg">More pieces coming soon in this category.</p>
