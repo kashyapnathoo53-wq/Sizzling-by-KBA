@@ -1491,10 +1491,14 @@ def _login_or_register_customer(clean_phone, name=None):
     # Look up past orders for this phone number to infer customer name or address
     past_order = conn.execute(
         """SELECT customer_name, address FROM orders 
-           WHERE (phone=? OR phone=? OR phone=?) 
-             AND customer_name IS NOT NULL AND customer_name != '' AND customer_name != 'Customer'
+           WHERE (
+               phone=? OR phone=? OR phone=? OR phone=?
+               OR phone LIKE ? 
+               OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE '%' || ?
+           )
+           AND customer_name IS NOT NULL AND customer_name != '' AND customer_name != 'Customer'
            ORDER BY id DESC LIMIT 1""",
-        (clean_phone, f"91{clean_phone}", f"+91{clean_phone}")
+        (clean_phone, f"91{clean_phone}", f"+91{clean_phone}", f"0{clean_phone}", f"%{clean_phone}%", clean_phone)
     ).fetchone()
 
     inferred_name = (past_order["customer_name"] if past_order and past_order["customer_name"] else "").strip()
@@ -1522,8 +1526,14 @@ def _login_or_register_customer(clean_phone, name=None):
     # Link past orders
     try:
         conn.execute(
-            "UPDATE orders SET customer_id=? WHERE (phone=? OR phone=? OR phone=?) AND (customer_id IS NULL OR customer_id != ?)",
-            (cust_id, clean_phone, f"91{clean_phone}", f"+91{clean_phone}", cust_id),
+            """UPDATE orders SET customer_id=? 
+               WHERE (customer_id IS NULL OR customer_id != ?) 
+                 AND (
+                     phone=? OR phone=? OR phone=? OR phone=?
+                     OR phone LIKE ?
+                     OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE '%' || ?
+                 )""",
+            (cust_id, cust_id, clean_phone, f"91{clean_phone}", f"+91{clean_phone}", f"0{clean_phone}", f"%{clean_phone}%", clean_phone),
         )
     except Exception:
         pass
@@ -1693,38 +1703,106 @@ def customer_logout():
 def my_orders():
     cust_id = session.get("customer_id")
     phone = session.get("customer_phone", "")
+    clean_p = _normalize_phone(phone)
     conn = get_db()
+
+    # Automatically link any orders placed with this phone number
+    if cust_id and clean_p:
+        try:
+            conn.execute(
+                """UPDATE orders SET customer_id=? 
+                   WHERE (customer_id IS NULL OR customer_id != ?) 
+                     AND (
+                         phone=? OR phone=? OR phone=? OR phone=?
+                         OR phone LIKE ?
+                         OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE '%' || ?
+                     )""",
+                (cust_id, cust_id, clean_p, f"91{clean_p}", f"+91{clean_p}", f"0{clean_p}", f"%{clean_p}%", clean_p),
+            )
+            conn.commit()
+        except Exception:
+            pass
+
     orders = conn.execute(
         """SELECT * FROM orders 
            WHERE customer_id=? 
-              OR (phone IS NOT NULL AND phone != '' AND (phone=? OR phone=? OR phone=?))
+              OR (phone IS NOT NULL AND phone != '' AND (
+                  phone=? OR phone=? OR phone=? OR phone=? 
+                  OR phone LIKE ?
+                  OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE '%' || ?
+              ))
            ORDER BY id DESC""",
-        (cust_id, phone, f"91{phone}" if phone else "", f"+91{phone}" if phone else ""),
+        (cust_id, clean_p, f"91{clean_p}", f"+91{clean_p}", f"0{clean_p}", f"%{clean_p}%", clean_p),
     ).fetchall()
+
+    orders_data = []
+    for o in orders:
+        items = conn.execute(
+            """SELECT oi.*, p.image_path 
+               FROM order_items oi 
+               LEFT JOIN products p ON oi.product_id=p.id 
+               WHERE oi.order_id=?""",
+            (o["id"],)
+        ).fetchall()
+        o_dict = dict(o)
+        o_dict["order_items"] = [dict(it) for it in items]
+        orders_data.append(o_dict)
+
+    customer = None
+    if cust_id:
+        customer = conn.execute("SELECT * FROM customers WHERE id=?", (cust_id,)).fetchone()
+
     conn.close()
     return render_template(
         "user/my_orders.html",
-        orders=orders,
+        orders=orders_data,
+        customer=customer,
         settings=get_settings(),
-        customer_phone=session.get("customer_phone"),
+        customer_phone=phone,
     )
 
 
 @app.route("/account/order/<int:order_id>")
 @customer_login_required
 def my_order_detail(order_id):
-    cust_id = session["customer_id"]
+    cust_id = session.get("customer_id")
+    phone = session.get("customer_phone", "")
+    clean_p = _normalize_phone(phone)
     conn = get_db()
     order = conn.execute(
-        "SELECT * FROM orders WHERE id=? AND customer_id=?", (order_id, cust_id)
+        """SELECT * FROM orders 
+           WHERE id=? AND (
+               customer_id=? 
+               OR (phone IS NOT NULL AND (
+                   phone=? OR phone=? OR phone=? OR phone=? 
+                   OR phone LIKE ?
+                   OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE '%' || ?
+               ))
+           )""",
+        (order_id, cust_id, clean_p, f"91{clean_p}", f"+91{clean_p}", f"0{clean_p}", f"%{clean_p}%", clean_p)
     ).fetchone()
+
     if order is None:
         conn.close()
         abort(404)
+
+    # Link customer_id to this order if not set
+    if cust_id and order["customer_id"] != cust_id:
+        try:
+            conn.execute("UPDATE orders SET customer_id=? WHERE id=?", (cust_id, order_id))
+            conn.commit()
+        except Exception:
+            pass
+
     items = conn.execute(
-        "SELECT * FROM order_items WHERE order_id=?", (order_id,)
+        """SELECT oi.*, p.image_path 
+           FROM order_items oi 
+           LEFT JOIN products p ON oi.product_id=p.id 
+           WHERE oi.order_id=?""",
+        (order_id,)
     ).fetchall()
     conn.close()
+
     return render_template(
         "user/order_detail.html",
         order=order, items=items,

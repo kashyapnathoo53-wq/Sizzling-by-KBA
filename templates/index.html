@@ -41,7 +41,7 @@
         <span>Cart</span> <span class="cart-count" id="cartCount">0</span>
       </button>
 
-      {% if session.get('customer_id') %}
+      {% if session.get('customer_id') or session.get('customer_phone') %}
       <a href="/account/orders" class="account-nav-btn" title="View my orders">📦 Orders</a>
       <a href="/account/logout" class="account-logout-btn" title="Logout">Logout</a>
       {% else %}
