@@ -70,7 +70,7 @@
       <a href="/account/orders" class="account-nav-btn" title="View my orders">📦 Orders</a>
       <a href="/account/logout" class="account-logout-btn" title="Logout">Logout</a>
       {% else %}
-      <a href="/login" class="account-nav-btn" title="Sign In with Admin credentials or track orders">🔑 Login / Database</a>
+      <a href="/login" class="account-nav-btn" title="Sign In or Track Orders">🔑 Login</a>
       {% endif %}
 
       <a href="#" class="btn btn-brass" id="waHeaderBtn">WhatsApp Us</a>
@@ -418,7 +418,7 @@
 
     <div class="footer-bottom">
       <span class="logo">SIZZLING <em>by KBA</em></span>
-      <span>&copy; <span id="year"></span> {{ settings.brand_name }}. All rights reserved. &middot; <a href="/login?tab=admin" style="color:var(--brass-light); text-decoration:underline; font-weight:600; font-size:12.5px;">🗄️ Admin Database Portal ↗</a></span>
+      <span>&copy; <span id="year"></span> {{ settings.brand_name }}. All rights reserved.{% if session.get('is_admin') %} &middot; <a href="/admin" style="color:var(--brass-light); text-decoration:underline; font-weight:600; font-size:12.5px;">🗄️ Admin Portal</a>{% endif %}</span>
     </div>
   </div>
 </footer>

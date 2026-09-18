@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portal Sign In — {{ settings.brand_name }}</title>
+<title>Sign In &middot; {{ settings.brand_name }}</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
 <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon_32.png') }}">
 <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='images/favicon.png') }}">
@@ -13,42 +13,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <style>
-  .login-role-tabs {
-    display: flex;
-    background: #090c13;
-    border: 1px solid #222c3d;
-    border-radius: 8px;
-    padding: 4px;
-    margin-bottom: 24px;
-    gap: 4px;
-  }
-  .role-tab-btn {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    padding: 11px 12px;
-    font-size: 13.5px;
-    font-weight: 600;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-family: var(--font-body, sans-serif);
-  }
-  .role-tab-btn:hover {
-    color: #fff;
-    background: rgba(255,255,255,0.04);
-  }
-  .role-tab-btn.active {
-    background: #172030;
-    color: var(--brass-light, #dfc691);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-    border: 1px solid rgba(197, 160, 89, 0.4);
-  }
   .password-wrap {
     position: relative;
     display: flex;
@@ -64,12 +28,13 @@
     background: transparent;
     border: none;
     color: #8899a6;
-    font-size: 14px;
+    font-size: 15px;
     cursor: pointer;
     padding: 4px;
+    transition: color 0.2s;
   }
   .toggle-pwd-btn:hover {
-    color: #fff;
+    color: var(--brass-light, #dfc691);
   }
 </style>
 </head>
@@ -85,162 +50,82 @@
 <div class="simple-page">
   <div class="wrap" style="max-width:480px;">
 
-    <!-- Switcher Tabs between Admin Database and Customer Track -->
-    <div class="login-role-tabs" id="roleTabs">
-      <button type="button" class="role-tab-btn {% if active_tab == 'admin' %}active{% endif %}" id="tabBtnAdmin" onclick="switchLoginTab('admin')">
-        <span>🛡️ Admin Database</span>
-      </button>
-      <button type="button" class="role-tab-btn {% if active_tab != 'admin' %}active{% endif %}" id="tabBtnCustomer" onclick="switchLoginTab('customer')">
-        <span>👔 Track Orders</span>
-      </button>
-    </div>
-
-    <!-- ADMIN DATABASE LOGIN VIEW -->
-    <div id="adminLoginSection" style="{% if active_tab != 'admin' %}display:none;{% endif %}">
-      <div style="text-align:center; margin-bottom:28px;">
-        <div style="font-size:44px; margin-bottom:10px;">🗄️</div>
-        <h1 style="font-size:26px; margin-bottom:8px;">Admin Database Portal</h1>
-        <p class="sub" style="margin-bottom:0;">Enter master credentials to unlock and view the store database, live order status, and inventory.</p>
-      </div>
-
-      <div class="form-card" style="border:1px solid rgba(197,160,89,0.35); box-shadow:0 8px 30px rgba(0,0,0,0.45);">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="form-status {{ category }}" style="margin-bottom:16px; text-align:center;">{{ message }}</div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <form id="adminLoginForm" method="POST" action="/login">
-          <input type="hidden" name="login_type" value="admin">
-          <input type="hidden" name="next" value="{{ next_url or '/admin' }}">
-
-          <div class="field" style="margin-bottom:16px;">
-            <label for="adminUsername">Admin Username</label>
-            <input type="text" id="adminUsername" name="username" value="admin" autocomplete="username" required>
-          </div>
-
-          <div class="field" style="margin-bottom:22px;">
-            <label for="adminPassword">Master Admin Password</label>
-            <div class="password-wrap">
-              <input type="password" id="adminPassword" name="admin_password" placeholder="Enter password (e.g. sizzling@2026)" autocomplete="current-password" required autofocus>
-              <button type="button" class="toggle-pwd-btn" onclick="togglePasswordVisibility('adminPassword', this)" title="Toggle view">👁️</button>
-            </div>
-            <small style="color:#888; font-size:12px; margin-top:5px; display:block;">Default password is <code>sizzling@2026</code></small>
-          </div>
-
-          <button type="submit" class="btn btn-brass" id="adminSubmitBtn" style="width:100%; padding:14px; font-size:14px; font-weight:700;">
-            Unlock Database Portal →
-          </button>
-          <div id="adminStatus" class="form-status" style="margin-top:14px; text-align:center;"></div>
-        </form>
-      </div>
-    </div>
-
-    <!-- CUSTOMER TRACK ORDERS VIEW -->
-    <div id="customerLoginSection" style="{% if active_tab == 'admin' %}display:none;{% endif %}">
+    <div style="text-align:center; margin-bottom:28px;">
       {% if 'checkout' in next_url %}
-      <div style="text-align:center; margin-bottom:28px;">
         <div style="font-size:44px; margin-bottom:10px;">⚡</div>
-        <h1 style="font-size:26px; margin-bottom:8px;">Log In to Auto-Fill</h1>
-        <p class="sub" style="margin-bottom:0;">Enter your mobile number to automatically load your name, delivery address, and past orders into checkout.</p>
-      </div>
+        <h1 style="font-size:26px; margin-bottom:8px;">Sign In to Auto-Fill</h1>
+        <p class="sub" style="margin-bottom:0;">Enter your mobile number or account details to automatically load your delivery address and past tailoring measurements.</p>
       {% else %}
-      <div style="text-align:center; margin-bottom:28px;">
         <div style="font-size:44px; margin-bottom:10px;">👔</div>
-        <h1 style="font-size:26px; margin-bottom:8px;">Track Your Orders</h1>
-        <p class="sub" style="margin-bottom:0;">Enter your mobile number to view your past orders, tailoring progress, and saved wishlist.</p>
-      </div>
+        <h1 style="font-size:26px; margin-bottom:8px;">Sign In &middot; Order Tracking</h1>
+        <p class="sub" style="margin-bottom:0;">Enter your mobile number or username to view your orders, real-time tailoring progress, and saved wishlist.</p>
       {% endif %}
-
-      <div class="form-card">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages and active_tab != 'admin' %}
-            {% for category, message in messages %}
-              <div class="form-status {{ category }}" style="margin-bottom:16px; text-align:center;">{{ message }}</div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <form id="directLoginForm" method="POST" action="/login">
-          <input type="hidden" name="login_type" value="customer">
-          <input type="hidden" name="next" value="{{ next_url }}">
-
-          <div class="field" style="margin-bottom:16px;">
-            <label for="loginPhone">Your Mobile Number</label>
-            <input type="text" id="loginPhone" name="phone" placeholder="10-digit number (e.g. 8595511923)"
-                   maxlength="30" required autocomplete="tel">
-            <small style="color:#777; font-size:12px; margin-top:4px; display:block;">Enter your mobile number, or master admin password to open database.</small>
-          </div>
-
-          <div class="field" style="margin-bottom:20px;">
-            <label for="loginName">Your Name <span style="opacity:0.5; font-weight:normal;">(optional)</span></label>
-            <input type="text" id="loginName" name="name" placeholder="Enter your full name" autocomplete="name">
-          </div>
-
-          <button type="submit" class="btn btn-brass" id="loginSubmitBtn" style="width:100%; padding:14px; font-size:14px; font-weight:700;">
-            {% if 'checkout' in next_url %}
-              Log In &amp; Return to Checkout →
-            {% else %}
-              View My Orders &amp; Wishlist →
-            {% endif %}
-          </button>
-
-          <div id="loginStatus" class="form-status" style="margin-top:14px; text-align:center;"></div>
-        </form>
-      </div>
-
-      <div style="text-align:center; font-size:13px; color:#777; margin-top:18px;">
-        Need assistance with an existing order? <a href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" style="color:var(--brass); text-decoration:underline;">Chat with us on WhatsApp</a>
-      </div>
     </div>
 
+    <div class="form-card" style="border:1px solid rgba(197,160,89,0.3); box-shadow:0 8px 30px rgba(0,0,0,0.4);">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="form-status {{ category }}" style="margin-bottom:16px; text-align:center;">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form id="directLoginForm" method="POST" action="/login">
+        <input type="hidden" name="next" value="{{ next_url }}">
+
+        <div class="field" style="margin-bottom:16px;">
+          <label for="loginPhone">Mobile Number or Username</label>
+          <input type="text" id="loginPhone" name="phone" placeholder="10-digit number or username (e.g. 8595511923)"
+                 maxlength="50" required autocomplete="username tel" autofocus>
+          <small style="color:#777; font-size:12px; margin-top:4px; display:block;">Enter your mobile number for customer orders, or account username.</small>
+        </div>
+
+        <div class="field" style="margin-bottom:16px;">
+          <label for="loginPassword">Password <span style="opacity:0.5; font-weight:normal;">(optional for order tracking)</span></label>
+          <div class="password-wrap">
+            <input type="password" id="loginPassword" name="password" placeholder="Enter password (optional for customers)" autocomplete="current-password">
+            <button type="button" class="toggle-pwd-btn" onclick="togglePasswordVisibility()" title="Toggle view">👁️</button>
+          </div>
+          <small style="color:#777; font-size:12px; margin-top:4px; display:block;">Leave blank to track orders by mobile number only.</small>
+        </div>
+
+        <div class="field" style="margin-bottom:20px;">
+          <label for="loginName">Your Name <span style="opacity:0.5; font-weight:normal;">(optional)</span></label>
+          <input type="text" id="loginName" name="name" placeholder="e.g. Kashyap Nathoo" autocomplete="name">
+        </div>
+
+        <button type="submit" class="btn btn-brass" id="loginSubmitBtn" style="width:100%; padding:14px; font-size:14px; font-weight:700;">
+          {% if 'checkout' in next_url %}
+            Log In &amp; Continue to Checkout →
+          {% else %}
+            Sign In &amp; View Orders →
+          {% endif %}
+        </button>
+
+        <div id="loginStatus" class="form-status" style="margin-top:14px; text-align:center;"></div>
+      </form>
+    </div>
+
+    <div style="text-align:center; font-size:13px; color:#777; margin-top:20px;">
+      Need assistance with an existing order? <a href="https://wa.me/91{{ (settings.whatsapp_number or '9811551935') | replace('+', '') | replace(' ', '') }}" target="_blank" style="color:var(--brass); text-decoration:underline;">Chat with us on WhatsApp</a>
+    </div>
   </div>
 </div>
 
 <script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const nextUrl = urlParams.get("next") || "{{ next_url or '' }}";
+  const nextUrl = new URLSearchParams(window.location.search).get("next") || "{{ next_url or '' }}";
 
-  function switchLoginTab(tab) {
-    const adminSection = document.getElementById("adminLoginSection");
-    const customerSection = document.getElementById("customerLoginSection");
-    const tabBtnAdmin = document.getElementById("tabBtnAdmin");
-    const tabBtnCustomer = document.getElementById("tabBtnCustomer");
-
-    if (tab === "admin") {
-      adminSection.style.display = "block";
-      customerSection.style.display = "none";
-      tabBtnAdmin.classList.add("active");
-      tabBtnCustomer.classList.remove("active");
-      document.getElementById("adminPassword").focus();
-    } else {
-      adminSection.style.display = "none";
-      customerSection.style.display = "block";
-      tabBtnAdmin.classList.remove("active");
-      tabBtnCustomer.classList.add("active");
-      document.getElementById("loginPhone").focus();
-    }
-  }
-
-  function togglePasswordVisibility(fieldId, btn) {
-    const input = document.getElementById(fieldId);
+  function togglePasswordVisibility() {
+    const input = document.getElementById("loginPassword");
     if (input.type === "password") {
       input.type = "text";
-      btn.textContent = "🙈";
     } else {
       input.type = "password";
-      btn.textContent = "👁️";
     }
   }
 
-  // Auto-switch to admin tab if URL has ?tab=admin or next contains admin
-  if (urlParams.get("tab") === "admin" || (nextUrl && nextUrl.includes("admin"))) {
-    switchLoginTab("admin");
-  }
-
-  // Auto-populate customer info from localStorage
+  // Auto-populate from localStorage if already saved on this device
   try {
     const raw = localStorage.getItem("sizzling_customer_info");
     if (raw) {
@@ -254,14 +139,14 @@
     }
   } catch (err) {}
 
-  // Customer form submission handler
   document.getElementById("directLoginForm").addEventListener("submit", function(e) {
     const rawVal = document.getElementById("loginPhone").value.trim();
+    const pwdVal = document.getElementById("loginPassword").value.trim();
+    const nameVal = document.getElementById("loginName").value.trim();
     const statusEl = document.getElementById("loginStatus");
     const btn = document.getElementById("loginSubmitBtn");
 
-    // Smart fallback check: If user typed something with letters or symbols (like admin password)
-    // Allow native submit directly so backend can verify if it's admin credentials!
+    // Clean 10-digit phone if numeric
     let digits = rawVal.replace(/\D/g, "");
     if (digits.length > 10 && digits.startsWith("91")) {
       digits = digits.slice(-10);
@@ -269,49 +154,38 @@
       digits = digits.slice(1);
     }
 
-    if (digits.length !== 10) {
-      // If it contains non-digits, it might be the admin password — submit natively!
-      if (rawVal.length >= 4 && /[a-zA-Z@#$%^&*]/.test(rawVal)) {
-        return; // Allow native submission to backend
-      }
-      e.preventDefault();
-      statusEl.textContent = "Please enter a valid 10-digit mobile number, or switch to the Admin Database tab.";
-      statusEl.className = "form-status error";
-      return;
-    }
-
-    // Update input value with cleaned 10 digits
-    document.getElementById("loginPhone").value = digits;
-    const name = document.getElementById("loginName").value.trim();
-
-    // Fast AJAX submission for customer login
+    // If non-numeric (e.g. 'admin' or direct password), or if password provided, allow native submit fallback or fast AJAX
     e.preventDefault();
     btn.disabled = true;
-    btn.textContent = nextUrl.includes("checkout") ? "Loading checkout details..." : "Loading orders...";
+    btn.textContent = "Verifying...";
     statusEl.textContent = "";
 
-    fetch(`/api/account/direct_login?next=${encodeURIComponent(nextUrl || '/account/orders')}`, {
+    fetch(`/api/account/direct_login?next=${encodeURIComponent(nextUrl || '')}`, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify({ phone: digits, name: name })
+      body: JSON.stringify({
+        phone: rawVal,
+        password: pwdVal,
+        name: nameVal
+      })
     })
     .then(async (r) => {
       let res = null;
       try { res = await r.json(); } catch (err) {}
 
       if (r.ok && res && res.success) {
-        statusEl.textContent = res.is_admin ? "✓ Admin verified! Opening Database..." : "✓ Verified! Loading details...";
+        statusEl.textContent = res.is_admin ? "✓ Verified! Redirecting..." : "✓ Verified! Loading...";
         statusEl.className = "form-status success";
 
-        if (!res.is_admin) {
+        if (!res.is_admin && digits.length === 10) {
           try {
             const cust = res.customer || {};
             const current = JSON.parse(localStorage.getItem("sizzling_customer_info") || "{}");
             const merged = {
-              name: cust.name || name || current.name || "",
+              name: cust.name || nameVal || current.name || "",
               phone: cust.phone || digits || current.phone || "",
               address: cust.address || current.address || ""
             };
@@ -319,13 +193,14 @@
           } catch (e) {}
         }
 
-        window.location.href = res.redirect || (res.is_admin ? "/admin" : (nextUrl || "/account/orders"));
+        window.location.href = res.redirect || (res.is_admin ? "/admin" : "/account/orders");
       } else if (res && res.error) {
         statusEl.textContent = res.error;
         statusEl.className = "form-status error";
         btn.disabled = false;
-        btn.textContent = nextUrl.includes("checkout") ? "Log In & Return to Checkout →" : "View My Orders & Wishlist →";
+        btn.textContent = "Sign In & Continue →";
       } else {
+        // Fallback: submit standard form natively
         document.getElementById("directLoginForm").submit();
       }
     })
