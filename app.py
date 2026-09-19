@@ -91,23 +91,6 @@ def get_db():
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    # Auto-reconcile order status if payment_status or status was directly updated in database
-    try:
-        conn.execute("""
-            UPDATE orders
-            SET status = 'confirmed'
-            WHERE payment_status = 'payment_verified'
-              AND status IN ('awaiting_payment_confirmation', 'pending_payment', 'payment_reported')
-        """)
-        conn.execute("""
-            UPDATE orders
-            SET payment_status = 'payment_verified'
-            WHERE status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered')
-              AND (payment_status IS NULL OR payment_status != 'payment_verified')
-        """)
-        conn.commit()
-    except Exception:
-        pass
     return conn
 
 
@@ -873,18 +856,16 @@ def api_razorpay_create_order(order_id):
     key_id = (settings.get("razorpay_key_id") or os.environ.get("RAZORPAY_KEY_ID") or "").strip()
     key_secret = (settings.get("razorpay_key_secret") or os.environ.get("RAZORPAY_KEY_SECRET") or "").strip()
 
+    if not key_id:
+        return jsonify({
+            "success": False,
+            "error": "Razorpay payment gateway is not yet configured. Please enter your Razorpay Key ID and Secret in Admin Settings."
+        }), 400
+
     amount_paise = int(round(float(order["total"]) * 100))
     rzp_order_id = None
 
-    # Check if merchant has configured genuine Razorpay live/test credentials
-    has_real_keys = bool(
-        key_id and key_secret
-        and key_id not in ("rzp_test_sample", "rzp_test_1DP5mmOlF5G5ag", "")
-        and key_secret not in ("sec123", "")
-        and len(key_secret) >= 8
-    )
-
-    if has_real_keys:
+    if key_secret:
         try:
             import razorpay
             client = razorpay.Client(auth=(key_id, key_secret))
@@ -901,26 +882,16 @@ def api_razorpay_create_order(order_id):
                 }
             })
             rzp_order_id = rzp_res.get("id")
-            return jsonify({
-                "success": True,
-                "use_sandbox": False,
-                "key_id": key_id,
-                "razorpay_order_id": rzp_order_id,
-                "amount": amount_paise,
-                "currency": "INR",
-                "order_id": order_id,
-                "customer_name": order["customer_name"] or "",
-                "customer_phone": order["phone"] or "",
-            })
         except Exception as e:
-            print(f"[Razorpay Notice] Server order creation returned: {e}. Falling back to Sandbox mode.")
+            return jsonify({
+                "success": False,
+                "error": f"Razorpay error: {e}. Please check your Key ID and Secret in Admin Settings."
+            }), 400
 
-    # Sandbox mode: allows immediate testing of checkout without getting 'No appropriate payment method found'
     return jsonify({
         "success": True,
-        "use_sandbox": True,
-        "key_id": "rzp_sandbox",
-        "razorpay_order_id": f"order_sandbox_{order_id}",
+        "key_id": key_id,
+        "razorpay_order_id": rzp_order_id,
         "amount": amount_paise,
         "currency": "INR",
         "order_id": order_id,
@@ -937,58 +908,33 @@ def api_razorpay_verify_payment(order_id):
     signature = (data.get("razorpay_signature") or "").strip()
     is_sandbox = bool(data.get("is_sandbox")) or payment_id.startswith("pay_sandbox_")
 
-    if not payment_id:
+    # Strictly reject any missing, empty, or simulated sandbox payment
+    if not payment_id or is_sandbox or payment_id.startswith("pay_sandbox_"):
         return jsonify({
             "success": False, 
-            "error": "Missing payment reference ID."
+            "error": "Simulated or test sandbox payments are strictly rejected. Only real payments completed on Razorpay are confirmed."
         }), 400
 
     conn = get_db()
     order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
-    sess_order = session.get("last_order") or {}
-    cust_name = sess_order.get("customer_name") or data.get("customer_name") or "Valued Customer"
-    phone = sess_order.get("phone") or data.get("customer_phone") or data.get("phone") or "8595511923"
-    address = sess_order.get("address") or data.get("customer_address") or data.get("address") or "New Delhi Atelier Delivery"
-    try:
-        total = float(sess_order.get("total") or data.get("total") or 8999.0)
-    except Exception:
-        total = 8999.0
-    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-
     if not order:
-        try:
-            conn.execute("""
-                INSERT OR REPLACE INTO orders(id, customer_name, phone, address, total, status, payment_status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 'awaiting_payment_confirmation', 'unpaid', ?, ?)
-            """, (order_id, cust_name, phone, address, total, now_str, now_str))
-            conn.commit()
-            order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
-        except Exception:
-            pass
-
-    if not order:
-        order = {
-            "id": order_id,
-            "customer_name": cust_name,
-            "phone": phone,
-            "address": address,
-            "total": total,
-            "status": "awaiting_payment_confirmation",
-            "payment_status": "unpaid",
-            "created_at": now_str,
-            "notes": ""
-        }
+        conn.close()
+        return jsonify({"success": False, "error": f"Order #{order_id} not found."}), 404
 
     settings = get_settings()
     key_id = (settings.get("razorpay_key_id") or os.environ.get("RAZORPAY_KEY_ID") or "").strip()
     key_secret = (settings.get("razorpay_key_secret") or os.environ.get("RAZORPAY_KEY_SECRET") or "").strip()
 
-    # If sandbox mode was requested
-    if is_sandbox:
-        pass  # Proceed to confirm order in sandbox test mode
+    if not key_secret:
+        conn.close()
+        return jsonify({
+            "success": False,
+            "error": "Payment verification cannot proceed because Razorpay Key Secret is not configured."
+        }), 400
 
-    # Case 1: Cryptographic HMAC-SHA256 signature verification when order_id & signature present
-    elif key_secret and rzp_order_id and signature:
+    # Cryptographic HMAC-SHA256 signature verification
+    verified = False
+    if rzp_order_id and signature:
         import hmac
         import hashlib
         msg = f"{rzp_order_id}|{payment_id}".encode("utf-8")
@@ -999,78 +945,66 @@ def api_razorpay_verify_payment(order_id):
                 "success": False,
                 "error": "Strict cryptographic signature verification failed. Untrusted payment attempt rejected."
             }), 400
-
-        try:
-            import razorpay
-            client = razorpay.Client(auth=(key_id, key_secret))
-            client.utility.verify_payment_signature({
-                "razorpay_order_id": rzp_order_id,
-                "razorpay_payment_id": payment_id,
-                "razorpay_signature": signature
-            })
-        except Exception as e:
-            conn.close()
-            return jsonify({"success": False, "error": f"Razorpay signature check failed: {e}"}), 400
-
-    # Case 2: Verification against Razorpay API if secret is configured but order was created directly in checkout
-    elif key_secret and key_id and key_secret != "sec123":
+        verified = True
+    elif key_id:
         try:
             import razorpay
             client = razorpay.Client(auth=(key_id, key_secret))
             payment_info = client.payment.fetch(payment_id)
-            if payment_info.get("status") not in ("captured", "authorized"):
+            if payment_info.get("status") in ("captured", "authorized"):
+                verified = True
+            else:
                 conn.close()
-                return jsonify({"success": False, "error": f"Payment is {payment_info.get('status')}, not captured."}), 400
+                return jsonify({
+                    "success": False,
+                    "error": f"Payment status is '{payment_info.get('status')}', not completed. Order remains unpaid."
+                }), 400
         except Exception as e:
-            if not payment_id.startswith("pay_"):
-                conn.close()
-                return jsonify({"success": False, "error": "Invalid payment ID format."}), 400
-
-    # Case 3: Test mode verification
-    else:
-        if not payment_id.startswith("pay_") or len(payment_id) < 6:
             conn.close()
-            return jsonify({"success": False, "error": "Invalid Razorpay payment reference."}), 400
+            return jsonify({
+                "success": False,
+                "error": f"Razorpay verification failed: {e}. Order remains unpaid."
+            }), 400
+
+    if not verified:
+        conn.close()
+        return jsonify({
+            "success": False,
+            "error": "Payment could not be verified by Razorpay. Order remains unpaid."
+        }), 400
 
     # Strictly mark order as payment_verified & confirmed in database
     now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    try:
-        conn.execute("""
-            INSERT OR REPLACE INTO orders(id, customer_name, phone, address, total, status, payment_status, payment_ref, payment_verified_at, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, 'confirmed', 'payment_verified', ?, ?, ?, ?)
-        """, (order_id, cust_name, phone, address, total, payment_id, now_str, now_str, now_str))
-        conn.commit()
-    except Exception:
-        try:
-            conn.execute("""
-                UPDATE orders
-                SET status = 'confirmed',
-                    payment_status = 'payment_verified',
-                    payment_ref = ?,
-                    payment_verified_at = ?,
-                    updated_at = ?
-                WHERE id = ?
-            """, (payment_id, now_str, now_str, order_id))
-            conn.commit()
-        except Exception:
-            pass
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE orders
+        SET status = 'confirmed',
+            payment_status = 'payment_verified',
+            payment_ref = ?,
+            payment_verified_at = ?,
+            updated_at = ?
+        WHERE id = ?
+    """, (payment_id, now_str, now_str, order_id))
+    conn.commit()
     conn.close()
 
     session["confirmed_order"] = {
         "id": order_id,
+        "verified": True,
         "payment_ref": payment_id,
         "payment_status": "payment_verified",
         "status": "confirmed",
-        "total": total,
-        "customer_name": cust_name,
-        "phone": phone,
-        "address": address,
-        "created_at": now_str,
+        "total": float(order["total"]),
+        "customer_name": order["customer_name"],
+        "phone": order["phone"],
+        "address": order["address"],
+        "created_at": order["created_at"],
     }
 
     return jsonify({
         "success": True,
         "order_id": order_id,
+        "payment_status": "payment_verified",
         "redirect": url_for("order_confirmation", order_id=order_id, verified=1, auto_wa=1)
     })
 
@@ -1171,40 +1105,29 @@ def order_confirmation(order_id):
     conn = get_db()
     order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
     if order is None:
-        sess_order = session.get("confirmed_order") or session.get("last_order") or {}
-        cust_name = sess_order.get("customer_name") or "Valued Customer"
-        phone = sess_order.get("phone") or "8595511923"
-        address = sess_order.get("address") or "New Delhi Atelier Delivery"
-        try:
-            total = float(sess_order.get("total") or 8999.0)
-        except Exception:
-            total = 8999.0
-        pay_ref = sess_order.get("payment_ref") or "pay_verified"
-        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        try:
-            conn.execute("""
-                INSERT OR REPLACE INTO orders(id, customer_name, phone, address, total, status, payment_status, payment_ref, payment_verified_at, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 'confirmed', 'payment_verified', ?, ?, ?, ?)
-            """, (order_id, cust_name, phone, address, total, pay_ref, now_str, now_str, now_str))
-            conn.commit()
-            order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
-        except Exception:
-            pass
+        confirmed_order = session.get("confirmed_order")
+        # ONLY restore if this specific order was cryptographically verified by Razorpay
+        if confirmed_order and confirmed_order.get("id") == order_id and confirmed_order.get("verified"):
+            cust_name = confirmed_order.get("customer_name") or "Valued Customer"
+            phone = confirmed_order.get("phone") or "8595511923"
+            address = confirmed_order.get("address") or "New Delhi Atelier Delivery"
+            total = float(confirmed_order.get("total") or 8999.0)
+            pay_ref = confirmed_order.get("payment_ref") or "pay_verified"
+            now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            try:
+                conn.execute("""
+                    INSERT OR REPLACE INTO orders(id, customer_name, phone, address, total, status, payment_status, payment_ref, payment_verified_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, 'confirmed', 'payment_verified', ?, ?, ?, ?)
+                """, (order_id, cust_name, phone, address, total, pay_ref, now_str, now_str, now_str))
+                conn.commit()
+                order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+            except Exception:
+                pass
 
     if order is None:
-        sess_order = session.get("confirmed_order") or session.get("last_order") or {}
-        order = {
-            "id": order_id,
-            "customer_name": sess_order.get("customer_name") or "Valued Customer",
-            "phone": sess_order.get("phone") or "8595511923",
-            "address": sess_order.get("address") or "New Delhi Atelier Delivery",
-            "notes": sess_order.get("notes") or "",
-            "total": float(sess_order.get("total") or 8999.0),
-            "status": "confirmed",
-            "payment_status": "payment_verified",
-            "payment_ref": sess_order.get("payment_ref") or "pay_verified",
-            "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        }
+        conn.close()
+        flash("Order not found or payment has not been completed. Please complete checkout.", "warning")
+        return redirect(url_for("home"))
 
     # Strict payment verification check: only confirmed if Razorpay verified!
     is_paid = (order["payment_status"] == "payment_verified") or (

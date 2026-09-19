@@ -139,7 +139,7 @@
       </div>
       {% if order.payment_ref %}
       <div class="checkout-line">
-        <span>UPI Transaction Ref (UTR)</span>
+        <span>{% if order.payment_ref.startswith('pay_') %}Razorpay Payment ID{% else %}Payment Reference (UTR){% endif %}</span>
         <span style="font-family:var(--mono); font-size:13px; color:#dfc691;">{{ order.payment_ref }}</span>
       </div>
       {% endif %}
