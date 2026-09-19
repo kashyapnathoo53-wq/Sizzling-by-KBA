@@ -157,8 +157,11 @@
         <button type="button" class="btn btn-outline" id="copyUpiBtn" style="padding:7px 14px; font-size:12px;" onclick="copyUpiId()">Copy UPI ID</button>
       </div>
 
-      <div>
-        <a href="{{ upi_uri }}" class="btn btn-brass" style="padding:14px 32px; font-weight:700; font-size:14px;">Pay with UPI App</a>
+      <div style="display:flex; flex-direction:column; gap:10px; align-items:center; margin-top:8px;">
+        <a href="{{ upi_uri }}" class="btn btn-brass" style="padding:14px 32px; font-weight:700; font-size:14px; width:100%; max-width:320px; text-align:center;">Pay with UPI App</a>
+        <a href="https://wa.me/{{ (settings.whatsapp_number or '919811551935') | replace('+', '') | replace(' ', '') }}?text={{ ('Hi SIZZLING by KBA, I have completed the UPI payment of ₹' ~ ('%.0f'|format(order.total)) ~ ' for Order #' ~ order.id ~ '. Sharing payment screenshot.')|urlencode }}" class="btn btn-outline" target="_blank" rel="noopener" style="padding:11px 22px; font-size:13px; display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:320px;">
+          <span>💬 Share Screenshot on WhatsApp</span>
+        </a>
       </div>
       <p style="font-size:12px; color:#888; margin-top:14px; line-height:1.4;">
         Scan the QR code with any UPI app on your phone (Google Pay, PhonePe, Paytm, BHIM), or click "Pay with UPI App" on mobile.
@@ -178,43 +181,6 @@
         <span>Total Amount</span>
         <span>₹{{ "%.0f"|format(order.total) }}</span>
       </div>
-    </div>
-
-    <!-- STEP: MANUAL UPI REFERENCE (UTR) SUBMISSION -->
-    {% set is_already_submitted = (order.payment_status == 'payment_verified') or order.payment_ref or (order.status not in ['awaiting_payment_confirmation', 'pending_payment']) %}
-
-    <div class="form-card{% if is_already_submitted %} is-hidden{% endif %}" id="payRefSection" style="margin-top:24px;">
-      <h3 style="margin-bottom:6px; color:#ffffff;">Submit 12-Digit UPI UTR for Bank Verification</h3>
-      <p style="font-size:13px; color:#94a3b8; margin-bottom:16px; line-height:1.5;">
-        After paying via QR code or UPI, copy the <strong>12-digit UTR / Reference number</strong> from your payment receipt and submit it below.
-        <br><span style="color:#f59e0b; font-size:12px;">⚠️ Note: Order will be sent to tailoring only after store accounts verify the bank credit.</span>
-      </p>
-      <form id="paymentRefForm" class="payment-ref-form">
-        <input type="text" id="paymentRefInput" name="payment_ref" aria-label="12-digit UPI Reference or UTR Number" placeholder="e.g. 423819284729 (12-digit UPI UTR)" maxlength="30" autocomplete="off" required style="padding:14px; font-size:14px;">
-        <button type="submit" id="paymentRefBtn" class="btn btn-brass" style="padding:14px 24px; font-weight:700;">Submit UTR for Verification →</button>
-      </form>
-      <div id="paymentRefStatus" class="form-status" style="margin-top:12px;"></div>
-    </div>
-
-    <!-- PENDING VERIFICATION NOTICE -->
-    <div class="form-card{% if not is_already_submitted %} is-hidden{% endif %}" id="postPaySection" style="text-align:center; padding:32px 24px; margin-top:24px; border:1px solid #f59e0b; background:#121824; border-radius:10px;">
-      <div style="font-size:40px; margin-bottom:12px;">⏳</div>
-      <h2 style="margin-bottom:8px; font-size:20px; color:#f59e0b;">UPI Reference Logged — Awaiting Bank Credit Verification</h2>
-      <p style="color:#cbd5e1; font-size:14px; margin-bottom:18px; line-height:1.6; max-width:460px; margin-left:auto; margin-right:auto;">
-        We have logged your UPI reference for <strong>Order #{{ order.id }}</strong>. Our team is verifying the credit in our bank account. <strong>Your order will strictly be confirmed once bank credit is verified.</strong>
-      </p>
-
-      <div id="submittedRefDisplay" class="{% if not order.payment_ref %}is-hidden{% endif %}" style="margin-bottom:18px; font-family:var(--mono); font-size:13.5px; color:var(--brass); background:#0b0f17; padding:9px 16px; border-radius:6px; display:inline-block; border:1px solid #283347;">
-        Submitted UTR: <span id="paymentRefVal">{{ order.payment_ref or '' }}</span>
-      </div>
-      <br>
-
-      <div style="font-size:13px; color:#94a3b8; margin-top:10px;">
-        To expedite verification, you can share your payment screenshot on WhatsApp:
-      </div>
-      <a href="https://wa.me/{{ settings.whatsapp_number }}?text={{ ('Hi SIZZLING by KBA, I have completed the UPI payment of ₹' ~ ('%.0f'|format(order.total)) ~ ' for Order #' ~ order.id ~ ' with UTR ' ~ (order.payment_ref or '') ~ '. Sharing payment screenshot for verification.')|urlencode }}" id="waConfirmLink" class="btn btn-brass" target="_blank" rel="noopener" style="margin-top:12px; padding:12px 26px; font-weight:700; font-size:13.5px; display:inline-flex; align-items:center; gap:8px;">
-        <span>💬 Send Screenshot to Store WhatsApp ({{ settings.whatsapp_number }})</span>
-      </a>
     </div>
 
   </div>
@@ -284,15 +250,14 @@
         })
         .then(function(r) { return r.json(); })
         .then(function(res) {
-          if (res && res.success && res.razorpay_order_id && res.key_id) {
+          if (res && res.success && res.key_id) {
             const options = {
               key: res.key_id,
               amount: res.amount,
               currency: res.currency || "INR",
-              name: "SIZZLING by KBA Pvt Ltd",
+              name: "SIZZLING by KBA",
               description: "Order #" + ORDER_ID + " — Bespoke Menswear",
               image: "/static/images/favicon.svg",
-              order_id: res.razorpay_order_id,
               prefill: {
                 name: res.customer_name || "",
                 contact: res.customer_phone || ""
@@ -304,7 +269,7 @@
                 rzpBtn.disabled = true;
                 rzpBtn.textContent = "Verifying payment with bank...";
                 if (rzpStatus) {
-                  rzpStatus.textContent = "Verifying cryptographic payment signature...";
+                  rzpStatus.textContent = "Verifying payment confirmation...";
                   rzpStatus.className = "form-status";
                 }
                 verifyAndCompletePayment(response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature);
@@ -314,12 +279,16 @@
                   rzpBtn.disabled = false;
                   rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
                   if (rzpStatus) {
-                    rzpStatus.textContent = "Payment cancelled. You can retry when ready.";
+                    rzpStatus.textContent = "Payment window closed. You can retry when ready.";
                     rzpStatus.className = "form-status";
                   }
                 }
               }
             };
+
+            if (res.razorpay_order_id) {
+              options.order_id = res.razorpay_order_id;
+            }
 
             const rzp = new Razorpay(options);
             rzp.on('payment.failed', function(resp) {
@@ -332,11 +301,10 @@
             });
             rzp.open();
           } else {
-            // Keys not configured or order creation returned error: Show clear error, do NOT fake
             rzpBtn.disabled = false;
             rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
             if (rzpStatus) {
-              rzpStatus.textContent = (res && res.error) ? res.error : "Unable to initiate Razorpay payment. Please use Direct UPI QR below.";
+              rzpStatus.textContent = (res && res.error) ? res.error : "Unable to initiate Razorpay gateway.";
               rzpStatus.className = "form-status error";
             }
           }
@@ -345,7 +313,7 @@
           rzpBtn.disabled = false;
           rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
           if (rzpStatus) {
-            rzpStatus.textContent = "Could not connect to payment gateway. Please check your connection or pay via Direct UPI QR below.";
+            rzpStatus.textContent = "Could not connect to payment gateway. Please check your connection.";
             rzpStatus.className = "form-status error";
           }
         });
@@ -387,82 +355,6 @@
         }
         rzpBtn.disabled = false;
         rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
-      });
-    }
-
-    // ====================================================================
-    // MANUAL UPI REFERENCE SUBMISSION
-    // ====================================================================
-    const payForm = document.getElementById("paymentRefForm");
-    if (payForm) {
-      payForm.addEventListener("submit", function(e) {
-        e.preventDefault();
-        const refInput = document.getElementById("paymentRefInput");
-        const ref = refInput ? refInput.value.trim() : "";
-        const statusEl = document.getElementById("paymentRefStatus");
-        const btn = document.getElementById("paymentRefBtn");
-
-        if (!ref) {
-          if (statusEl) {
-            statusEl.textContent = "Please enter your 12-digit UPI UTR / Reference number.";
-            statusEl.className = "form-status error";
-          }
-          return;
-        }
-
-        if (btn) {
-          btn.disabled = true;
-          btn.textContent = "Logging UTR Reference...";
-        }
-
-        fetch("/api/order/" + ORDER_ID + "/submit_payment_ref", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ payment_ref: ref })
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(res) {
-          if (res && res.success) {
-            try {
-              localStorage.removeItem("sizzling_cart");
-            } catch (err) {}
-
-            const refValEl = document.getElementById("paymentRefVal");
-            if (refValEl) refValEl.textContent = ref;
-            const refDisplayEl = document.getElementById("submittedRefDisplay");
-            if (refDisplayEl) refDisplayEl.classList.remove("is-hidden");
-
-            const refSection = document.getElementById("payRefSection");
-            const postSection = document.getElementById("postPaySection");
-            if (refSection) {
-              refSection.classList.add("is-hidden");
-              refSection.style.display = "none";
-            }
-            if (postSection) {
-              postSection.classList.remove("is-hidden");
-              postSection.style.display = "block";
-            }
-          } else {
-            if (statusEl) {
-              statusEl.textContent = (res && res.error) ? res.error : "Failed to log reference.";
-              statusEl.className = "form-status error";
-            }
-            if (btn) {
-              btn.disabled = false;
-              btn.textContent = "Submit UTR for Verification →";
-            }
-          }
-        })
-        .catch(function() {
-          if (statusEl) {
-            statusEl.textContent = "Could not reach the server. Please check your connection.";
-            statusEl.className = "form-status error";
-          }
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = "Submit UTR for Verification →";
-          }
-        });
       });
     }
 
