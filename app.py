@@ -678,11 +678,29 @@ def api_create_order():
     cust_id = session.get("customer_id")
     now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
+    cur.execute("SELECT COALESCE(MAX(id), 1003) FROM orders")
+    max_db_id = cur.fetchone()[0] or 1003
+
+    cur.execute("SELECT value FROM settings WHERE key='order_sequence'")
+    row = cur.fetchone()
+    seq = int(row["value"]) if row and row["value"] and str(row["value"]).isdigit() else 1003
+
+    sess_last_id = int((session.get("last_order") or {}).get("id") or session.get("last_order_id") or 0)
+
+    # Strictly increment order ID so each checkout gets a new sequential order number (never stuck on 1)
+    next_order_id = max(max_db_id + 1, seq + 1, sess_last_id + 1, 1004)
+
+    cur.execute("INSERT OR REPLACE INTO settings(key, value) VALUES ('order_sequence', ?)", (str(next_order_id),))
+    try:
+        cur.execute("INSERT OR REPLACE INTO sqlite_sequence (name, seq) VALUES ('orders', ?)", (next_order_id,))
+    except Exception:
+        pass
+
     cur.execute("""
-        INSERT INTO orders(customer_name, phone, address, notes, total, subtotal, discount_amount, coupon_code, status, payment_status, customer_id, created_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?, 'awaiting_payment_confirmation', 'unpaid', ?, ?, ?)
-    """, (name, phone, address, notes, total, subtotal, discount_amount, coupon_code, cust_id, now_str, now_str))
-    order_id = cur.lastrowid
+        INSERT INTO orders(id, customer_name, phone, address, notes, total, subtotal, discount_amount, coupon_code, status, payment_status, customer_id, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?, 'pending_payment', 'unpaid', ?, ?, ?)
+    """, (next_order_id, name, phone, address, notes, total, subtotal, discount_amount, coupon_code, cust_id, now_str, now_str))
+    order_id = next_order_id
 
     for oi in order_items:
         cur.execute("""
@@ -701,6 +719,7 @@ def api_create_order():
     if not cust_id and clean_p:
         session["customer_phone"] = clean_p
 
+    session["last_order_id"] = order_id
     session["last_order"] = {
         "id": order_id,
         "customer_name": name,
@@ -715,8 +734,6 @@ def api_create_order():
 
     conn.commit()
     conn.close()
-
-    _generate_upi_qr(order_id, total)  # generate UPI QR code
 
     return jsonify({
         "success": True,
@@ -793,14 +810,21 @@ def order_pay(order_id):
     conn.close()
 
     settings = get_settings()
-    upi_uri, qr_data_uri = _generate_upi_qr(order_id, order["total"])
 
-    rzp_key_id = (settings.get("razorpay_key_id") or os.environ.get("RAZORPAY_KEY_ID") or "rzp_test_1DP5mmOlF5G5ag").strip()
+    rzp_key_id = (settings.get("razorpay_key_id") or os.environ.get("RAZORPAY_KEY_ID") or "").strip()
+    rzp_key_secret = (settings.get("razorpay_key_secret") or os.environ.get("RAZORPAY_KEY_SECRET") or "").strip()
     rzp_enabled = settings.get("razorpay_enabled", "1") == "1"
+
+    has_real_keys = bool(
+        rzp_key_id and rzp_key_secret
+        and rzp_key_id not in ("rzp_test_sample", "rzp_test_1DP5mmOlF5G5ag", "")
+        and rzp_key_secret not in ("sec123", "")
+        and len(rzp_key_secret) >= 8
+    )
 
     return render_template(
         "payment.html", order=order, items=items, settings=settings,
-        upi_uri=upi_uri, qr_data_uri=qr_data_uri,
+        has_real_keys=has_real_keys,
         razorpay_key_id=rzp_key_id, razorpay_enabled=rzp_enabled,
     )
 
@@ -1182,16 +1206,15 @@ def order_confirmation(order_id):
             "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         }
 
-    # Check payment state: only confirm if payment is verified or submitted!
+    # Strict payment verification check: only confirmed if Razorpay verified!
     is_paid = (order["payment_status"] == "payment_verified") or (
         order["status"] in ["confirmed", "tailoring", "trial_ready", "dispatched", "delivered"]
     )
-    is_submitted = (order["payment_status"] == "payment_submitted") or bool(order.get("payment_ref") if isinstance(order, dict) else order["payment_ref"])
 
-    # Strict payment guard: if unpaid and no UTR submitted, strictly redirect to payment page
-    if not is_paid and not is_submitted:
+    # Strict payment guard: unpaid orders are never confirmed and redirected back to payment
+    if not is_paid:
         conn.close()
-        flash("Payment has not been completed for this order. Please complete payment to place your order.", "warning")
+        flash("Payment has not been completed for this order. Please complete payment to confirm your order.", "warning")
         return redirect(url_for("order_pay", order_id=order_id))
 
     items = []
@@ -1352,7 +1375,7 @@ def admin_dashboard():
         "SELECT * FROM order_clicks ORDER BY id DESC LIMIT 5"
     ).fetchall()
     recent_orders = conn.execute(
-        "SELECT * FROM orders ORDER BY id DESC LIMIT 5"
+        "SELECT * FROM orders WHERE payment_status='payment_verified' OR status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered') ORDER BY id DESC LIMIT 5"
     ).fetchall()
 
     # Count rows across all primary database tables for the Master Database Hub
@@ -1627,7 +1650,9 @@ def admin_orders():
     search = request.args.get("q", "").strip()
 
     conn = get_db()
-    total_orders = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+    total_orders = conn.execute(
+        "SELECT COUNT(*) FROM orders WHERE payment_status='payment_verified' OR status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered', 'payment_reported')"
+    ).fetchone()[0]
     needs_verify_count = conn.execute(
         "SELECT COUNT(*) FROM orders WHERE status='payment_reported' OR payment_status='payment_submitted'"
     ).fetchone()[0]
@@ -1662,6 +1687,9 @@ def admin_orders():
     elif filter_status in dict(ORDER_STATUSES):
         query += " AND status=?"
         params.append(filter_status)
+    elif not filter_status and not search:
+        # Default view: Only list confirmed and paid orders
+        query += " AND (payment_status='payment_verified' OR status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered', 'payment_reported'))"
 
     if search:
         query += " AND (customer_name LIKE ? OR phone LIKE ? OR id LIKE ? OR payment_ref LIKE ? OR address LIKE ?)"
@@ -2280,12 +2308,13 @@ def my_orders():
 
     orders = conn.execute(
         """SELECT * FROM orders 
-           WHERE customer_id=? 
+           WHERE (customer_id=? 
               OR (phone IS NOT NULL AND phone != '' AND (
                   phone=? OR phone=? OR phone=? OR phone=? 
                   OR phone LIKE ?
                   OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE '%' || ?
-              ))
+              )))
+              AND (payment_status='payment_verified' OR status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered', 'payment_reported'))
            ORDER BY id DESC""",
         (cust_id, clean_p, f"91{clean_p}", f"+91{clean_p}", f"0{clean_p}", f"%{clean_p}%", clean_p),
     ).fetchall()
@@ -2333,7 +2362,8 @@ def my_order_detail(order_id):
                    OR phone LIKE ?
                    OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE '%' || ?
                ))
-           )""",
+           )
+           AND (payment_status='payment_verified' OR status IN ('confirmed', 'tailoring', 'trial_ready', 'dispatched', 'delivered', 'payment_reported'))""",
         (order_id, cust_id, clean_p, f"91{clean_p}", f"+91{clean_p}", f"0{clean_p}", f"%{clean_p}%", clean_p)
     ).fetchone()
 

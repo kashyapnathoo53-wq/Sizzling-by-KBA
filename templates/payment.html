@@ -215,9 +215,9 @@
 <div class="simple-page">
   <div class="wrap" style="max-width:580px;">
     <h1>Complete Payment for Order #{{ order.id }}</h1>
-    <p class="sub">Please choose your payment option below. <strong>Orders are strictly confirmed only after payment is verified.</strong></p>
+    <p class="sub">Secure checkout powered by Razorpay. <strong>Orders are strictly confirmed only after payment is verified.</strong></p>
 
-    <!-- METHOD 1: REAL RAZORPAY GATEWAY -->
+    <!-- RAZORPAY GATEWAY -->
     <div class="payment-option-card highlight" style="text-align:center;">
       <div class="gateway-badge">⚡ Instant Automated Verification</div>
       <h2 style="font-size:22px; color:#ffffff; margin-bottom:8px;">Pay with Razorpay</h2>
@@ -238,39 +238,6 @@
         </button>
       </div>
       {% endif %}
-    </div>
-
-    <!-- DIVIDER -->
-    <div style="display:flex; align-items:center; margin:26px 0; text-align:center;">
-      <div style="flex:1; height:1px; background:#242e42;"></div>
-      <span style="padding:0 14px; font-size:11.5px; font-family:var(--mono); text-transform:uppercase; letter-spacing:0.1em; color:#64748b;">OR Pay via Direct UPI QR</span>
-      <div style="flex:1; height:1px; background:#242e42;"></div>
-    </div>
-
-    <!-- METHOD 2: DIRECT UPI QR CODE -->
-    <div class="pay-box">
-      <div style="font-family:var(--mono); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#aaa;">Amount to Pay</div>
-      <div class="amount" style="color:var(--brass-light); font-size:38px; margin:8px 0 16px;">₹{{ "%.0f"|format(order.total) }}</div>
-
-      <!-- QR Code -->
-      <div class="qr-wrapper" style="background:#ffffff; padding:12px; border-radius:8px; display:inline-block; margin-bottom:16px;">
-        <img class="qr" src="{{ qr_data_uri }}" alt="UPI QR code for ₹{{ '%.0f'|format(order.total) }}" style="width:200px; height:200px; display:block; margin:0 auto; background:#ffffff;">
-      </div>
-
-      <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:18px; flex-wrap:wrap;">
-        <span class="upi-id" id="upiIdText" style="margin-bottom:0; background:#090c12; color:#dfc691; border:1px solid #283347; font-family:var(--mono); padding:7px 14px; border-radius:4px; font-size:13.5px;">{{ settings.upi_id }}</span>
-        <button type="button" class="btn btn-outline" id="copyUpiBtn" style="padding:7px 14px; font-size:12px;" onclick="copyUpiId()">Copy UPI ID</button>
-      </div>
-
-      <div style="display:flex; flex-direction:column; gap:10px; align-items:center; margin-top:8px;">
-        <a href="{{ upi_uri }}" class="btn btn-brass" style="padding:14px 32px; font-weight:700; font-size:14px; width:100%; max-width:320px; text-align:center;">Pay with UPI App</a>
-        <a href="https://wa.me/{{ (settings.whatsapp_number or '919811551935') | replace('+', '') | replace(' ', '') }}?text={{ ('Hi SIZZLING by KBA, I have completed the UPI payment of ₹' ~ ('%.0f'|format(order.total)) ~ ' for Order #' ~ order.id ~ '. Sharing payment screenshot.')|urlencode }}" class="btn btn-outline" target="_blank" rel="noopener" style="padding:11px 22px; font-size:13px; display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:320px;">
-          <span>💬 Share Screenshot on WhatsApp</span>
-        </a>
-      </div>
-      <p style="font-size:12px; color:#888; margin-top:14px; line-height:1.4;">
-        Scan the QR code with any UPI app on your phone (Google Pay, PhonePe, Paytm, BHIM), or click "Pay with UPI App" on mobile.
-      </p>
     </div>
 
     <!-- ORDER SUMMARY -->
@@ -437,6 +404,7 @@
      data-customer-address="{{ order.address or '' }}"
      data-whatsapp="{{ settings.whatsapp_number }}"
      data-upi-id="{{ settings.upi_id }}"
+     data-use-sandbox="{{ '0' if has_real_keys else '1' }}"
      class="is-hidden"></div>
 
 <script>
@@ -451,6 +419,7 @@
     const CUSTOMER_ADDRESS = (configEl ? configEl.getAttribute("data-customer-address") : "") || "New Delhi Atelier Delivery";
     const WHATSAPP_NUMBER = configEl ? configEl.getAttribute("data-whatsapp") : "919811551935";
     const UPI_ID = configEl ? configEl.getAttribute("data-upi-id") : "8595511923@ptaxis";
+    const USE_SANDBOX = (configEl ? configEl.getAttribute("data-use-sandbox") : "1") === "1";
 
     // ====================================================================
     // SANDBOX SIMULATOR FUNCTIONS (HOISTED & GLOBALLY ACCESSIBLE)
@@ -557,8 +526,14 @@
 
     if (rzpBtn) {
       rzpBtn.addEventListener("click", function() {
+        // Immediate checkout without delay when in test sandbox mode or SDK unavailable
+        if (USE_SANDBOX || typeof Razorpay === "undefined") {
+          openSandboxModal();
+          return;
+        }
+
         rzpBtn.disabled = true;
-        rzpBtn.textContent = "Connecting to Gateway...";
+        rzpBtn.textContent = "Connecting to Razorpay...";
         if (rzpStatus) {
           rzpStatus.textContent = "";
           rzpStatus.className = "form-status";
@@ -748,16 +723,6 @@
       });
     };
 
-    // Copy UPI ID helper
-    window.copyUpiId = function() {
-      if (!UPI_ID) return;
-      const copyBtn = document.getElementById("copyUpiBtn");
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(UPI_ID).then(function() {
-          if (copyBtn) { copyBtn.textContent = "✓ Copied!"; setTimeout(function() { copyBtn.textContent = "Copy UPI ID"; }, 2000); }
-        });
-      }
-    };
   })();
 </script>
 
