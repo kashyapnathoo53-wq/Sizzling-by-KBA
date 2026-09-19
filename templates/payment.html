@@ -432,6 +432,9 @@
 <div id="paymentConfig"
      data-order-id="{{ order.id }}"
      data-order-total="{{ '%.0f'|format(order.total) }}"
+     data-customer-name="{{ order.customer_name or '' }}"
+     data-customer-phone="{{ order.phone or '' }}"
+     data-customer-address="{{ order.address or '' }}"
      data-whatsapp="{{ settings.whatsapp_number }}"
      data-upi-id="{{ settings.upi_id }}"
      class="is-hidden"></div>
@@ -441,6 +444,9 @@
     const configEl = document.getElementById("paymentConfig");
     const ORDER_ID = configEl ? configEl.getAttribute("data-order-id") : "";
     const ORDER_TOTAL = configEl ? configEl.getAttribute("data-order-total") : "0";
+    const CUSTOMER_NAME = configEl ? configEl.getAttribute("data-customer-name") : "";
+    const CUSTOMER_PHONE = configEl ? configEl.getAttribute("data-customer-phone") : "";
+    const CUSTOMER_ADDRESS = configEl ? configEl.getAttribute("data-customer-address") : "";
     const WHATSAPP_NUMBER = configEl ? configEl.getAttribute("data-whatsapp") : "";
     const UPI_ID = configEl ? configEl.getAttribute("data-upi-id") : "";
 
@@ -461,7 +467,14 @@
 
         fetch("/api/order/" + ORDER_ID + "/razorpay/create_order", {
           method: "POST",
-          headers: { "Content-Type": "application/json" }
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            order_id: ORDER_ID,
+            total: ORDER_TOTAL,
+            customer_name: CUSTOMER_NAME,
+            customer_phone: CUSTOMER_PHONE,
+            customer_address: CUSTOMER_ADDRESS
+          })
         })
         .then(function(r) { return r.json(); })
         .then(function(res) {
@@ -611,7 +624,11 @@
             body: JSON.stringify({
               razorpay_payment_id: generatedPaymentId,
               razorpay_order_id: "order_sandbox_" + ORDER_ID,
-              is_sandbox: true
+              is_sandbox: true,
+              total: ORDER_TOTAL,
+              customer_name: CUSTOMER_NAME,
+              customer_phone: CUSTOMER_PHONE,
+              customer_address: CUSTOMER_ADDRESS
             })
           })
           .then(function(r) { return r.json(); })
@@ -658,7 +675,11 @@
         body: JSON.stringify({
           razorpay_payment_id: paymentId,
           razorpay_order_id: orderId,
-          razorpay_signature: signature
+          razorpay_signature: signature,
+          total: ORDER_TOTAL,
+          customer_name: CUSTOMER_NAME,
+          customer_phone: CUSTOMER_PHONE,
+          customer_address: CUSTOMER_ADDRESS
         })
       })
       .then(function(r) { return r.json(); })
