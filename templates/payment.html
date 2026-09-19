@@ -93,6 +93,111 @@
     padding: 24px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
   }
+  .rzp-sandbox-container {
+    background: #0d1527;
+    border: 1px solid #233554;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 680px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+    overflow: hidden;
+  }
+  .rzp-sandbox-header {
+    background: #080d18;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1e293b;
+  }
+  .rzp-sandbox-badge {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 12px;
+  }
+  .rzp-close-btn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .rzp-sandbox-body {
+    display: flex;
+    flex-direction: row;
+  }
+  @media (max-width: 640px) {
+    .rzp-sandbox-body { flex-direction: column; }
+  }
+  .rzp-sandbox-summary {
+    flex: 1;
+    background: #09101d;
+    padding: 22px;
+    border-right: 1px solid #1e293b;
+  }
+  .rzp-sandbox-methods {
+    flex: 1.3;
+    padding: 22px;
+    background: #0d1527;
+  }
+  .rzp-user-pill {
+    background: #050811;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .rzp-method-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    background: #080d18;
+    padding: 4px;
+    border-radius: 8px;
+  }
+  .rzp-tab-btn {
+    flex: 1;
+    padding: 8px 6px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .rzp-tab-btn.active {
+    background: #1e293b;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .rzp-upi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .rzp-upi-option {
+    background: #080d18;
+    border: 1px solid #1e293b;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: #e2e8f0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .rzp-upi-option:hover, .rzp-upi-option.selected {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+  }
 </style>
 </head>
 <body>
@@ -186,6 +291,116 @@
   </div>
 </div>
 
+<!-- RAZORPAY TEST SANDBOX MODAL -->
+<div id="rzpSandboxModal" class="admin-keys-modal is-hidden" style="display:none;">
+  <div class="rzp-sandbox-container">
+    <div class="rzp-sandbox-header">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-weight:700; color:#fff; font-size:16px; letter-spacing:0.02em;">SIZZLING by KBA</span>
+        <span class="rzp-sandbox-badge">⚡ Razorpay Sandbox · Test Mode</span>
+      </div>
+      <button type="button" onclick="closeSandboxModal()" class="rzp-close-btn">&times;</button>
+    </div>
+
+    <div class="rzp-sandbox-body">
+      <!-- Left: Order Summary -->
+      <div class="rzp-sandbox-summary">
+        <div style="font-size:11.5px; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; margin-bottom:4px;">Price Summary</div>
+        <div style="font-size:32px; font-weight:700; color:#ffffff; margin-bottom:14px;">₹{{ "%.0f"|format(order.total) }}</div>
+        
+        <div class="rzp-user-pill">
+          <div style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.05em;">Order Reference</div>
+          <div style="font-size:13.5px; color:#e2e8f0; font-weight:600;">Order #{{ order.id }}</div>
+          <div style="font-size:12px; color:#94a3b8; margin-top:2px;">{{ order.customer_name or 'Valued Customer' }} &middot; +91 {{ order.phone or '8595511923' }}</div>
+        </div>
+
+        <div style="margin-top:18px; padding:12px; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:8px; font-size:12px; color:#94a3b8; line-height:1.5;">
+          <strong style="color:#38bdf8;">🧪 Test Sandbox Active</strong><br>
+          No real money is deducted. This sandbox allows you to test the checkout experience with instant order placement.
+        </div>
+      </div>
+
+      <!-- Right: Payment Methods -->
+      <div class="rzp-sandbox-methods">
+        <div class="rzp-method-tabs">
+          <button type="button" class="rzp-tab-btn active" onclick="switchSandboxTab('upi', this)">📱 UPI</button>
+          <button type="button" class="rzp-tab-btn" onclick="switchSandboxTab('card', this)">💳 Card</button>
+          <button type="button" class="rzp-tab-btn" onclick="switchSandboxTab('nb', this)">🏛️ NetBanking</button>
+        </div>
+
+        <!-- Tab 1: UPI -->
+        <div id="sandboxTab-upi" class="sandbox-tab-content">
+          <div style="font-size:12.5px; color:#94a3b8; margin-bottom:10px;">Select your preferred UPI app:</div>
+          <div class="rzp-upi-grid">
+            <div class="rzp-upi-option selected" onclick="selectUpiApp(this, 'Google Pay')">
+              <span style="font-size:16px;">🟢</span> Google Pay
+            </div>
+            <div class="rzp-upi-option" onclick="selectUpiApp(this, 'PhonePe')">
+              <span style="font-size:16px;">🟣</span> PhonePe
+            </div>
+            <div class="rzp-upi-option" onclick="selectUpiApp(this, 'Paytm')">
+              <span style="font-size:16px;">🔵</span> Paytm
+            </div>
+            <div class="rzp-upi-option" onclick="selectUpiApp(this, 'CRED')">
+              <span style="font-size:16px;">⚪</span> CRED / BHIM
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <label style="font-size:11.5px; color:#64748b;">Or enter UPI ID / VPA</label>
+            <input type="text" id="sandboxUpiId" value="customer@oksbi" style="width:100%; padding:8px 12px; background:#080d18; border:1px solid #1e293b; border-radius:6px; color:#fff; font-size:13px; font-family:var(--mono);">
+          </div>
+        </div>
+
+        <!-- Tab 2: Card -->
+        <div id="sandboxTab-card" class="sandbox-tab-content" style="display:none;">
+          <div style="margin-bottom:8px;">
+            <label style="font-size:11.5px; color:#64748b;">Test Card Number</label>
+            <input type="text" value="4111 •••• •••• 4444" readonly style="width:100%; padding:8px 12px; background:#080d18; border:1px solid #1e293b; border-radius:6px; color:#38bdf8; font-size:13px; font-family:var(--mono);">
+          </div>
+          <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <div style="flex:1;">
+              <label style="font-size:11.5px; color:#64748b;">Expiry</label>
+              <input type="text" value="12 / 28" readonly style="width:100%; padding:8px 12px; background:#080d18; border:1px solid #1e293b; border-radius:6px; color:#fff; font-size:12.5px;">
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:11.5px; color:#64748b;">CVV</label>
+              <input type="text" value="123" readonly style="width:100%; padding:8px 12px; background:#080d18; border:1px solid #1e293b; border-radius:6px; color:#fff; font-size:12.5px;">
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11.5px; color:#64748b;">Cardholder</label>
+            <input type="text" value="{{ order.customer_name or 'Valued Customer' }}" readonly style="width:100%; padding:8px 12px; background:#080d18; border:1px solid #1e293b; border-radius:6px; color:#fff; font-size:12.5px;">
+          </div>
+        </div>
+
+        <!-- Tab 3: NetBanking -->
+        <div id="sandboxTab-nb" class="sandbox-tab-content" style="display:none;">
+          <div style="font-size:12.5px; color:#94a3b8; margin-bottom:10px;">Select bank for NetBanking test:</div>
+          <div class="rzp-upi-grid">
+            <div class="rzp-upi-option selected" onclick="selectUpiApp(this, 'HDFC')">🏛️ HDFC Bank</div>
+            <div class="rzp-upi-option" onclick="selectUpiApp(this, 'ICICI')">🏛️ ICICI Bank</div>
+            <div class="rzp-upi-option" onclick="selectUpiApp(this, 'SBI')">🏛️ State Bank</div>
+            <div class="rzp-upi-option" onclick="selectUpiApp(this, 'Axis')">🏛️ Axis Bank</div>
+          </div>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div style="margin-top:16px;">
+          <button type="button" id="sandboxPayBtn" onclick="executeSandboxPayment(true)" class="btn btn-primary" style="width:100%; padding:12px; font-weight:700; font-size:14px; background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border:none; border-radius:6px; cursor:pointer;">
+            🔒 Authorize &amp; Pay ₹{{ "%.0f"|format(order.total) }}
+          </button>
+          
+          <button type="button" onclick="executeSandboxPayment(false)" style="margin-top:6px; width:100%; padding:6px; background:transparent; border:none; color:#64748b; font-size:11.5px; cursor:pointer;">
+            Simulate Payment Decline / Cancel
+          </button>
+        </div>
+
+        <div id="sandboxStatus" class="form-status" style="margin-top:8px; text-align:center; font-size:12px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ADMIN KEYS MODAL -->
 {% if session.get('is_admin') %}
 <div id="adminKeyModal" class="admin-keys-modal is-hidden" style="display:none;">
@@ -230,7 +445,7 @@
     const UPI_ID = configEl ? configEl.getAttribute("data-upi-id") : "";
 
     // ====================================================================
-    // REAL RAZORPAY STANDARD CHECKOUT
+    // REAL RAZORPAY & SANDBOX CONTROLS
     // ====================================================================
     const rzpBtn = document.getElementById("razorpayPayBtn");
     const rzpStatus = document.getElementById("razorpayStatus");
@@ -238,7 +453,7 @@
     if (rzpBtn) {
       rzpBtn.addEventListener("click", function() {
         rzpBtn.disabled = true;
-        rzpBtn.textContent = "Connecting to Razorpay...";
+        rzpBtn.textContent = "Connecting to Gateway...";
         if (rzpStatus) {
           rzpStatus.textContent = "";
           rzpStatus.className = "form-status";
@@ -250,7 +465,16 @@
         })
         .then(function(r) { return r.json(); })
         .then(function(res) {
-          if (res && res.success && res.key_id) {
+          if (res && res.success) {
+            // If Sandbox Mode is requested or keys are test mode
+            if (res.use_sandbox) {
+              rzpBtn.disabled = false;
+              rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
+              openSandboxModal();
+              return;
+            }
+
+            // Real Live/Test Razorpay Standard Checkout
             const options = {
               key: res.key_id,
               amount: res.amount,
@@ -319,6 +543,113 @@
         });
       });
     }
+
+    // ====================================================================
+    // SANDBOX SIMULATOR FUNCTIONS
+    // ====================================================================
+    window.openSandboxModal = function() {
+      const m = document.getElementById("rzpSandboxModal");
+      if (m) {
+        m.classList.remove("is-hidden");
+        m.style.display = "flex";
+      }
+    };
+
+    window.closeSandboxModal = function() {
+      const m = document.getElementById("rzpSandboxModal");
+      if (m) {
+        m.classList.add("is-hidden");
+        m.style.display = "none";
+      }
+    };
+
+    window.switchSandboxTab = function(tabName, btn) {
+      document.querySelectorAll(".rzp-tab-btn").forEach(function(b) { b.classList.remove("active"); });
+      document.querySelectorAll(".sandbox-tab-content").forEach(function(c) { c.style.display = "none"; });
+      if (btn) btn.classList.add("active");
+      const target = document.getElementById("sandboxTab-" + tabName);
+      if (target) target.style.display = "block";
+    };
+
+    window.selectUpiApp = function(el, appName) {
+      document.querySelectorAll(".rzp-upi-option").forEach(function(o) { o.classList.remove("selected"); });
+      if (el) el.classList.add("selected");
+      const inp = document.getElementById("sandboxUpiId");
+      if (inp) inp.value = "customer@" + appName.toLowerCase().replace(/[\s\(\)\/]+/g, '');
+    };
+
+    window.executeSandboxPayment = function(isSuccess) {
+      const btn = document.getElementById("sandboxPayBtn");
+      const st = document.getElementById("sandboxStatus");
+
+      if (!isSuccess) {
+        if (st) {
+          st.textContent = "❌ Transaction declined by bank simulator. Order remains unpaid.";
+          st.className = "form-status error";
+        }
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Connecting to bank gateway...";
+      }
+      if (st) {
+        st.textContent = "Contacting issuing bank...";
+        st.className = "form-status";
+      }
+
+      setTimeout(function() {
+        if (st) st.textContent = "3D Secure 2.0 authentication verified...";
+        setTimeout(function() {
+          if (st) st.textContent = "Payment authorized! Capturing funds...";
+          const generatedPaymentId = "pay_sandbox_" + Date.now() + "_" + Math.floor(1000 + Math.random() * 9000);
+          
+          fetch("/api/order/" + ORDER_ID + "/razorpay/verify_payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: generatedPaymentId,
+              razorpay_order_id: "order_sandbox_" + ORDER_ID,
+              is_sandbox: true
+            })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && data.success) {
+              if (st) {
+                st.textContent = "✓ Payment verified! Redirecting to confirmation...";
+                st.className = "form-status success";
+              }
+              try {
+                localStorage.removeItem("sizzling_cart");
+                window.dispatchEvent(new Event("cartUpdated"));
+              } catch(e) {}
+              window.location.href = data.redirect || ("/order/" + ORDER_ID + "/confirmation?verified=1");
+            } else {
+              if (st) {
+                st.textContent = (data && data.error) ? data.error : "Verification failed.";
+                st.className = "form-status error";
+              }
+              if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = "🔒 Authorize &amp; Pay ₹" + ORDER_TOTAL;
+              }
+            }
+          })
+          .catch(function() {
+            if (st) {
+              st.textContent = "Network error verifying test payment.";
+              st.className = "form-status error";
+            }
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = "🔒 Authorize &amp; Pay ₹" + ORDER_TOTAL;
+            }
+          });
+        }, 700);
+      }, 700);
+    };
 
     function verifyAndCompletePayment(paymentId, orderId, signature) {
       fetch("/api/order/" + ORDER_ID + "/razorpay/verify_payment", {
