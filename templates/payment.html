@@ -243,7 +243,16 @@
             rzpBtn.disabled = false;
             rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
             if (rzpStatus) {
-              rzpStatus.textContent = (res && res.error) ? res.error : "Failed to initiate Razorpay checkout.";
+              var errText = (res && res.error) ? res.error : "Failed to initiate Razorpay checkout.";
+              rzpStatus.innerHTML = '<div style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:12px; margin-top:8px;">' +
+                '<div style="font-weight:700; color:#f87171; margin-bottom:4px;">⚠️ ' + errText + '</div>' +
+                '<div style="font-size:12.5px; color:#cbd5e1; margin-top:6px;">' +
+                  'To accept or test payments, configure your active Razorpay <strong>Key ID</strong> and <strong>Key Secret</strong> from your Razorpay Dashboard.' +
+                '</div>' +
+                '<a href="/admin/settings" style="display:inline-block; margin-top:8px; color:#38bdf8; font-weight:600; font-size:12.5px; text-decoration:underline;">' +
+                  '⚙️ Open Admin Settings to enter Razorpay Keys &rarr;' +
+                '</a>' +
+              '</div>';
               rzpStatus.className = "form-status error";
             }
             return;

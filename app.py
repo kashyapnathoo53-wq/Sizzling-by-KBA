@@ -883,9 +883,14 @@ def api_razorpay_create_order(order_id):
             })
             rzp_order_id = rzp_res.get("id")
         except Exception as e:
+            err_str = str(e)
+            if "Authentication failed" in err_str or "Unauthorized" in err_str:
+                msg = "Razorpay Authentication Failed: The Key ID or Key Secret in Admin Settings is invalid or not recognized by Razorpay. Please enter your valid keys from your Razorpay Dashboard."
+            else:
+                msg = f"Razorpay error: {e}. Please check your Key ID and Secret in Admin Settings."
             return jsonify({
                 "success": False,
-                "error": f"Razorpay error: {e}. Please check your Key ID and Secret in Admin Settings."
+                "error": msg
             }), 400
 
     return jsonify({

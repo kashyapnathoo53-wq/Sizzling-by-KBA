@@ -29,10 +29,14 @@ def run_tests():
     conn.commit()
     conn.close()
     
-    # Configure test razorpay credentials in DB settings for testing verification
+    # Save original razorpay credentials so we restore them after test
+    from app import get_settings, set_setting
+    orig_settings = get_settings()
+    orig_key_id = orig_settings.get("razorpay_key_id", "")
+    orig_key_secret = orig_settings.get("razorpay_key_secret", "")
+
     test_key_id = "rzp_test_SecTest123"
     test_key_secret = "SecretSuperKeyXYZ789"
-    from app import set_setting
     set_setting("razorpay_key_id", test_key_id)
     set_setting("razorpay_key_secret", test_key_secret)
     
@@ -114,9 +118,12 @@ def run_tests():
     # Cleanup test order
     conn = sqlite3.connect("sizzling.db")
     conn.execute("DELETE FROM orders WHERE id=?", (order_id,))
-    # Reset credentials to clean placeholder if needed
     conn.commit()
     conn.close()
+
+    # Restore original credentials
+    set_setting("razorpay_key_id", orig_key_id)
+    set_setting("razorpay_key_secret", orig_key_secret)
     print(f"\n[*] Cleaned up test order #{order_id}")
     print("\n==================================================")
     print(" ALL PAYMENT SECURITY & VERIFICATION TESTS PASSED! ")
