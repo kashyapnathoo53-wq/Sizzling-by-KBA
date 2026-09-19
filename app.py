@@ -767,33 +767,41 @@ def api_razorpay_create_order(order_id):
         return jsonify({"success": False, "error": "Order not found."}), 404
 
     settings = get_settings()
-    key_id = (settings.get("razorpay_key_id") or os.environ.get("RAZORPAY_KEY_ID") or "rzp_test_1DP5mmOlF5G5ag").strip()
+    key_id = (settings.get("razorpay_key_id") or os.environ.get("RAZORPAY_KEY_ID") or "").strip()
     key_secret = (settings.get("razorpay_key_secret") or os.environ.get("RAZORPAY_KEY_SECRET") or "").strip()
 
-    if not key_id:
-        return jsonify({"success": False, "error": "Razorpay Key ID is not configured. Please set it in Admin Settings."}), 400
+    DUMMY_KEYS = {"rzp_test_sample", "rzp_test_1DP5mmOlF5G5ag"}
+    if not key_id or key_id in DUMMY_KEYS or not key_secret or key_secret == "sec123":
+        return jsonify({
+            "success": False,
+            "error": "Razorpay API keys are not yet configured in Admin Settings. Please configure your Razorpay Key ID and Secret in Admin Settings, or complete payment via the Direct UPI QR code below."
+        }), 400
 
     amount_paise = int(round(float(order["total"]) * 100))
-    rzp_order_id = None
 
-    if key_secret:
-        try:
-            import razorpay
-            client = razorpay.Client(auth=(key_id, key_secret))
-            client.set_app_details({"title": "SIZZLING by KBA", "version": "1.0.0"})
-            rzp_res = client.order.create({
-                "amount": amount_paise,
-                "currency": "INR",
-                "receipt": f"order_{order_id}",
-                "notes": {
-                    "order_id": str(order_id),
-                    "customer_name": str(order["customer_name"] or "")[:40],
-                    "phone": str(order["phone"] or "")[:15]
-                }
-            })
-            rzp_order_id = rzp_res.get("id")
-        except Exception as e:
-            print(f"[Razorpay Notice] Order creation on server returned: {e}")
+    try:
+        import razorpay
+        client = razorpay.Client(auth=(key_id, key_secret))
+        client.set_app_details({"title": "SIZZLING by KBA", "version": "1.0.0"})
+        rzp_res = client.order.create({
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": f"order_{order_id}",
+            "payment_capture": 1,
+            "notes": {
+                "order_id": str(order_id),
+                "customer_name": str(order["customer_name"] or "")[:40],
+                "phone": str(order["phone"] or "")[:15]
+            }
+        })
+        rzp_order_id = rzp_res.get("id")
+        if not rzp_order_id:
+            return jsonify({"success": False, "error": "Razorpay order creation returned an empty ID."}), 500
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Razorpay connection error: {e}. Please ensure your Key ID and Key Secret are active in your Razorpay Dashboard."
+        }), 400
 
     return jsonify({
         "success": True,
@@ -814,8 +822,11 @@ def api_razorpay_verify_payment(order_id):
     rzp_order_id = (data.get("razorpay_order_id") or "").strip()
     signature = (data.get("razorpay_signature") or "").strip()
 
-    if not payment_id:
-        return jsonify({"success": False, "error": "Missing payment reference ID."}), 400
+    if not payment_id or not rzp_order_id or not signature:
+        return jsonify({
+            "success": False, 
+            "error": "Incomplete payment verification payload. Payment ID, Order ID, and Signature are strictly required."
+        }), 400
 
     conn = get_db()
     order = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
@@ -824,18 +835,39 @@ def api_razorpay_verify_payment(order_id):
         return jsonify({"success": False, "error": "Order not found."}), 404
 
     settings = get_settings()
+    key_id = (settings.get("razorpay_key_id") or os.environ.get("RAZORPAY_KEY_ID") or "").strip()
     key_secret = (settings.get("razorpay_key_secret") or os.environ.get("RAZORPAY_KEY_SECRET") or "").strip()
 
-    # Signature verification if secret and signature provided
-    if key_secret and rzp_order_id and signature:
-        import hmac
-        import hashlib
-        msg = f"{rzp_order_id}|{payment_id}".encode("utf-8")
-        expected_sig = hmac.new(key_secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(expected_sig, signature):
-            conn.close()
-            return jsonify({"success": False, "error": "Razorpay payment signature verification failed."}), 400
+    if not key_secret:
+        conn.close()
+        return jsonify({"success": False, "error": "Server configuration error: Razorpay Key Secret missing."}), 500
 
+    # Strict HMAC-SHA256 signature verification
+    import hmac
+    import hashlib
+    msg = f"{rzp_order_id}|{payment_id}".encode("utf-8")
+    expected_sig = hmac.new(key_secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_sig, signature):
+        conn.close()
+        return jsonify({
+            "success": False,
+            "error": "Strict cryptographic signature verification failed. Untrusted payment attempt rejected."
+        }), 400
+
+    # Razorpay Python SDK utility check
+    try:
+        import razorpay
+        client = razorpay.Client(auth=(key_id, key_secret))
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": rzp_order_id,
+            "razorpay_payment_id": payment_id,
+            "razorpay_signature": signature
+        })
+    except Exception as e:
+        conn.close()
+        return jsonify({"success": False, "error": f"Razorpay signature check failed: {e}"}), 400
+
+    # Strictly mark order as payment_verified & confirmed only after verification passes
     now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     conn.execute("""
         UPDATE orders
@@ -857,6 +889,7 @@ def api_razorpay_verify_payment(order_id):
 
 
 @app.route("/api/admin/save_razorpay_keys", methods=["POST"])
+@login_required
 def api_save_razorpay_keys():
     data = request.json or {}
     key_id = (data.get("key_id") or "").strip()
@@ -867,6 +900,35 @@ def api_save_razorpay_keys():
     set_setting("razorpay_key_secret", key_secret)
     set_setting("razorpay_enabled", "1")
     return jsonify({"success": True, "message": "Razorpay API keys saved successfully!"})
+
+
+@app.route("/api/admin/test_razorpay_connection", methods=["POST"])
+@login_required
+def api_test_razorpay_connection():
+    data = request.json or {}
+    key_id = (data.get("key_id") or "").strip()
+    key_secret = (data.get("key_secret") or "").strip()
+    if not key_id or not key_secret:
+        return jsonify({"success": False, "error": "Both Key ID and Key Secret are required to test connection."}), 400
+    try:
+        import razorpay
+        client = razorpay.Client(auth=(key_id, key_secret))
+        test_order = client.order.create({
+            "amount": 100,
+            "currency": "INR",
+            "receipt": "conn_test",
+            "notes": {"purpose": "SIZZLING by KBA connection test"}
+        })
+        return jsonify({
+            "success": True,
+            "message": "Connection verified! Successfully authenticated with Razorpay.",
+            "test_order_id": test_order.get("id")
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Razorpay authentication failed: {e}. Please check your Key ID and Secret in your Razorpay Dashboard."
+        }), 400
 
 
 @app.route("/api/order/<int:order_id>/submit_payment_ref", methods=["POST"])
@@ -931,10 +993,10 @@ def order_confirmation(order_id):
     )
     is_submitted = (order["payment_status"] == "payment_submitted") or bool(order["payment_ref"])
 
-    # If unpaid and still awaiting confirmation, redirect back to payment page
-    if not is_paid and not is_submitted and order["status"] in ("awaiting_payment_confirmation", "pending_payment"):
+    # Strict payment guard: if unpaid and no UTR submitted, strictly redirect to payment page
+    if not is_paid and not is_submitted:
         conn.close()
-        flash("Please complete your payment to confirm your order.", "warning")
+        flash("Payment has not been completed for this order. Please complete payment to place your order.", "warning")
         return redirect(url_for("order_pay", order_id=order_id))
 
     items = conn.execute(

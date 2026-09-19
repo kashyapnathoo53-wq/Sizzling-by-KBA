@@ -69,16 +69,32 @@
         </div>
       </div>
 
-      <div class="field-row" style="background:#101726; padding:16px; border-radius:8px; border:1px solid #283750; margin-bottom:16px;">
-        <div class="field">
-          <label for="razorpay_key_id" style="color:#60a5fa;">⚡ Razorpay Key ID</label>
-          <input type="text" id="razorpay_key_id" name="razorpay_key_id" value="{{ settings.razorpay_key_id or '' }}" placeholder="rzp_live_... or rzp_test_...">
-          <div class="help-text">From Razorpay Dashboard &gt; Settings &gt; API Keys.</div>
+      <div style="background:#101726; padding:18px; border-radius:8px; border:1px solid #283750; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="color:#60a5fa; font-weight:700; font-size:14px;">⚡ Razorpay Payment Gateway Credentials</span>
+          {% if settings.razorpay_key_id and settings.razorpay_key_secret and settings.razorpay_key_id != 'rzp_test_sample' and settings.razorpay_key_secret != 'sec123' %}
+            <span style="background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid rgba(34,197,94,0.4); padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:600;">Configured</span>
+          {% else %}
+            <span style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:600;">Action Needed</span>
+          {% endif %}
         </div>
-        <div class="field">
-          <label for="razorpay_key_secret" style="color:#60a5fa;">🔒 Razorpay Key Secret</label>
-          <input type="password" id="razorpay_key_secret" name="razorpay_key_secret" value="{{ settings.razorpay_key_secret or '' }}" placeholder="Enter secret key">
-          <div class="help-text">Used securely for HMAC-SHA256 signature verification.</div>
+        <div class="field-row">
+          <div class="field">
+            <label for="razorpay_key_id" style="color:#94a3b8;">Razorpay Key ID</label>
+            <input type="text" id="razorpay_key_id" name="razorpay_key_id" value="{{ settings.razorpay_key_id or '' }}" placeholder="rzp_live_... or rzp_test_...">
+            <div class="help-text">From Razorpay Dashboard &gt; Settings &gt; API Keys.</div>
+          </div>
+          <div class="field">
+            <label for="razorpay_key_secret" style="color:#94a3b8;">Razorpay Key Secret</label>
+            <input type="password" id="razorpay_key_secret" name="razorpay_key_secret" value="{{ settings.razorpay_key_secret or '' }}" placeholder="Enter secret key">
+            <div class="help-text">Used securely for HMAC-SHA256 signature verification.</div>
+          </div>
+        </div>
+        <div style="margin-top:10px; display:flex; align-items:center; gap:12px;">
+          <button type="button" onclick="testRazorpayConnection()" class="btn btn-outline" style="font-size:12.5px; padding:7px 16px; border-color:#38bdf8; color:#38bdf8;">
+            🔌 Test Connection with Razorpay
+          </button>
+          <span id="rzpTestResult" style="font-size:12.5px; font-weight:500;"></span>
         </div>
       </div>
 
@@ -98,5 +114,43 @@
   </div>
 </div>
 
+<script>
+async function testRazorpayConnection() {
+  const keyIdInput = document.getElementById('razorpay_key_id');
+  const keySecretInput = document.getElementById('razorpay_key_secret');
+  const resultSpan = document.getElementById('rzpTestResult');
+
+  const key_id = (keyIdInput ? keyIdInput.value : '').trim();
+  const key_secret = (keySecretInput ? keySecretInput.value : '').trim();
+
+  if (!key_id || !key_secret) {
+    resultSpan.style.color = '#ef4444';
+    resultSpan.textContent = '❌ Please enter both Key ID and Key Secret to test.';
+    return;
+  }
+
+  resultSpan.style.color = '#38bdf8';
+  resultSpan.textContent = '⏳ Testing connection with Razorpay API...';
+
+  try {
+    const res = await fetch('/api/admin/test_razorpay_connection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key_id, key_secret })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      resultSpan.style.color = '#22c55e';
+      resultSpan.textContent = '✅ ' + data.message;
+    } else {
+      resultSpan.style.color = '#ef4444';
+      resultSpan.textContent = '❌ ' + (data.error || 'Connection failed.');
+    }
+  } catch (err) {
+    resultSpan.style.color = '#ef4444';
+    resultSpan.textContent = '❌ Network error: ' + err.message;
+  }
+}
+</script>
 </body>
 </html>

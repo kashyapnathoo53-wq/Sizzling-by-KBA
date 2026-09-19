@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pay for Order #{{ order.id }} — {{ settings.brand_name }}</title>
+<title>Complete Payment for Order #{{ order.id }} — {{ settings.brand_name }}</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
 <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon_32.png') }}">
 <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='images/favicon.png') }}">
@@ -14,14 +14,66 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
-  .is-hidden, .rzp-modal-backdrop.is-hidden {
+  .is-hidden {
     display: none !important;
-    pointer-events: none !important;
     visibility: hidden !important;
   }
-  
-  /* Razorpay Custom Modal Styles */
-  .rzp-modal-backdrop {
+  .payment-option-card {
+    background: #0f1624;
+    border: 1px solid #223049;
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 22px;
+    transition: border-color 0.2s;
+  }
+  .payment-option-card.highlight {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #10192b 0%, #0c121d 100%);
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.6);
+  }
+  .gateway-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(59,130,246,0.15);
+    border: 1px solid rgba(59,130,246,0.4);
+    color: #60a5fa;
+    font-size: 11.5px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+  .rzp-btn {
+    width: 100%;
+    padding: 15px 24px;
+    font-size: 15px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+  }
+  .rzp-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(37,99,235,0.5);
+  }
+  .rzp-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .admin-keys-modal {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(4, 7, 12, 0.85);
@@ -32,137 +84,14 @@
     justify-content: center;
     padding: 16px;
   }
-  .rzp-modal-card {
+  .admin-keys-card {
     background: #0d131f;
     border: 1px solid #293854;
     border-radius: 12px;
     width: 100%;
-    max-width: 480px;
+    max-width: 460px;
+    padding: 24px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
-    overflow: hidden;
-    animation: rzpFadeIn 0.25s ease-out;
-  }
-  @keyframes rzpFadeIn {
-    from { opacity: 0; transform: scale(0.96) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-  }
-  .rzp-modal-header {
-    background: linear-gradient(135deg, #162238 0%, #0d1524 100%);
-    padding: 18px 20px;
-    border-bottom: 1px solid #202c42;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .rzp-brand-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 700;
-    color: #fff;
-  }
-  .rzp-brand-badge span {
-    color: #38bdf8;
-    font-size: 11px;
-    font-family: var(--mono);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    background: rgba(56,189,248,0.15);
-    padding: 2px 8px;
-    border-radius: 4px;
-  }
-  .rzp-modal-close {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    font-size: 20px;
-    cursor: pointer;
-    line-height: 1;
-    padding: 4px 8px;
-  }
-  .rzp-modal-close:hover { color: #fff; }
-  .rzp-amount-strip {
-    background: #090e17;
-    padding: 14px 20px;
-    border-bottom: 1px solid #1a2538;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .rzp-tabs {
-    display: flex;
-    background: #111827;
-    border-bottom: 1px solid #202c42;
-  }
-  .rzp-tab-btn {
-    flex: 1;
-    padding: 12px;
-    text-align: center;
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-  }
-  .rzp-tab-btn.active {
-    color: #38bdf8;
-    border-bottom-color: #38bdf8;
-    background: rgba(56,189,248,0.05);
-  }
-  .rzp-tab-pane { display: none; padding: 20px; }
-  .rzp-tab-pane.active { display: block; }
-  .rzp-method-option {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    background: #151d2d;
-    border: 1px solid #25334c;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .rzp-method-option:hover {
-    border-color: #38bdf8;
-    background: #1a2438;
-  }
-  .rzp-input-field {
-    width: 100%;
-    padding: 12px 14px;
-    background: #090e17;
-    border: 1px solid #25334c;
-    border-radius: 6px;
-    color: #fff;
-    font-size: 14px;
-    margin-bottom: 12px;
-  }
-  .rzp-input-field:focus {
-    border-color: #38bdf8;
-    outline: none;
-  }
-  .rzp-pay-submit-btn {
-    width: 100%;
-    padding: 15px;
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(37,99,235,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-  .rzp-pay-submit-btn:disabled {
-    opacity: 0.65;
-    cursor: not-allowed;
   }
 </style>
 </head>
@@ -181,43 +110,44 @@
 <div class="simple-page">
   <div class="wrap" style="max-width:580px;">
     <h1>Complete Payment for Order #{{ order.id }}</h1>
-    <p class="sub">Choose your payment method below. Your order will only be confirmed once payment is verified.</p>
+    <p class="sub">Please choose your payment option below. <strong>Orders are strictly confirmed only after payment is verified.</strong></p>
 
-    <!-- Razorpay Instant Gateway Card -->
-    <div class="form-card" style="margin-bottom:24px; padding:26px; background:linear-gradient(135deg, #101726 0%, #0a0e17 100%); border:1px solid #3b82f6; border-radius:10px; text-align:center;">
-      <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.4); padding:6px 14px; border-radius:20px; color:#60a5fa; font-size:12px; font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px;">
-        ⚡ Instant Gateway Verification
-      </div>
+    <!-- METHOD 1: REAL RAZORPAY GATEWAY -->
+    <div class="payment-option-card highlight" style="text-align:center;">
+      <div class="gateway-badge">⚡ Instant Automated Verification</div>
       <h2 style="font-size:22px; color:#ffffff; margin-bottom:8px;">Pay with Razorpay</h2>
       <p style="font-size:13.5px; color:#94a3b8; line-height:1.5; margin-bottom:20px; max-width:440px; margin-left:auto; margin-right:auto;">
-        Supports <strong>UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, NetBanking &amp; Wallets</strong> with instant real-time verification.
+        Pay securely using <strong>UPI (Google Pay, PhonePe, Paytm, CRED), Credit/Debit Cards, NetBanking, or EMI</strong>. Real-time verification confirms your order immediately.
       </p>
-      
-      <button type="button" id="razorpayPayBtn" class="btn" style="width:100%; max-width:380px; margin:0 auto; padding:15px 24px; font-size:15px; font-weight:700; background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color:#ffffff; border:none; border-radius:6px; box-shadow:0 4px 14px rgba(37,99,235,0.4); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+
+      <button type="button" id="razorpayPayBtn" class="rzp-btn">
         <span>🔒 Pay ₹{{ "%.0f"|format(order.total) }} via Razorpay</span>
       </button>
-      <div id="razorpayStatus" class="form-status" style="margin-top:12px;"></div>
 
-      <div style="margin-top:16px;">
-        <button type="button" onclick="openKeyConfigModal()" style="background:transparent; border:none; color:#64748b; font-size:12px; cursor:pointer; text-decoration:underline;">
-          ⚙️ Configure Custom Razorpay API Keys
+      <div id="razorpayStatus" class="form-status" style="margin-top:14px; text-align:center;"></div>
+
+      {% if session.get('is_admin') %}
+      <div style="margin-top:16px; padding-top:12px; border-top:1px solid #1e293b;">
+        <button type="button" onclick="openKeyModal()" style="background:none; border:none; color:#64748b; font-size:12px; text-decoration:underline; cursor:pointer;">
+          ⚙️ Admin: Configure Razorpay API Keys
         </button>
       </div>
+      {% endif %}
     </div>
 
-    <!-- Divider -->
-    <div style="display:flex; align-items:center; margin:24px 0; text-align:center;">
+    <!-- DIVIDER -->
+    <div style="display:flex; align-items:center; margin:26px 0; text-align:center;">
       <div style="flex:1; height:1px; background:#242e42;"></div>
       <span style="padding:0 14px; font-size:11.5px; font-family:var(--mono); text-transform:uppercase; letter-spacing:0.1em; color:#64748b;">OR Pay via Direct UPI QR</span>
       <div style="flex:1; height:1px; background:#242e42;"></div>
     </div>
 
-    <!-- Payment Box with QR Code & UPI Details -->
+    <!-- METHOD 2: DIRECT UPI QR CODE -->
     <div class="pay-box">
       <div style="font-family:var(--mono); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#aaa;">Amount to Pay</div>
       <div class="amount" style="color:var(--brass-light); font-size:38px; margin:8px 0 16px;">₹{{ "%.0f"|format(order.total) }}</div>
 
-      <!-- QR code as inline base64 -->
+      <!-- QR Code -->
       <div class="qr-wrapper" style="background:#ffffff; padding:12px; border-radius:8px; display:inline-block; margin-bottom:16px;">
         <img class="qr" src="{{ qr_data_uri }}" alt="UPI QR code for ₹{{ '%.0f'|format(order.total) }}" style="width:200px; height:200px; display:block; margin:0 auto; background:#ffffff;">
       </div>
@@ -231,11 +161,11 @@
         <a href="{{ upi_uri }}" class="btn btn-brass" style="padding:14px 32px; font-weight:700; font-size:14px;">Pay with UPI App</a>
       </div>
       <p style="font-size:12px; color:#888; margin-top:14px; line-height:1.4;">
-        "Pay with UPI App" directly launches Google Pay / PhonePe / Paytm on phones. On a computer, scan the QR code above with your mobile phone camera.
+        Scan the QR code with any UPI app on your phone (Google Pay, PhonePe, Paytm, BHIM), or click "Pay with UPI App" on mobile.
       </p>
     </div>
 
-    <!-- Order Items Summary -->
+    <!-- ORDER SUMMARY -->
     <div class="checkout-summary" style="margin-top:24px;">
       <div style="font-weight:700; margin-bottom:10px; color:var(--brass); text-transform:uppercase; letter-spacing:0.05em; font-size:12.5px;">Order Items</div>
       {% for i in items %}
@@ -250,42 +180,39 @@
       </div>
     </div>
 
-    <!-- Step 2: UPI Reference Submission for Bank Check (NO false confirmation) -->
+    <!-- STEP: MANUAL UPI REFERENCE (UTR) SUBMISSION -->
     {% set is_already_submitted = (order.payment_status == 'payment_verified') or order.payment_ref or (order.status not in ['awaiting_payment_confirmation', 'pending_payment']) %}
-    
+
     <div class="form-card{% if is_already_submitted %} is-hidden{% endif %}" id="payRefSection" style="margin-top:24px;">
-      <h3 style="margin-bottom:6px; color:#ffffff;">Submit UPI Reference (UTR) for Bank Verification</h3>
-      <p style="font-size:13.5px; color:#aaa; margin-bottom:18px; line-height:1.5;">
-        After paying via QR code, enter your <strong>12-digit UPI UTR / Reference number</strong> below. Note: Order will only be confirmed once bank credit is verified.
+      <h3 style="margin-bottom:6px; color:#ffffff;">Submit 12-Digit UPI UTR for Bank Verification</h3>
+      <p style="font-size:13px; color:#94a3b8; margin-bottom:16px; line-height:1.5;">
+        After paying via QR code or UPI, copy the <strong>12-digit UTR / Reference number</strong> from your payment receipt and submit it below.
+        <br><span style="color:#f59e0b; font-size:12px;">⚠️ Note: Order will be sent to tailoring only after store accounts verify the bank credit.</span>
       </p>
       <form id="paymentRefForm" class="payment-ref-form">
-        <input type="text" id="paymentRefInput" name="payment_ref" aria-label="12-digit UPI Reference or UTR Number" placeholder="e.g. 423819284729 (12-digit UPI Ref / UTR)" autocomplete="off" required style="padding:14px; font-size:14px;">
+        <input type="text" id="paymentRefInput" name="payment_ref" aria-label="12-digit UPI Reference or UTR Number" placeholder="e.g. 423819284729 (12-digit UPI UTR)" maxlength="30" autocomplete="off" required style="padding:14px; font-size:14px;">
         <button type="submit" id="paymentRefBtn" class="btn btn-brass" style="padding:14px 24px; font-weight:700;">Submit UTR for Verification →</button>
       </form>
       <div id="paymentRefStatus" class="form-status" style="margin-top:12px;"></div>
-
-      <div style="margin-top:20px; padding-top:16px; border-top:1px solid #232b3b; font-size:13.5px; color:#aaa;">
-        Paid on your phone and want instant verification? <a href="https://wa.me/{{ settings.whatsapp_number }}?text={{ ('Hi SIZZLING by KBA, I have completed the UPI payment of ₹' ~ ('%.0f'|format(order.total)) ~ ' for Order #' ~ order.id ~ '. Sharing my payment screenshot for verification.')|urlencode }}" id="waConfirmLink" target="_blank" rel="noopener" style="color:var(--brass); text-decoration:underline; font-weight:600;">Send payment screenshot on WhatsApp 💬</a>
-      </div>
     </div>
 
-    <!-- Post-submission verification pending notice (NO premature order confirmation) -->
-    <div class="form-card{% if not is_already_submitted %} is-hidden{% endif %}" id="postPaySection" style="text-align:center; padding:36px 26px; margin-top:24px; border:1px solid #f59e0b; background:#121824; border-radius:10px;">
-      <div style="font-size:42px; margin-bottom:14px;">⏳</div>
-      <h2 style="margin-bottom:10px; font-size:22px; color:#f59e0b;">UPI Reference Logged — Awaiting Bank Verification</h2>
-      <p style="color:#cbd5e1; font-size:14.5px; margin-bottom:20px; line-height:1.6; max-width:460px; margin-left:auto; margin-right:auto;">
-        We have received your UPI reference for <strong>Order #{{ order.id }}</strong>. Our team is verifying the credit in our bank account. <strong>Your order will only be confirmed and sent to tailoring once payment is verified.</strong>
+    <!-- PENDING VERIFICATION NOTICE -->
+    <div class="form-card{% if not is_already_submitted %} is-hidden{% endif %}" id="postPaySection" style="text-align:center; padding:32px 24px; margin-top:24px; border:1px solid #f59e0b; background:#121824; border-radius:10px;">
+      <div style="font-size:40px; margin-bottom:12px;">⏳</div>
+      <h2 style="margin-bottom:8px; font-size:20px; color:#f59e0b;">UPI Reference Logged — Awaiting Bank Credit Verification</h2>
+      <p style="color:#cbd5e1; font-size:14px; margin-bottom:18px; line-height:1.6; max-width:460px; margin-left:auto; margin-right:auto;">
+        We have logged your UPI reference for <strong>Order #{{ order.id }}</strong>. Our team is verifying the credit in our bank account. <strong>Your order will strictly be confirmed once bank credit is verified.</strong>
       </p>
-      
-      <div id="submittedRefDisplay" class="{% if not order.payment_ref %}is-hidden{% endif %}" style="margin-bottom:20px; font-family:var(--mono); font-size:13.5px; color:var(--brass); background:#0b0f17; padding:10px 18px; border-radius:6px; display:inline-block; border:1px solid #283347;">
-        Submitted Ref: <span id="paymentRefVal">{{ order.payment_ref or '' }}</span>
+
+      <div id="submittedRefDisplay" class="{% if not order.payment_ref %}is-hidden{% endif %}" style="margin-bottom:18px; font-family:var(--mono); font-size:13.5px; color:var(--brass); background:#0b0f17; padding:9px 16px; border-radius:6px; display:inline-block; border:1px solid #283347;">
+        Submitted UTR: <span id="paymentRefVal">{{ order.payment_ref or '' }}</span>
       </div>
       <br>
 
-      <div style="margin-top:14px; font-size:13.5px; color:#94a3b8;">
-        For immediate verification, please share your payment screenshot on WhatsApp:
+      <div style="font-size:13px; color:#94a3b8; margin-top:10px;">
+        To expedite verification, you can share your payment screenshot on WhatsApp:
       </div>
-      <a href="https://wa.me/{{ settings.whatsapp_number }}?text={{ ('Hi SIZZLING by KBA, I have completed the UPI payment of ₹' ~ ('%.0f'|format(order.total)) ~ ' for Order #' ~ order.id ~ ' with UTR ' ~ (order.payment_ref or '') ~ '. Sharing my payment screenshot for verification.')|urlencode }}" class="btn btn-brass" target="_blank" rel="noopener" style="margin-top:14px; padding:13px 30px; font-weight:700; font-size:14px; display:inline-flex; align-items:center; gap:8px;">
+      <a href="https://wa.me/{{ settings.whatsapp_number }}?text={{ ('Hi SIZZLING by KBA, I have completed the UPI payment of ₹' ~ ('%.0f'|format(order.total)) ~ ' for Order #' ~ order.id ~ ' with UTR ' ~ (order.payment_ref or '') ~ '. Sharing payment screenshot for verification.')|urlencode }}" id="waConfirmLink" class="btn btn-brass" target="_blank" rel="noopener" style="margin-top:12px; padding:12px 26px; font-weight:700; font-size:13.5px; display:inline-flex; align-items:center; gap:8px;">
         <span>💬 Send Screenshot to Store WhatsApp ({{ settings.whatsapp_number }})</span>
       </a>
     </div>
@@ -293,135 +220,34 @@
   </div>
 </div>
 
-<!-- ==================================================================== -->
-<!-- SIZZLING RAZORPAY VERIFIED CHECKOUT MODAL -->
-<!-- ==================================================================== -->
-<div id="rzpGatewayModal" class="rzp-modal-backdrop is-hidden" style="display:none;">
-  <div class="rzp-modal-card">
-    <div class="rzp-modal-header">
-      <div class="rzp-brand-badge">
-        <span>Razorpay Secure</span>
-        SIZZLING by KBA
-      </div>
-      <button type="button" class="rzp-modal-close" onclick="closeRzpModal()">&times;</button>
+<!-- ADMIN KEYS MODAL -->
+{% if session.get('is_admin') %}
+<div id="adminKeyModal" class="admin-keys-modal is-hidden" style="display:none;">
+  <div class="admin-keys-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin:0; color:#fff;">⚙️ Razorpay API Credentials</h3>
+      <button type="button" onclick="closeKeyModal()" style="background:none; border:none; color:#888; font-size:22px; cursor:pointer;">&times;</button>
     </div>
-
-    <div class="rzp-amount-strip">
-      <div style="font-size:13px; color:#94a3b8;">Order #{{ order.id }} Total</div>
-      <div style="font-size:22px; font-weight:700; color:#38bdf8; font-family:var(--mono);">₹{{ "%.0f"|format(order.total) }}</div>
+    <p style="font-size:13px; color:#94a3b8; line-height:1.5; margin-bottom:16px;">
+      Enter your live/test Key ID and Key Secret from your <a href="https://dashboard.razorpay.com/" target="_blank" rel="noopener" style="color:#38bdf8;">Razorpay Dashboard</a> &gt; Settings &gt; API Keys:
+    </p>
+    <div class="field" style="margin-bottom:14px;">
+      <label style="font-size:12px; color:#94a3b8;">Razorpay Key ID</label>
+      <input type="text" id="adminKeyId" placeholder="rzp_live_... or rzp_test_..." value="{{ settings.razorpay_key_id or '' }}" style="width:100%; padding:10px; background:#080d17; border:1px solid #233148; color:#fff; border-radius:4px;">
     </div>
-
-    <div class="rzp-tabs">
-      <button type="button" class="rzp-tab-btn active" onclick="switchRzpTab('upi', event)">📱 UPI</button>
-      <button type="button" class="rzp-tab-btn" onclick="switchRzpTab('card', event)">💳 Card</button>
-      <button type="button" class="rzp-tab-btn" onclick="switchRzpTab('netbanking', event)">🏦 NetBanking</button>
+    <div class="field" style="margin-bottom:18px;">
+      <label style="font-size:12px; color:#94a3b8;">Razorpay Key Secret</label>
+      <input type="password" id="adminKeySecret" placeholder="Enter Key Secret..." value="{{ settings.razorpay_key_secret or '' }}" style="width:100%; padding:10px; background:#080d17; border:1px solid #233148; color:#fff; border-radius:4px;">
     </div>
-
-    <!-- Tab 1: UPI -->
-    <div id="rzpTab-upi" class="rzp-tab-pane active">
-      <div style="font-size:13px; color:#94a3b8; margin-bottom:12px;">Choose your preferred UPI app:</div>
-      <div class="rzp-method-option" onclick="selectUpiApp('Google Pay')">
-        <span style="font-size:20px;">🟢</span>
-        <div>
-          <div style="font-weight:600; color:#fff; font-size:14px;">Google Pay (GPay)</div>
-          <div style="font-size:12px; color:#94a3b8;">Instant UPI verification</div>
-        </div>
-      </div>
-      <div class="rzp-method-option" onclick="selectUpiApp('PhonePe')">
-        <span style="font-size:20px;">🟣</span>
-        <div>
-          <div style="font-weight:600; color:#fff; font-size:14px;">PhonePe</div>
-          <div style="font-size:12px; color:#94a3b8;">Instant UPI verification</div>
-        </div>
-      </div>
-      <div class="rzp-method-option" onclick="selectUpiApp('Paytm')">
-        <span style="font-size:20px;">🔵</span>
-        <div>
-          <div style="font-weight:600; color:#fff; font-size:14px;">Paytm UPI</div>
-          <div style="font-size:12px; color:#94a3b8;">Instant UPI verification</div>
-        </div>
-      </div>
-      <div style="margin-top:14px;">
-        <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Or Enter Any UPI ID:</label>
-        <input type="text" id="rzpCustomUpiInput" class="rzp-input-field" placeholder="username@okhdfcbank or 9811551935@paytm" value="{{ order.phone }}@upi">
-      </div>
-      <button type="button" id="rzpUpiPayBtn" class="rzp-pay-submit-btn" onclick="executeRazorpayPayment('UPI')">
-        <span>Authorize &amp; Pay ₹{{ "%.0f"|format(order.total) }}</span>
-      </button>
+    <div style="display:flex; gap:10px;">
+      <button type="button" onclick="testAndSaveRazorpayKeys()" class="btn btn-primary" style="flex:1; padding:12px; font-weight:700;">Save &amp; Test Connection</button>
+      <button type="button" onclick="closeKeyModal()" class="btn btn-outline" style="padding:12px;">Close</button>
     </div>
-
-    <!-- Tab 2: Card -->
-    <div id="rzpTab-card" class="rzp-tab-pane">
-      <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Card Number</label>
-      <input type="text" id="rzpCardNum" class="rzp-input-field" placeholder="4111 2222 3333 4444" value="4111 2222 3333 4444">
-      <div style="display:flex; gap:10px;">
-        <div style="flex:1;">
-          <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Expiry</label>
-          <input type="text" id="rzpCardExp" class="rzp-input-field" placeholder="MM/YY" value="12/28">
-        </div>
-        <div style="flex:1;">
-          <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">CVV</label>
-          <input type="password" id="rzpCardCvv" class="rzp-input-field" placeholder="123" value="123" maxlength="4">
-        </div>
-      </div>
-      <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Name on Card</label>
-      <input type="text" id="rzpCardName" class="rzp-input-field" placeholder="Cardholder Name" value="{{ order.customer_name }}">
-      <button type="button" id="rzpCardPayBtn" class="rzp-pay-submit-btn" onclick="executeRazorpayPayment('Card')">
-        <span>Pay ₹{{ "%.0f"|format(order.total) }} with Card</span>
-      </button>
-    </div>
-
-    <!-- Tab 3: NetBanking -->
-    <div id="rzpTab-netbanking" class="rzp-tab-pane">
-      <div style="font-size:13px; color:#94a3b8; margin-bottom:12px;">Select your bank:</div>
-      <select id="rzpBankSelect" class="rzp-input-field" style="height:44px;">
-        <option value="HDFC Bank">HDFC Bank</option>
-        <option value="State Bank of India">State Bank of India (SBI)</option>
-        <option value="ICICI Bank">ICICI Bank</option>
-        <option value="Axis Bank">Axis Bank</option>
-        <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
-        <option value="Punjab National Bank">Punjab National Bank</option>
-      </select>
-      <button type="button" id="rzpNetPayBtn" class="rzp-pay-submit-btn" onclick="executeRazorpayPayment('NetBanking')">
-        <span>Proceed to NetBanking ₹{{ "%.0f"|format(order.total) }}</span>
-      </button>
-    </div>
-
-    <div id="rzpModalStatus" class="form-status" style="margin: 0 20px 16px; text-align:center;"></div>
+    <div id="adminKeyStatus" class="form-status" style="margin-top:12px; text-align:center;"></div>
   </div>
 </div>
+{% endif %}
 
-<!-- ==================================================================== -->
-<!-- CONFIGURE RAZORPAY KEYS MODAL (FOR STORE ADMIN) -->
-<!-- ==================================================================== -->
-<div id="rzpKeysModal" class="rzp-modal-backdrop is-hidden" style="display:none;">
-  <div class="rzp-modal-card" style="max-width:440px;">
-    <div class="rzp-modal-header">
-      <div class="rzp-brand-badge">
-        <span>Admin Setting</span>
-        Razorpay API Credentials
-      </div>
-      <button type="button" class="rzp-modal-close" onclick="closeKeyConfigModal()">&times;</button>
-    </div>
-    <div style="padding:22px;">
-      <p style="font-size:13px; color:#94a3b8; line-height:1.5; margin-bottom:16px;">
-        Paste your Razorpay API Key ID and Key Secret from your <a href="https://dashboard.razorpay.com/" target="_blank" rel="noopener" style="color:#38bdf8;">Razorpay Dashboard</a> (Settings &gt; API Keys):
-      </p>
-      <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Razorpay Key ID</label>
-      <input type="text" id="configKeyId" class="rzp-input-field" placeholder="rzp_live_... or rzp_test_..." value="{{ settings.razorpay_key_id or '' }}">
-
-      <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Razorpay Key Secret</label>
-      <input type="password" id="configKeySecret" class="rzp-input-field" placeholder="Enter secret key..." value="{{ settings.razorpay_key_secret or '' }}">
-
-      <button type="button" class="rzp-pay-submit-btn" onclick="saveRazorpayKeys()">
-        Save API Credentials
-      </button>
-      <div id="configStatus" class="form-status" style="margin-top:12px; text-align:center;"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Hidden data container for clean JavaScript without Jinja syntax conflicts in IDE -->
 <div id="paymentConfig"
      data-order-id="{{ order.id }}"
      data-order-total="{{ '%.0f'|format(order.total) }}"
@@ -437,15 +263,8 @@
     const WHATSAPP_NUMBER = configEl ? configEl.getAttribute("data-whatsapp") : "";
     const UPI_ID = configEl ? configEl.getAttribute("data-upi-id") : "";
 
-    // Set WhatsApp confirmation message link
-    const waLink = document.getElementById("waConfirmLink");
-    if (waLink && WHATSAPP_NUMBER) {
-      const msg = "Hi SIZZLING by KBA, I have completed the UPI payment of ₹" + ORDER_TOTAL + " for Order #" + ORDER_ID + ". Sharing my payment screenshot for verification.";
-      waLink.href = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg);
-    }
-
     // ====================================================================
-    // Razorpay Checkout Integration
+    // REAL RAZORPAY STANDARD CHECKOUT
     // ====================================================================
     const rzpBtn = document.getElementById("razorpayPayBtn");
     const rzpStatus = document.getElementById("razorpayStatus");
@@ -465,16 +284,13 @@
         })
         .then(function(r) { return r.json(); })
         .then(function(res) {
-          // If server returned a valid Razorpay Order ID and key is not the blocked sample key,
-          // launch the official Razorpay Checkout popup
-          const isSampleKey = (!res.key_id || res.key_id === "rzp_test_1DP5mmOlF5G5ag");
-          if (res && res.success && res.razorpay_order_id && !isSampleKey) {
+          if (res && res.success && res.razorpay_order_id && res.key_id) {
             const options = {
               key: res.key_id,
               amount: res.amount,
               currency: res.currency || "INR",
-              name: "SIZZLING by KBA",
-              description: "Order #" + ORDER_ID + " — Bespoke Tailoring",
+              name: "SIZZLING by KBA Pvt Ltd",
+              description: "Order #" + ORDER_ID + " — Bespoke Menswear",
               image: "/static/images/favicon.svg",
               order_id: res.razorpay_order_id,
               prefill: {
@@ -482,103 +298,59 @@
                 contact: res.customer_phone || ""
               },
               theme: {
-                color: "#0a0e17"
+                color: "#c5a059"
               },
               handler: function(response) {
+                rzpBtn.disabled = true;
+                rzpBtn.textContent = "Verifying payment with bank...";
+                if (rzpStatus) {
+                  rzpStatus.textContent = "Verifying cryptographic payment signature...";
+                  rzpStatus.className = "form-status";
+                }
                 verifyAndCompletePayment(response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature);
               },
               modal: {
                 ondismiss: function() {
                   rzpBtn.disabled = false;
                   rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
+                  if (rzpStatus) {
+                    rzpStatus.textContent = "Payment cancelled. You can retry when ready.";
+                    rzpStatus.className = "form-status";
+                  }
                 }
               }
             };
 
             const rzp = new Razorpay(options);
             rzp.on('payment.failed', function(resp) {
-              // Fallback to SIZZLING Razorpay Gateway modal on checkout failure
-              openRzpModal();
               rzpBtn.disabled = false;
               rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
+              if (rzpStatus) {
+                rzpStatus.textContent = "Payment failed: " + (resp.error ? resp.error.description : "Bank transaction declined.");
+                rzpStatus.className = "form-status error";
+              }
             });
             rzp.open();
           } else {
-            // Keys not yet entered or sample key with no methods:
-            // Open the integrated SIZZLING Razorpay Gateway modal directly!
+            // Keys not configured or order creation returned error: Show clear error, do NOT fake
             rzpBtn.disabled = false;
             rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
-            openRzpModal();
+            if (rzpStatus) {
+              rzpStatus.textContent = (res && res.error) ? res.error : "Unable to initiate Razorpay payment. Please use Direct UPI QR below.";
+              rzpStatus.className = "form-status error";
+            }
           }
         })
         .catch(function(err) {
           rzpBtn.disabled = false;
           rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
-          openRzpModal();
+          if (rzpStatus) {
+            rzpStatus.textContent = "Could not connect to payment gateway. Please check your connection or pay via Direct UPI QR below.";
+            rzpStatus.className = "form-status error";
+          }
         });
       });
     }
-
-    // Modal Control Functions
-    window.openRzpModal = function() {
-      const m = document.getElementById("rzpGatewayModal");
-      if (m) {
-        m.classList.remove("is-hidden");
-        m.style.display = "flex";
-      }
-    };
-
-    window.closeRzpModal = function() {
-      const m = document.getElementById("rzpGatewayModal");
-      if (m) {
-        m.classList.add("is-hidden");
-        m.style.display = "none";
-      }
-    };
-
-    window.switchRzpTab = function(tabName, evt) {
-      document.querySelectorAll(".rzp-tab-btn").forEach(function(b) { b.classList.remove("active"); });
-      document.querySelectorAll(".rzp-tab-pane").forEach(function(p) { p.classList.remove("active"); });
-
-      const e = evt || window.event;
-      if (e && e.currentTarget) {
-        e.currentTarget.classList.add("active");
-      } else if (e && e.target) {
-        e.target.classList.add("active");
-      }
-      const pane = document.getElementById("rzpTab-" + tabName);
-      if (pane) pane.classList.add("active");
-    };
-
-    window.selectUpiApp = function(appName) {
-      const input = document.getElementById("rzpCustomUpiInput");
-      if (input) input.value = "user@" + appName.toLowerCase().replace(/\s+/g, '');
-      executeRazorpayPayment("UPI (" + appName + ")");
-    };
-
-    // Execute Payment via Gateway
-    window.executeRazorpayPayment = function(methodType) {
-      const statusEl = document.getElementById("rzpModalStatus");
-      const submitBtns = document.querySelectorAll(".rzp-pay-submit-btn");
-      submitBtns.forEach(function(b) { b.disabled = true; b.textContent = "Processing payment with bank..."; });
-
-      if (statusEl) {
-        statusEl.textContent = "Contacting payment gateway...";
-        statusEl.className = "form-status";
-      }
-
-      // Generate authentic Razorpay payment ID
-      const timestamp = Date.now();
-      const randomDigits = Math.floor(1000 + Math.random() * 9000);
-      const generatedPaymentId = "pay_rzp_" + timestamp + "_" + randomDigits;
-
-      setTimeout(function() {
-        if (statusEl) {
-          statusEl.textContent = "Payment authorized! Verifying with atelier server...";
-        }
-        verifyAndCompletePayment(generatedPaymentId, "order_rzp_" + ORDER_ID, "sig_verified_ok");
-      }, 1000);
-    };
 
     function verifyAndCompletePayment(paymentId, orderId, signature) {
       fetch("/api/order/" + ORDER_ID + "/razorpay/verify_payment", {
@@ -597,65 +369,30 @@
             localStorage.removeItem("sizzling_cart");
             window.dispatchEvent(new Event("cartUpdated"));
           } catch(e) {}
-          window.location.href = res.redirect || ("/order/" + ORDER_ID + "/confirmation?verified=1&auto_wa=1");
+          window.location.href = res.redirect || ("/order/" + ORDER_ID + "/confirmation?verified=1");
         } else {
-          alert((res && res.error) ? res.error : "Payment verification failed.");
-          const submitBtns = document.querySelectorAll(".rzp-pay-submit-btn");
-          submitBtns.forEach(function(b) { b.disabled = false; b.textContent = "Authorize & Pay"; });
+          // Verification failed: strictly keep order unpaid and inform user
+          if (rzpStatus) {
+            rzpStatus.textContent = (res && res.error) ? res.error : "Strict payment verification failed. Please contact store support.";
+            rzpStatus.className = "form-status error";
+          }
+          rzpBtn.disabled = false;
+          rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
         }
       })
       .catch(function() {
-        window.location.href = "/order/" + ORDER_ID + "/confirmation?verified=1&auto_wa=1";
+        if (rzpStatus) {
+          rzpStatus.textContent = "Network error verifying payment with server. Please check your connection.";
+          rzpStatus.className = "form-status error";
+        }
+        rzpBtn.disabled = false;
+        rzpBtn.innerHTML = "<span>🔒 Pay ₹" + ORDER_TOTAL + " via Razorpay</span>";
       });
     }
 
-    // Key configuration modal
-    window.openKeyConfigModal = function() {
-      const km = document.getElementById("rzpKeysModal");
-      if (km) {
-        km.classList.remove("is-hidden");
-        km.style.display = "flex";
-      }
-    };
-
-    window.closeKeyConfigModal = function() {
-      const km = document.getElementById("rzpKeysModal");
-      if (km) {
-        km.classList.add("is-hidden");
-        km.style.display = "none";
-      }
-    };
-
-    window.saveRazorpayKeys = function() {
-      const kId = document.getElementById("configKeyId").value.trim();
-      const kSec = document.getElementById("configKeySecret").value.trim();
-      const st = document.getElementById("configStatus");
-
-      if (!kId) {
-        if (st) { st.textContent = "Please enter Key ID."; st.className = "form-status error"; }
-        return;
-      }
-
-      fetch("/api/admin/save_razorpay_keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key_id: kId, key_secret: kSec })
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(res) {
-        if (res && res.success) {
-          if (st) { st.textContent = "✓ Keys saved! Reloading gateway..."; st.className = "form-status"; }
-          setTimeout(function() { window.location.reload(); }, 1000);
-        } else {
-          if (st) { st.textContent = (res && res.error) ? res.error : "Failed to save."; st.className = "form-status error"; }
-        }
-      })
-      .catch(function() {
-        if (st) { st.textContent = "Network error saving keys."; st.className = "form-status error"; }
-      });
-    };
-
-    // Manual UPI Reference Submission Handler
+    // ====================================================================
+    // MANUAL UPI REFERENCE SUBMISSION
+    // ====================================================================
     const payForm = document.getElementById("paymentRefForm");
     if (payForm) {
       payForm.addEventListener("submit", function(e) {
@@ -667,7 +404,7 @@
 
         if (!ref) {
           if (statusEl) {
-            statusEl.textContent = "Please enter your UPI transaction reference / UTR.";
+            statusEl.textContent = "Please enter your 12-digit UPI UTR / Reference number.";
             statusEl.className = "form-status error";
           }
           return;
@@ -675,7 +412,7 @@
 
         if (btn) {
           btn.disabled = true;
-          btn.textContent = "Logging Reference...";
+          btn.textContent = "Logging UTR Reference...";
         }
 
         fetch("/api/order/" + ORDER_ID + "/submit_payment_ref", {
@@ -707,7 +444,7 @@
             }
           } else {
             if (statusEl) {
-              statusEl.textContent = (res && res.error) ? res.error : "Something went wrong.";
+              statusEl.textContent = (res && res.error) ? res.error : "Failed to log reference.";
               statusEl.className = "form-status error";
             }
             if (btn) {
@@ -718,7 +455,7 @@
         })
         .catch(function() {
           if (statusEl) {
-            statusEl.textContent = "Could not reach the server. Please try again.";
+            statusEl.textContent = "Could not reach the server. Please check your connection.";
             statusEl.className = "form-status error";
           }
           if (btn) {
@@ -729,36 +466,61 @@
       });
     }
 
-    // Copy UPI ID helper function
+    // ====================================================================
+    // ADMIN KEY MODAL CONTROLS
+    // ====================================================================
+    window.openKeyModal = function() {
+      const m = document.getElementById("adminKeyModal");
+      if (m) { m.classList.remove("is-hidden"); m.style.display = "flex"; }
+    };
+    window.closeKeyModal = function() {
+      const m = document.getElementById("adminKeyModal");
+      if (m) { m.classList.add("is-hidden"); m.style.display = "none"; }
+    };
+    window.testAndSaveRazorpayKeys = function() {
+      const kId = document.getElementById("adminKeyId").value.trim();
+      const kSec = document.getElementById("adminKeySecret").value.trim();
+      const st = document.getElementById("adminKeyStatus");
+      if (!kId || !kSec) {
+        if (st) { st.textContent = "Both Key ID and Key Secret are required."; st.className = "form-status error"; }
+        return;
+      }
+      if (st) { st.textContent = "Testing Razorpay credentials..."; st.className = "form-status"; }
+
+      fetch("/api/admin/test_razorpay_connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key_id: kId, key_secret: kSec })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res && res.success) {
+          // Save keys
+          fetch("/api/admin/save_razorpay_keys", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key_id: kId, key_secret: kSec })
+          }).then(function() {
+            if (st) { st.textContent = "✓ Success! Connected & Saved. Reloading..."; st.className = "form-status success"; }
+            setTimeout(function() { window.location.reload(); }, 1200);
+          });
+        } else {
+          if (st) { st.textContent = (res && res.error) ? res.error : "Authentication failed."; st.className = "form-status error"; }
+        }
+      })
+      .catch(function() {
+        if (st) { st.textContent = "Connection test failed. Network error."; st.className = "form-status error"; }
+      });
+    };
+
+    // Copy UPI ID helper
     window.copyUpiId = function() {
       if (!UPI_ID) return;
       const copyBtn = document.getElementById("copyUpiBtn");
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(UPI_ID).then(function() {
-          if (copyBtn) {
-            copyBtn.textContent = "✓ Copied!";
-            setTimeout(function() { copyBtn.textContent = "Copy UPI ID"; }, 2000);
-          }
-        }).catch(function() {
-          fallbackCopy();
+          if (copyBtn) { copyBtn.textContent = "✓ Copied!"; setTimeout(function() { copyBtn.textContent = "Copy UPI ID"; }, 2000); }
         });
-      } else {
-        fallbackCopy();
-      }
-
-      function fallbackCopy() {
-        const temp = document.createElement("input");
-        temp.value = UPI_ID;
-        document.body.appendChild(temp);
-        temp.select();
-        try {
-          document.execCommand("copy");
-          if (copyBtn) {
-            copyBtn.textContent = "✓ Copied!";
-            setTimeout(function() { copyBtn.textContent = "Copy UPI ID"; }, 2000);
-          }
-        } catch (e) {}
-        document.body.removeChild(temp);
       }
     };
   })();
